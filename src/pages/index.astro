@@ -1,13 +1,11 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Card from "../components/Card.astro";
-import helloWorld from "../contracts/hello_world";
-const { result } = await helloWorld.hello({ to: "you" });
-const greeting = result.join(" ");
+import ConnectFreighter from "../components/ConnectFreighter.astro";
 ---
 
 <script is:inline>var global = global || window;</script>
-<Layout title={greeting}>
+<Layout title={"Laina - DeFi made simple."}>
 	<main>
 		<svg
 			class="astro-a"
@@ -37,7 +35,8 @@ const greeting = result.join(" ");
 				</linearGradient>
 			</defs>
 		</svg>
-		<h1>{greeting}</h1>
+		<h1>{"Welcome to Laina!"}</h1>
+		<ConnectFreighter />
 		<p class="instructions">
 			To get started, open the directory <code>src/pages</code> in your project.<br />
 			<strong>Code Challenge:</strong> Tweak the "Welcome to Astro" message above.
