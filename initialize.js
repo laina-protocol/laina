@@ -45,6 +45,7 @@ function fund_all() {
 function build_all() {
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.wasm`);
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.d`);
+  exe(`${soroban} contract build --package token`); // Token has to be built before others.
   exe(`${soroban} contract build`);
 }
 
