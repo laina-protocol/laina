@@ -82,10 +82,9 @@ fn transfer(e: &Env, token: Address, to: Address, amount: i128) {
     token::Client::new(e, &token).transfer(&e.current_contract_address(), &to, &amount);
 }
 
-//#[allow(non_upper_case_globals)]
 // Metadata that is added on to the WASM custom section
 contractmeta!(
-    key = "Description",
+    key = "Desc",
     val = "Lending pool with variable interest rate."
 );
 
@@ -155,7 +154,7 @@ impl LoanPoolTrait for LoanPoolContract {
         burn_shares(&e, balance_shares);
         transfer_a(&e, user.clone(), out);
 
-        (out, out)
+        (out, total_shares)
     }
 }
 
