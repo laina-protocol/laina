@@ -3,8 +3,8 @@ resolver = "2"
 members = ["contracts/*"]
 
 [workspace.dependencies]
-soroban-sdk = "20.3.2"
-soroban-token-sdk = { version = "20.0.0"}
+soroban-sdk = "21.0.1-preview.3"
+soroban-token-sdk = { version = "21.0.1-preview.3"}
 
 [profile.release]
 opt-level = "z"
