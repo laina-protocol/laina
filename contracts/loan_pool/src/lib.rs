@@ -154,7 +154,7 @@ impl LoanPoolTrait for LoanPoolContract {
         burn_shares(&e, balance_shares);
         transfer_a(&e, user.clone(), out);
 
-        (out, out)
+        (out, total_shares)
     }
 }
 
