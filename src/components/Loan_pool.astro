@@ -13,17 +13,15 @@ import loan_pool from "../contracts/loan_pool";
       if (publicKey) loan_pool.options.publicKey = publicKey;
     }
 
-    
-
-    button.addEventListener("click", async () => {
-      button.disabled = true;
-      button.classList.add("loading");
-
-      async function depositToLoanPool() {
+    async function depositToLoanPool() {
         try {
           const adrs = await getPublicKey();
           console.log(adrs)
           const depo = { user: adrs, amount: BigInt(1000000000) };
+
+          console.log(loan_pool.options)
+          console.log(loan_pool.spec)
+          console.log(loan_pool.fromJSON)
 
           const tx = await loan_pool.deposit(depo);
           const { result } = await tx.signAndSend({ signTransaction });
@@ -33,6 +31,11 @@ import loan_pool from "../contracts/loan_pool";
           console.error("An error occurred:", error);
         }
       }
+
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      button.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
