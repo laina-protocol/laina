@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
-        contractId: "CAGSVIIGZHMEQJDWZ6KXGKUKLG3JSBAORKQU2KVZIHXTOGWM5JZBXTM4",
+        contractId: "CBBOR7XGB3MA5ZMBELSE4A5D7QXPHEGF64PHC2QEL3O5AGMEH2IRVZJ3",
     }
 };
 export const Errors = {};
@@ -20,13 +20,15 @@ export class Client extends ContractClient {
         super(new ContractSpec(["AAAAAAAAAAAAAAAKaW5pdGlhbGl6ZQAAAAAAAgAAAAAAAAAPdG9rZW5fd2FzbV9oYXNoAAAAA+4AAAAgAAAAAAAAAAV0b2tlbgAAAAAAABMAAAAA",
             "AAAAAAAAAAAAAAAIc2hhcmVfaWQAAAAAAAAAAQAAABM=",
             "AAAAAAAAAAAAAAAHZGVwb3NpdAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAA==",
-            "AAAAAAAAAAAAAAAId2l0aGRyYXcAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+0AAAACAAAACwAAAAs="]), options);
+            "AAAAAAAAAAAAAAAId2l0aGRyYXcAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+0AAAACAAAACwAAAAs=",
+            "AAAAAAAAAAAAAAAUZ2V0X2NvbnRyYWN0X2JhbGFuY2UAAAAAAAAAAQAAAAs="]), options);
         this.options = options;
     }
     fromJSON = {
         initialize: (this.txFromJSON),
         share_id: (this.txFromJSON),
         deposit: (this.txFromJSON),
-        withdraw: (this.txFromJSON)
+        withdraw: (this.txFromJSON),
+        get_contract_balance: (this.txFromJSON)
     };
 }

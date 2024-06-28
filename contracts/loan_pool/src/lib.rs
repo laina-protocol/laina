@@ -100,6 +100,9 @@ pub trait LoanPoolTrait {
 
     // Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
     fn withdraw(e: Env, user: Address, share_amount: i128) -> (i128, i128);
+
+    // Get contract data entries
+    fn get_contract_balance(e: Env) -> i128;
 }
 
 #[contract]
@@ -155,6 +158,12 @@ impl LoanPoolTrait for LoanPoolContract {
         transfer_a(&e, user.clone(), out);
 
         (out, total_shares)
+    }
+
+
+    fn get_contract_balance(e: Env) -> i128{
+        let balance = get_total_shares(&e);
+        balance
     }
 }
 

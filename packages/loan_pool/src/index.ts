@@ -33,7 +33,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CAGSVIIGZHMEQJDWZ6KXGKUKLG3JSBAORKQU2KVZIHXTOGWM5JZBXTM4",
+    contractId: "CBBOR7XGB3MA5ZMBELSE4A5D7QXPHEGF64PHC2QEL3O5AGMEH2IRVZJ3",
   }
 } as const
 
@@ -122,6 +122,26 @@ export interface Client {
     simulate?: boolean;
   }) => Promise<AssembledTransaction<readonly [i128, i128]>>
 
+  /**
+   * Construct and simulate a get_contract_balance transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   */
+  get_contract_balance: (options?: {
+    /**
+     * The fee to pay for the transaction. Default: BASE_FEE
+     */
+    fee?: number;
+
+    /**
+     * The maximum amount of time to wait for the transaction to complete. Default: DEFAULT_TIMEOUT
+     */
+    timeoutInSeconds?: number;
+
+    /**
+     * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
+     */
+    simulate?: boolean;
+  }) => Promise<AssembledTransaction<i128>>
+
 }
 export class Client extends ContractClient {
   constructor(public readonly options: ContractClientOptions) {
@@ -129,7 +149,8 @@ export class Client extends ContractClient {
       new ContractSpec([ "AAAAAAAAAAAAAAAKaW5pdGlhbGl6ZQAAAAAAAgAAAAAAAAAPdG9rZW5fd2FzbV9oYXNoAAAAA+4AAAAgAAAAAAAAAAV0b2tlbgAAAAAAABMAAAAA",
         "AAAAAAAAAAAAAAAIc2hhcmVfaWQAAAAAAAAAAQAAABM=",
         "AAAAAAAAAAAAAAAHZGVwb3NpdAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAA==",
-        "AAAAAAAAAAAAAAAId2l0aGRyYXcAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+0AAAACAAAACwAAAAs=" ]),
+        "AAAAAAAAAAAAAAAId2l0aGRyYXcAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+0AAAACAAAACwAAAAs=",
+        "AAAAAAAAAAAAAAAUZ2V0X2NvbnRyYWN0X2JhbGFuY2UAAAAAAAAAAQAAAAs=" ]),
       options
     )
   }
@@ -137,6 +158,7 @@ export class Client extends ContractClient {
     initialize: this.txFromJSON<null>,
         share_id: this.txFromJSON<string>,
         deposit: this.txFromJSON<null>,
-        withdraw: this.txFromJSON<readonly [i128, i128]>
+        withdraw: this.txFromJSON<readonly [i128, i128]>,
+        get_contract_balance: this.txFromJSON<i128>
   }
 }
