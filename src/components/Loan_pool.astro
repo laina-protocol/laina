@@ -19,9 +19,9 @@ import loan_pool from "../contracts/loan_pool";
     let promise = loan_pool.get_contract_balance();
     console.log(promise);
     promise.then(result => {
-      const simulationValue = result.simulation.result.retval._value._attributes.lo._value;
+      const simulationValue = result.simulation.result.retval._value._attributes.lo._value; // FIXME: Property does not exist on type when it actually does.
       console.log(simulationValue);
-      currentValue.innerHTML = (simulationValue / BigInt(10000000)).toString();
+      currentValue!.innerHTML = (simulationValue / BigInt(10000000)).toString();
     }).catch(error => {
       console.error("Promise rejected with error:", error);
     })
@@ -59,28 +59,28 @@ import loan_pool from "../contracts/loan_pool";
       }
 
 
-    button_deposit.addEventListener("click", async () => {
-      button_deposit.disabled = true;
-      button_deposit.classList.add("loading");
+    button_deposit!.addEventListener("click", async () => {
+      button_deposit!.disabled = true; // FIXME: Not sure why this happens
+      button_deposit!.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
       depositToLoanPool();
   
-      button_deposit.disabled = false;
-      button_deposit.classList.remove("loading");
+      button_deposit!.disabled = false; // FIXME: Not sure why this happens
+      button_deposit!.classList.remove("loading");
     });
 
 
-    button_withdraw.addEventListener("click", async () => {
-      button_withdraw.disabled = true;
-      button_withdraw.classList.add("loading");
+    button_withdraw!.addEventListener("click", async () => {
+      button_withdraw!.disabled = true; // FIXME: Not sure why this happens
+      button_withdraw!.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
       withdrawFromLoanPool();
   
-      button_withdraw.disabled = false;
-      button_withdraw.classList.remove("loading");
+      button_withdraw!.disabled = false; // FIXME: Not sure why this happens
+      button_withdraw!.classList.remove("loading");
     });    
   </script>
