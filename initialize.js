@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { mkdirSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { mkdirSync, readdir, readdirSync, statSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -61,11 +61,14 @@ function deploy_all() {
   const contractsDir = `${dirname}/.soroban/contract-ids`;
   mkdirSync(contractsDir, { recursive: true });
 
-  const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter(file => file.endsWith('.wasm'));
+  // try to deploy only factory contract that will be used to generate others. Maybe later it has to be some sort of admin contract?
+  deploy(`${dirname}/target/wasm32-unknown-unknown/release/factory.wasm`);
 
-  wasmFiles.forEach(wasmFile => {
-    deploy(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
-  });
+  // const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter(file => file.endsWith('.wasm'));
+
+  //wasmFiles.forEach(wasmFile => {
+  //  deploy(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
+  //});
 }
 
 function bind(contract) {
