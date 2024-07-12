@@ -3,6 +3,7 @@ import { mkdirSync, readdir, readdirSync, statSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto'
 
 // Load environment variables starting with PUBLIC_ into the environment,
 // so we don't need to specify duplicate variables in .env
@@ -46,6 +47,7 @@ function build_all() {
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.wasm`);
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.d`);
   exe(`${soroban} contract build --package token`); // Token has to be built before others.
+  exe(`${soroban} contract build --package loan_pool`); // Then loan_pool as loan uses it
   exe(`${soroban} contract build`);
 }
 
@@ -57,7 +59,7 @@ function deploy(wasm) {
   exe(`(${soroban} contract deploy --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-ids/${filenameNoExtension(wasm)}.txt`);
 }
 
-function deploy_all() {
+function deploy_factory() {
   const contractsDir = `${dirname}/.soroban/contract-ids`;
   mkdirSync(contractsDir, { recursive: true });
 
@@ -69,6 +71,51 @@ function deploy_all() {
   //wasmFiles.forEach(wasmFile => {
   //  deploy(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
   //});
+}
+
+function install(wasm) {
+  // Contract installer
+  exe(`(${soroban} contract install --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`);
+}
+
+function install_all() {
+  // Install all contracts except factory and save the wasm hash to .soroban
+  const contractsDir = `${dirname}/.soroban/contract-wasm-hash`;
+  mkdirSync(contractsDir, { recursive: true });
+
+  const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`)
+  .filter(file => file.endsWith('.wasm'))
+  .filter(file => file !== 'factory.wasm');
+
+  wasmFiles.forEach(wasmFile => {
+    install(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
+  });
+}
+
+
+function deploy_lp_with_factory() {
+  // Deploy liquidity pool with factory contract
+
+  // Read values of parameters
+  const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
+  const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
+  const tokenBytes = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/token.txt`).toString().trim();
+
+  // Generate salt
+  //const salt = crypto.randomBytes(16).toString('hex');
+  const salt = 54
+  
+  // construct init_args, for now hardcoded for native testnet XLM
+  const initArgsObject = {
+    "vec": [
+      { "bytes": tokenBytes},
+      { "address": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"}
+    ]
+  };
+
+  const initArgs = JSON.stringify(initArgsObject);
+
+  exe(`(${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --deployer alice --wasm_hash ${wasmHash} --salt ${salt} --init_fn initialize --init_args '${initArgs}') | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`);
 }
 
 function bind(contract) {
@@ -123,6 +170,8 @@ function import_all() {
 // Calling the functions (equivalent to the last part of your bash script)
 fund_all();
 build_all();
-deploy_all();
+deploy_factory();
+install_all();
+deploy_lp_with_factory();
 bind_all();
 import_all();
