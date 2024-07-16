@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Address, Val, ConversionError, Env, TryFromVal};
+use soroban_sdk::{contract, contractimpl, Address, ConversionError, Env, TryFromVal, Val};
 
 mod loan_pool {
     soroban_sdk::contractimport!(
@@ -31,15 +31,24 @@ fn get_token_borrowed(e: &Env) -> Address {
 }
 
 fn get_token_collateral(e: &Env) -> Address {
-    e.storage().instance().get(&DataKey::TokenCollateral).unwrap()
+    e.storage()
+        .instance()
+        .get(&DataKey::TokenCollateral)
+        .unwrap()
 }
 
 fn get_borrowed_amount(e: &Env) -> i128 {
-    e.storage().instance().get(&DataKey::BorrowedAmount).unwrap()
+    e.storage()
+        .instance()
+        .get(&DataKey::BorrowedAmount)
+        .unwrap()
 }
 
 fn get_collateral_amount(e: &Env) -> i128 {
-    e.storage().instance().get(&DataKey::CollateralAmount).unwrap()
+    e.storage()
+        .instance()
+        .get(&DataKey::CollateralAmount)
+        .unwrap()
 }
 
 //fn get_owner(e: &Env) -> Address {
@@ -47,19 +56,27 @@ fn get_collateral_amount(e: &Env) -> i128 {
 //}
 
 fn set_token_borrowed(e: &Env, contract: Address) {
-    e.storage().instance().set(&DataKey::TokenBorrowed, &contract);
+    e.storage()
+        .instance()
+        .set(&DataKey::TokenBorrowed, &contract);
 }
 
 fn set_token_collateral(e: &Env, contract: Address) {
-    e.storage().instance().set(&DataKey::TokenCollateral, &contract);
+    e.storage()
+        .instance()
+        .set(&DataKey::TokenCollateral, &contract);
 }
 
 fn set_borrowed_amount(e: &Env, amount: i128) {
-    e.storage().instance().set(&DataKey::BorrowedAmount, &amount);
+    e.storage()
+        .instance()
+        .set(&DataKey::BorrowedAmount, &amount);
 }
 
 fn set_collateral_amount(e: &Env, amount: i128) {
-    e.storage().instance().set(&DataKey::CollateralAmount, &amount);
+    e.storage()
+        .instance()
+        .set(&DataKey::CollateralAmount, &amount);
 }
 
 //fn set_owner(e: &Env, owner: Address) {
@@ -68,7 +85,13 @@ fn set_collateral_amount(e: &Env, amount: i128) {
 
 pub trait LoanTrait {
     // Sets all of the needed information to the contract storage and creates the loan.
-    fn initialize(e: Env, pool: Address, collateral: Address, amount: i128, collateral_amount: i128);
+    fn initialize(
+        e: Env,
+        pool: Address,
+        collateral: Address,
+        amount: i128,
+        collateral_amount: i128
+    );
 }
 
 #[contract]
@@ -77,7 +100,13 @@ pub struct LoanContract;
 #[contractimpl]
 impl LoanTrait for LoanContract {
     // TODO: Borrow functionality needs to be built in to the loan_pool and then be cross-contract called from the separate loan contract.
-    fn initialize(e: Env, pool: Address, collateral: Address, amount: i128, collateral_amount: i128) {
+    fn initialize(
+        e: Env,
+        pool: Address,
+        collateral: Address,
+        amount: i128,
+        collateral_amount: i128
+    ) {
         // TODO: Check that collateral amount is large enough to allow initialization.
         // TODO: Currently it is most likely possible to create a loan for someone else. This needs to be fixed with authentication.
         set_token_borrowed(&e, pool);
