@@ -3,4 +3,4 @@ target/*
 .env
 node_modules/*
 packages/*
-src/*
+src/contracts
