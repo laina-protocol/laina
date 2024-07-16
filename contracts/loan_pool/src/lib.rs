@@ -2,7 +2,10 @@
 
 mod token;
 
-use soroban_sdk::{contract, contractimpl, contractmeta, Address, Val, ConversionError, Env, TryFromVal, BytesN, IntoVal};
+use soroban_sdk::{
+    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal,
+    TryFromVal, Val,
+};
 use token::create_contract;
 
 #[derive(Clone, Copy)]
@@ -110,7 +113,6 @@ struct LoanPoolContract;
 
 #[contractimpl]
 impl LoanPoolTrait for LoanPoolContract {
-
     fn initialize(e: Env, token_wasm_hash: BytesN<32>, token: Address) {
         let share_contract = create_contract(&e, token_wasm_hash, &token);
         token::Client::new(&e, &share_contract).initialize(
@@ -129,7 +131,7 @@ impl LoanPoolTrait for LoanPoolContract {
         get_token_share(&e)
     }
 
-    fn deposit(e: Env, user: Address, amount: i128 ) {
+    fn deposit(e: Env, user: Address, amount: i128) {
         user.require_auth(); // Depositor needs to authorize the deposit
         assert!(amount > 0, "Amount must be positive!");
 
@@ -141,12 +143,11 @@ impl LoanPoolTrait for LoanPoolContract {
 
     fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
-        
         // First transfer the pool shares that need to be redeemed
         let share_token_client = token::Client::new(&e, &get_token_share(&e));
         share_token_client.transfer(&user, &e.current_contract_address(), &amount);
 
-        let balance= get_balance_a(&e);
+        let balance = get_balance_a(&e);
         let balance_shares = get_balance_shares(&e);
 
         let total_shares = get_total_shares(&e);
@@ -160,8 +161,7 @@ impl LoanPoolTrait for LoanPoolContract {
         (out, total_shares)
     }
 
-
-    fn get_contract_balance(e: Env) -> i128{
+    fn get_contract_balance(e: Env) -> i128 {
         let balance = get_total_shares(&e);
         balance
     }
