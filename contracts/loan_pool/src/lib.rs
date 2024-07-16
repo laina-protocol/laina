@@ -116,9 +116,9 @@ impl LoanPoolTrait for LoanPoolContract {
     fn initialize(e: Env, token_wasm_hash: BytesN<32>, token: Address) {
         let share_contract = create_contract(&e, token_wasm_hash, &token);
         token::Client::new(&e, &share_contract).initialize(
-            &e.current_contract_address(), 
-            &7u32, 
-            &"XLM Pool Share Token".into_val(&e), 
+            &e.current_contract_address(),
+            &7u32,
+            &"XLM Pool Share Token".into_val(&e),
             &"pXLM".into_val(&e),
         );
 
