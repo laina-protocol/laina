@@ -16,9 +16,9 @@ The network passphrase and contract ID are exported from [index.ts](./src/index.
 
 ## To publish or not to publish
 
-This library is suitable for publishing to NPM. You can publish it to NPM using the `npm publish` command.
+This library is suitable for publishing to npm. You can publish it to npm using the `npm publish` command.
 
-But you don't need to publish this library to NPM to use it. You can add it to your project's `package.json` using a file path:
+But you don't need to publish this library to npm to use it. You can add it to your project's `package.json` using a file path:
 
 ```json
 "dependencies": {
@@ -26,7 +26,7 @@ But you don't need to publish this library to NPM to use it. You can add it to y
 }
 ```
 
-Though it seems a bit messy, we suggest generating the library directly to your `node_modules` folder automatically after each install by using a `postinstall` script. We've had the least trouble with this approach. NPM will automatically remove what it sees as erroneous directories during the `install` step, and then regenerate them when it gets to your `postinstall` step, which will keep the library up-to-date with your contract.
+Though it seems a bit messy, we suggest generating the library directly to your `node_modules` folder automatically after each install by using a `postinstall` script. We've had the least trouble with this approach. npm will automatically remove what it sees as erroneous directories during the `install` step, and then regenerate them when it gets to your `postinstall` step, which will keep the library up-to-date with your contract.
 
 ```json
 "scripts": {
