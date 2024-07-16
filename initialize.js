@@ -68,9 +68,9 @@ function deployFactory () {
 
   // const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter(file => file.endsWith('.wasm'));
 
-  //wasmFiles.forEach(wasmFile => {
-  //  deploy(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
-  //});
+  // wasmFiles.forEach(wasmFile => {
+  // deploy(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
+  // });
 }
 
 function install (wasm) {
@@ -84,14 +84,13 @@ function installAll () {
   mkdirSync(contractsDir, { recursive: true })
 
   const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`)
-  .filter(file => file.endsWith('.wasm'))
-  .filter(file => file !== 'factory.wasm')
+    .filter(file => file.endsWith('.wasm'))
+    .filter(file => file !== 'factory.wasm')
 
   wasmFiles.forEach(wasmFile => {
     install(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`)
-  });
+  })
 }
-
 
 function deployLpWithFactory () {
   // Deploy liquidity pool with factory contract
@@ -107,9 +106,9 @@ function deployLpWithFactory () {
   
   // construct init_args, for now hardcoded for native testnet XLM
   const initArgsObject = {
-    "vec": [
-      { "bytes": tokenBytes},
-      { "address": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"}
+    vec: [
+      { bytes: tokenBytes},
+      { address: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC' }
     ]
   }
 
@@ -129,7 +128,8 @@ function bindAll () {
 
   contractFiles.forEach(contractFile => {
     const contractPath = path.join(contractIdsDir, contractFile)
-    if (statSync(contractPath).size > 0) {  // Check if file is not empty
+    if (statSync(contractPath).size > 0) {
+      // Check if file is not empty
       bind(contractPath)
     }
   })
@@ -148,7 +148,7 @@ function importContract (contract) {
     `  rpcUrl,\n` +
     `${process.env.SOROBAN_NETWORK === 'local' || 'standalone' ? `  allowHttp: true,\n` : null}` +
     `  publicKey: '${GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK]}',\n` +
-    `});\n`;
+    `});\n`
 
   const outputPath = `${outputDir}/${filenameNoExt}.ts`
   writeFileSync(outputPath, importContent)
@@ -160,18 +160,19 @@ function importAll () {
   const contractFiles = readdirSync(contractIdsDir)
 
   contractFiles.forEach(contractFile => {
-    const contractPath = path.join(contractIdsDir, contractFile);
-    if (statSync(contractPath).size > 0) {  // Check if file is not empty
+    const contractPath = path.join(contractIdsDir, contractFile)
+    if (statSync(contractPath).size > 0) {
+      // Check if file is not empty
       importContract(contractPath)
     }
   })
 }
 
 // Calling the functions (equivalent to the last part of your bash script)
-fundAll();
-buildAll();
-deployFactory();
-installAll();
-deployLpWithFactory();
-bindAll();
-importAll();
+fundAll()
+buildAll()
+deployFactory()
+installAll()
+deployLpWithFactory()
+bindAll()
+importAll()
