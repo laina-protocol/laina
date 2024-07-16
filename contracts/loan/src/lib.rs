@@ -90,7 +90,7 @@ pub trait LoanTrait {
         pool: Address,
         collateral: Address,
         amount: i128,
-        collateral_amount: i128
+        collateral_amount: i128,
     );
 }
 
@@ -105,7 +105,7 @@ impl LoanTrait for LoanContract {
         pool: Address,
         collateral: Address,
         amount: i128,
-        collateral_amount: i128
+        collateral_amount: i128,
     ) {
         // TODO: Check that collateral amount is large enough to allow initialization.
         // TODO: Currently it is most likely possible to create a loan for someone else. This needs to be fixed with authentication.
