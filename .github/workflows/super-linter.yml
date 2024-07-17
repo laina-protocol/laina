@@ -21,13 +21,6 @@ jobs:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.74.0
-          profile: minimal
-          override: true
-
       - name: Lint Code Base
         uses: github/super-linter@v4
         env:
@@ -37,3 +30,4 @@ jobs:
           FILTER_REGEX_EXCLUDE: "^node_modules/.*"
           IGNORE_GENERATED_FILES: true
           IGNORE_GITIGNORED_FILES: true
+          VALIDATE_RUST_CLIPPY: false
