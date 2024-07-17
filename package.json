@@ -1,10 +1,12 @@
 {
   "dependencies": {
     "@astrojs/check": "^0.4.1",
+    "@stellar/freighter-api": "^2.0.0",
     "astro": "^4.2.4",
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
     "dotenv": "^16.4.1"
   },
   "name": "sorobanathon",
@@ -14,7 +16,8 @@
     "dev": "npm run init && astro dev",
     "init": "node initialize.js",
     "preview": "astro preview",
-    "start": "npm run init && astro dev"
+    "start": "npm run init && astro dev",
+    "continue": "astro dev"
   },
   "type": "module",
   "version": "0.0.1",

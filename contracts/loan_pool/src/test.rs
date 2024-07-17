@@ -18,14 +18,16 @@ fn create_loanpool_contract<'a>(
     token_wasm_hash: &BytesN<32>,
     token: &Address,
 ) -> LoanPoolContractClient<'a> {
-    let loanpool = LoanPoolContractClient::new(e, &e.register_contract(None, crate::LoanPoolContract {}));
+    let loanpool =
+        LoanPoolContractClient::new(e, &e.register_contract(None, crate::LoanPoolContract {}));
     loanpool.initialize(token_wasm_hash, token);
     loanpool
 }
 
 fn install_token_wasm(e: &Env) -> BytesN<32> {
     soroban_sdk::contractimport!(
-        file = "../../target/wasm32-unknown-unknown/release/token.wasm"
+        file = "../../target/wasm32-unknown-
+    unknown/release/token.wasm"
     );
     e.deployer().upload_contract_wasm(WASM)
 }
@@ -40,11 +42,7 @@ fn pool_token_minted_and_deposited() {
     let token = create_token_contract(&e, &admin1);
 
     let user1 = Address::generate(&e);
-    let loanpool = create_loanpool_contract(
-        &e,
-        &install_token_wasm(&e),
-        &token.address,
-    );
+    let loanpool = create_loanpool_contract(&e, &install_token_wasm(&e), &token.address);
 
     let token_share = token::Client::new(&e, &loanpool.share_id());
 
@@ -62,16 +60,14 @@ fn pool_token_minted_and_deposited() {
                     symbol_short!("deposit"),
                     (&user1, 100_i128).into_val(&e)
                 )),
-                sub_invocations: std::vec![
-                    AuthorizedInvocation {
-                        function: AuthorizedFunction::Contract((
-                            token.address.clone(),
-                            symbol_short!("transfer"),
-                            (&user1, &loanpool.address, 100_i128).into_val(&e)
-                        )),
-                        sub_invocations: std::vec![]
-                    }
-                ]
+                sub_invocations: std::vec![AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        token.address.clone(),
+                        symbol_short!("transfer"),
+                        (&user1, &loanpool.address, 100_i128).into_val(&e)
+                    )),
+                    sub_invocations: std::vec![]
+                }]
             }
         )]
     );
@@ -80,5 +76,4 @@ fn pool_token_minted_and_deposited() {
     assert_eq!(token_share.balance(&loanpool.address), 0);
     assert_eq!(token.balance(&user1), 900);
     assert_eq!(token.balance(&loanpool.address), 100);
-
 }

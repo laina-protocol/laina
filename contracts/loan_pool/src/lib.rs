@@ -2,7 +2,10 @@
 
 mod token;
 
-use soroban_sdk::{contract, contractimpl, contractmeta, Address, Val, ConversionError, Env, TryFromVal, BytesN, IntoVal};
+use soroban_sdk::{
+    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal,
+    TryFromVal, Val,
+};
 use token::create_contract;
 
 #[derive(Clone, Copy)]
@@ -82,10 +85,9 @@ fn transfer(e: &Env, token: Address, to: Address, amount: i128) {
     token::Client::new(e, &token).transfer(&e.current_contract_address(), &to, &amount);
 }
 
-//#[allow(non_upper_case_globals)]
 // Metadata that is added on to the WASM custom section
 contractmeta!(
-    key = "Description",
+    key = "Desc",
     val = "Lending pool with variable interest rate."
 );
 
@@ -101,6 +103,9 @@ pub trait LoanPoolTrait {
 
     // Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
     fn withdraw(e: Env, user: Address, share_amount: i128) -> (i128, i128);
+
+    // Get contract data entries
+    fn get_contract_balance(e: Env) -> i128;
 }
 
 #[contract]
@@ -108,13 +113,12 @@ struct LoanPoolContract;
 
 #[contractimpl]
 impl LoanPoolTrait for LoanPoolContract {
-
     fn initialize(e: Env, token_wasm_hash: BytesN<32>, token: Address) {
         let share_contract = create_contract(&e, token_wasm_hash, &token);
         token::Client::new(&e, &share_contract).initialize(
-            &e.current_contract_address(), 
-            &7u32, 
-            &"XLM Pool Share Token".into_val(&e), 
+            &e.current_contract_address(),
+            &7u32,
+            &"XLM Pool Share Token".into_val(&e),
             &"pXLM".into_val(&e),
         );
 
@@ -127,7 +131,7 @@ impl LoanPoolTrait for LoanPoolContract {
         get_token_share(&e)
     }
 
-    fn deposit(e: Env, user: Address, amount: i128 ) {
+    fn deposit(e: Env, user: Address, amount: i128) {
         user.require_auth(); // Depositor needs to authorize the deposit
         assert!(amount > 0, "Amount must be positive!");
 
@@ -139,12 +143,11 @@ impl LoanPoolTrait for LoanPoolContract {
 
     fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
-        
         // First transfer the pool shares that need to be redeemed
         let share_token_client = token::Client::new(&e, &get_token_share(&e));
         share_token_client.transfer(&user, &e.current_contract_address(), &amount);
 
-        let balance= get_balance_a(&e);
+        let balance = get_balance_a(&e);
         let balance_shares = get_balance_shares(&e);
 
         let total_shares = get_total_shares(&e);
@@ -155,7 +158,12 @@ impl LoanPoolTrait for LoanPoolContract {
         burn_shares(&e, balance_shares);
         transfer_a(&e, user.clone(), out);
 
-        (out, out)
+        (out, total_shares)
+    }
+
+    fn get_contract_balance(e: Env) -> i128 {
+        let balance = get_total_shares(&e);
+        balance
     }
 }
 
