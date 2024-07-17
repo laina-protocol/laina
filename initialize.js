@@ -141,6 +141,7 @@ function importContract (contract) {
   mkdirSync(outputDir, { recursive: true })
 
   /* eslint-disable quotes */
+  /* eslint-disable no-constant-condition */
   const importContent =
     `import * as Client from '${filenameNoExt}';\n` +
     `import { rpcUrl } from './util';\n\n` +
@@ -150,8 +151,9 @@ function importContract (contract) {
     `${process.env.SOROBAN_NETWORK === 'local' || 'standalone' ? `  allowHttp: true,\n` : null}` +
     `  publicKey: '${GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK]}',\n` +
     `});\n`
-  /* eslint-enable quotes*/
-  
+  /* eslint-disable no-constant-condition */
+  /* eslint-enable quotes */
+
   const outputPath = `${outputDir}/${filenameNoExt}.ts`
   writeFileSync(outputPath, importContent)
   console.log(`Created import for ${filenameNoExt}`)
