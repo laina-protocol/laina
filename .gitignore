@@ -3,3 +3,4 @@ target/*
 .env
 node_modules
 packages/*
+public
