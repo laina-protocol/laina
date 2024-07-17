@@ -103,11 +103,11 @@ function deployLpWithFactory () {
   // Generate salt
   // const salt = crypto.randomBytes(16).toString('hex');
   const salt = 54
-  
+
   // construct init_args, for now hardcoded for native testnet XLM
   const initArgsObject = {
     vec: [
-      { bytes: tokenBytes},
+      { bytes: tokenBytes },
       { address: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC' }
     ]
   }
@@ -140,6 +140,7 @@ function importContract (contract) {
   const outputDir = `${dirname}/src/contracts/`
   mkdirSync(outputDir, { recursive: true })
 
+  /* eslint-disable quotes */
   const importContent =
     `import * as Client from '${filenameNoExt}';\n` +
     `import { rpcUrl } from './util';\n\n` +
@@ -149,7 +150,8 @@ function importContract (contract) {
     `${process.env.SOROBAN_NETWORK === 'local' || 'standalone' ? `  allowHttp: true,\n` : null}` +
     `  publicKey: '${GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK]}',\n` +
     `});\n`
-
+  /* eslint-enable quotes*/
+  
   const outputPath = `${outputDir}/${filenameNoExt}.ts`
   writeFileSync(outputPath, importContent)
   console.log(`Created import for ${filenameNoExt}`)

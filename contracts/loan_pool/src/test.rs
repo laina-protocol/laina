@@ -18,15 +18,17 @@ fn create_loanpool_contract<'a>(
     token_wasm_hash: &BytesN<32>,
     token: &Address,
 ) -> LoanPoolContractClient<'a> {
-    let loanpool = 
+    let loanpool =
         LoanPoolContractClient::new(e, &e.register_contract(None, crate::LoanPoolContract {}));
     loanpool.initialize(token_wasm_hash, token);
     loanpool
 }
 
 fn install_token_wasm(e: &Env) -> BytesN<32> {
-    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-
-    unknown/release/token.wasm");
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-
+    unknown/release/token.wasm"
+    );
     e.deployer().upload_contract_wasm(WASM)
 }
 
