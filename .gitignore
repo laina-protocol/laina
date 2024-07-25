@@ -1,5 +1,2 @@
 .soroban
-target/*
-.env
 node_modules/*
-packages/*
