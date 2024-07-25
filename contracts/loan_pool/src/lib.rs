@@ -2,7 +2,7 @@
 
 mod token;
 
-use soroban_sdk::{contract, contractimpl, contractmeta, Address, Val, ConversionError, Env, TryFromVal, BytesN, IntoVal};
+use soroban_sdk::{contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, TryFromVal, Val};
 use token::create_contract;
 
 #[derive(Clone, Copy)]
@@ -10,7 +10,7 @@ use token::create_contract;
 pub enum DataKey {
     Token = 0,
     TokenShare = 1,
-    TotalShares = 3,
+    TotalShares = 2,
 }
 
 impl TryFromVal<Env, DataKey> for Val {
@@ -117,7 +117,7 @@ impl LoanPoolTrait for LoanPoolContract {
             &e.current_contract_address(), 
             &7u32, 
             &"XLM Pool Share Token".into_val(&e), 
-            &"pXLM".into_val(&e),
+            &"qXLM".into_val(&e),
         );
 
         put_token(&e, token);

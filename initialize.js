@@ -100,10 +100,9 @@ function deploy_lp_with_factory() {
   const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
   const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
   const tokenBytes = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/token.txt`).toString().trim();
-
+  const tokenAddress = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
   // Generate salt
-  //const salt = crypto.randomBytes(16).toString('hex');
-  const salt = 54
+  const salt = crypto.randomBytes(32).toString('hex');
   
   // construct init_args, for now hardcoded for native testnet XLM
   const initArgsObject = {
@@ -115,7 +114,7 @@ function deploy_lp_with_factory() {
 
   const initArgs = JSON.stringify(initArgsObject);
 
-  exe(`(${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --deployer alice --wasm_hash ${wasmHash} --salt ${salt} --init_fn initialize --init_args '${initArgs}') | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`);
+  exe(`${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt} --init_fn initialize --token_wasm_hash ${tokenBytes} --token_contract ${tokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`);
 }
 
 function bind(contract) {
