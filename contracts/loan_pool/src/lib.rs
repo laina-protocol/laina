@@ -13,7 +13,7 @@ use token::create_contract;
 pub enum DataKey {
     Token = 0,
     TokenShare = 1,
-    TotalShares = 3,
+    TotalShares = 2,
 }
 
 impl TryFromVal<Env, DataKey> for Val {
