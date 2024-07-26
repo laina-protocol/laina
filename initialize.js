@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync, statSync, writeFileSync } from 'fs'
 import { execSync } from 'child_process'
 import path from 'path'
 import { fileURLToPath } from 'url'
-// import crypto from 'crypto'
+import crypto from 'crypto'
 
 // Load environment variables starting with PUBLIC_ into the environment,
 // so we don't need to specify duplicate variables in .env

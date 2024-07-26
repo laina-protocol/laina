@@ -1,8 +1,46 @@
-<strong> Loan Pool</strong><br />
-Current liquidity: <strong id="current-liquid" aria-live="polite">???</strong><br />
-<br />
-<button data-increment aria-controls="current-liquid">Deposit</button>
-<button data-decrement aria-controls="current">Withdraw</button>
+<div class="relative flex shadow-xl bg-white mx-20 my-2 rounded-2xl px-5 py-3 justify-between">
+  <img src="/Stellar_Symbol.png" alt="Stellar lumens logo" width="59" height="50">
+  <div>
+    <strong> Stellar Lumens</strong>
+    <p>XLM</p>
+  </div>
+
+  <div>
+    <p>Total supplied </p>
+    <strong id="current-liquid" aria-live="polite">???</strong>
+  </div>
+
+  <div>
+    <p>Supply APY </p>
+    <strong>1.45%</strong>
+  </div>
+  
+  <button data-increment aria-controls="current-liquid">Deposit</button>
+  <button data-decrement aria-controls="current">Withdraw</button>
+  
+</div>
+
+<div class="relative flex shadow-xl bg-white mx-20 my-2 rounded-2xl px-5 py-3 justify-between">
+  <img src="/usdc.svg" alt="USD Coin logo" width="59" height="50">
+  <div>
+    <strong> USD Coin</strong>
+    <p>USDC</p>
+  </div>
+
+  <div>
+    <p>Total supplied </p>
+    <strong id="current-liquid" aria-live="polite">???</strong>
+  </div>
+
+  <div>
+    <p>Supply APY </p>
+    <strong>1.45%</strong>
+  </div>
+  
+  <button data-increment aria-controls="current-liquid">Deposit</button>
+  <button data-decrement aria-controls="current">Withdraw</button>
+  
+</div>
 
 <script>
 import loan_pool from "../contracts/loan_pool";

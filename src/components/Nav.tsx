@@ -8,17 +8,18 @@ export default function Nav() {
     return (
         <nav className="relative mx-12 mb-24 flex justify-between items-center pt-12 pb-6">
             <div>
-                <img src={logo.src} alt="logo" width={250}/>
+                <a href="/"><img src={logo.src} alt="logo" width={200}/>
+                </a>
             </div>
 
-            <div className="flex gap-12 bg-gray-400">
-                <a>Lend</a>
-                <a>Borrow</a>
-                <a>Liquidate</a>
+            <div className="flex gap-12 bg-gray-200 rounded-full p-2 text-white font-bold">
+                <a href="/lend">Lend</a>
+                <a href="/borrow">Borrow</a>
+                <a href="/liquidate">Liquidate</a>
             </div>
 
-            <div>
-                <a>Connect</a>
+            <div className="bg-black text-white p-2 rounded-full">
+                <a>Connect Wallet</a>
             </div>
         </nav>
     )
