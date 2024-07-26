@@ -1,5 +1,6 @@
-<div class="relative flex shadow-xl bg-white mx-20 my-2 rounded-2xl px-5 py-3 justify-between">
-  <img src="/Stellar_Symbol.png" alt="Stellar lumens logo" width="59" height="50">
+<h1 class="text-left mx-0">Lend Assets</h1>
+<div class="relative flex shadow-xl bg-white w-[700px] h-[90px] mx-20 my-2 rounded-2xl px-5 py-3 justify-between">
+  <img src="/Stellar_Symbol.png" alt="Stellar lumens logo">
   <div>
     <strong> Stellar Lumens</strong>
     <p>XLM</p>
@@ -20,8 +21,8 @@
   
 </div>
 
-<div class="relative flex shadow-xl bg-white mx-20 my-2 rounded-2xl px-5 py-3 justify-between">
-  <img src="/usdc.svg" alt="USD Coin logo" width="59" height="50">
+<div class="relative flex shadow-xl bg-white w-[700px] h-[90px] mx-20 my-2 rounded-2xl px-5 py-3 justify-between">
+  <img src="/usdc.svg" alt="USD Coin logo">
   <div>
     <strong> USD Coin</strong>
     <p>USDC</p>
@@ -29,12 +30,13 @@
 
   <div>
     <p>Total supplied </p>
-    <strong id="current-liquid" aria-live="polite">???</strong>
+    <strong>5.82M</strong>
+    <p>$5.82M</p>
   </div>
 
   <div>
     <p>Supply APY </p>
-    <strong>1.45%</strong>
+    <strong>12.34%</strong>
   </div>
   
   <button data-increment aria-controls="current-liquid">Deposit</button>
@@ -122,3 +124,62 @@ import loan_pool from "../contracts/loan_pool";
       button_withdraw!.classList.remove("loading");
     });    
   </script>
+
+<style>
+	main {
+		margin: auto;
+		padding: 1rem;
+		width: 800px;
+		max-width: calc(100% - 2rem);
+		color: rgb(0, 0, 0);
+		font-size: 20px;
+		line-height: 1.6;
+	}
+	.astro-a {
+		position: absolute;
+		top: -32px;
+		left: 50%;
+		transform: translatex(-50%);
+		width: 220px;
+		height: auto;
+		z-index: -1;
+	}
+	h1 {
+		font-size: 4rem;
+		font-weight: 700;
+		line-height: 1;
+		text-align: center;
+		margin-bottom: 1em;
+	}
+	.text-gradient {
+		background-image: var(--accent-gradient);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-size: 400%;
+		background-position: 0%;
+	}
+	.instructions {
+		margin-bottom: 2rem;
+		border: 1px solid rgba(var(--accent-light), 25%);
+		background: linear-gradient(rgba(var(--accent-dark), 66%), rgba(var(--accent-dark), 33%));
+		padding: 1.5rem;
+		border-radius: 8px;
+	}
+	.instructions code {
+		font-size: 0.8em;
+		font-weight: bold;
+		background: rgba(var(--accent-light), 12%);
+		color: rgb(var(--accent-light));
+		border-radius: 4px;
+		padding: 0.3em 0.4em;
+	}
+	.instructions strong {
+		color: rgb(var(--accent-light));
+	}
+	.link-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
+		gap: 2rem;
+		padding: 0;
+	}
+</style>
