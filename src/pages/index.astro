@@ -2,14 +2,13 @@
 import Layout from "../layouts/Layout.astro";
 import ConnectFreighter from "../components/ConnectFreighter.astro";
 import Loan_pool from "../components/Loan_pool.astro";
-import logo from "/laina_v3_shrinked.png"
+import Nav from "../components/Nav";
 ---
 
 <script is:inline>var global = global || window;</script>
 <Layout title={"Laina - DeFi made simple."}>
 	<main>
 		<div>
-			<h1>logo</h1>
 		</div>
 		<ConnectFreighter />
 		<p class="instructions">
@@ -24,7 +23,7 @@ import logo from "/laina_v3_shrinked.png"
 		padding: 1rem;
 		width: 800px;
 		max-width: calc(100% - 2rem);
-		color: white;
+		color: rgb(0, 0, 0);
 		font-size: 20px;
 		line-height: 1.6;
 	}
