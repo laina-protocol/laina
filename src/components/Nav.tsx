@@ -6,7 +6,7 @@ export default function Nav() {
     const [toggled, setToggled] = useState(false)
 
     return (
-        <nav className="relative mx-12 mb-24 flex justify-between items-center pt-12 pb-6">
+        <nav className="relative max-w-screen-lg mx-auto mb-12 flex justify-between items-center pt-12 pb-6">
             <div>
                 <a href="/"><img src={logo.src} alt="logo" width={200}/>
                 </a>
