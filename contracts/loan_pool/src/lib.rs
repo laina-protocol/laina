@@ -2,10 +2,14 @@
 
 mod token;
 
+<<<<<<< HEAD
 use soroban_sdk::{
     contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal,
     TryFromVal, Val,
 };
+=======
+use soroban_sdk::{contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, TryFromVal, Val};
+>>>>>>> e48b191de0fd01a16479e922b10775f532b46670
 use token::create_contract;
 
 #[derive(Clone, Copy)]
