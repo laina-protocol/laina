@@ -1,2 +1,6 @@
 .soroban
 node_modules/*
+.env
+node_modules
+packages/*
+CONTRIBUTING.md
