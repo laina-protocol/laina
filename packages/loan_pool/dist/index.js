@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
-        contractId: "CDTXQ464XAAOCDT3CFH6BEPBNTHAP4H4SZ2R3W4ZEEYWTRU4GWXUPV7J",
+        contractId: "CDBMEAXNS7UODC3VMPMJVVJ6AS64KIFPSSAIDDRKKSFANZSM4CXUA6BG",
     }
 };
 export const Errors = {};
@@ -21,7 +21,10 @@ export class Client extends ContractClient {
             "AAAAAAAAAAAAAAAIc2hhcmVfaWQAAAAAAAAAAQAAABM=",
             "AAAAAAAAAAAAAAAHZGVwb3NpdAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAA==",
             "AAAAAAAAAAAAAAAId2l0aGRyYXcAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+0AAAACAAAACwAAAAs=",
-            "AAAAAAAAAAAAAAAUZ2V0X2NvbnRyYWN0X2JhbGFuY2UAAAAAAAAAAQAAAAs="]), options);
+            "AAAAAAAAAAAAAAAGYm9ycm93AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAAAs=",
+            "AAAAAAAAAAAAAAAUZ2V0X2NvbnRyYWN0X2JhbGFuY2UAAAAAAAAAAQAAAAs=",
+            "AAAAAQAAAAAAAAAAAAAAClBvb2xDb25maWcAAAAAAAIAAAAAAAAABm9yYWNsZQAAAAAAEwAAAAAAAAAGc3RhdHVzAAAAAAAE",
+            "AAAAAgAAAAAAAAAAAAAAC1Bvb2xEYXRhS2V5AAAAAAQAAAABAAAAAAAAAAVUb2tlbgAAAAAAAAEAAAATAAAAAQAAAAAAAAAKU2hhcmVUb2tlbgAAAAAAAQAAABMAAAABAAAAAAAAAAlQb3NpdGlvbnMAAAAAAAABAAAAEwAAAAEAAAAAAAAAC1RvdGFsU2hhcmVzAAAAAAEAAAAL"]), options);
         this.options = options;
     }
     fromJSON = {
@@ -29,6 +32,7 @@ export class Client extends ContractClient {
         share_id: (this.txFromJSON),
         deposit: (this.txFromJSON),
         withdraw: (this.txFromJSON),
+        borrow: (this.txFromJSON),
         get_contract_balance: (this.txFromJSON)
     };
 }

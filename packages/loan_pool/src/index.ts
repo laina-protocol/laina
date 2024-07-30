@@ -33,9 +33,17 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CDTXQ464XAAOCDT3CFH6BEPBNTHAP4H4SZ2R3W4ZEEYWTRU4GWXUPV7J",
+    contractId: "CDBMEAXNS7UODC3VMPMJVVJ6AS64KIFPSSAIDDRKKSFANZSM4CXUA6BG",
   }
 } as const
+
+
+export interface PoolConfig {
+  oracle: string;
+  status: u32;
+}
+
+export type PoolDataKey = {tag: "Token", values: readonly [string]} | {tag: "ShareToken", values: readonly [string]} | {tag: "Positions", values: readonly [string]} | {tag: "TotalShares", values: readonly [i128]};
 
 export const Errors = {
   
@@ -123,6 +131,26 @@ export interface Client {
   }) => Promise<AssembledTransaction<readonly [i128, i128]>>
 
   /**
+   * Construct and simulate a borrow transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   */
+  borrow: ({user, amount}: {user: string, amount: i128}, options?: {
+    /**
+     * The fee to pay for the transaction. Default: BASE_FEE
+     */
+    fee?: number;
+
+    /**
+     * The maximum amount of time to wait for the transaction to complete. Default: DEFAULT_TIMEOUT
+     */
+    timeoutInSeconds?: number;
+
+    /**
+     * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
+     */
+    simulate?: boolean;
+  }) => Promise<AssembledTransaction<i128>>
+
+  /**
    * Construct and simulate a get_contract_balance transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
   get_contract_balance: (options?: {
@@ -150,7 +178,10 @@ export class Client extends ContractClient {
         "AAAAAAAAAAAAAAAIc2hhcmVfaWQAAAAAAAAAAQAAABM=",
         "AAAAAAAAAAAAAAAHZGVwb3NpdAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAA==",
         "AAAAAAAAAAAAAAAId2l0aGRyYXcAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+0AAAACAAAACwAAAAs=",
-        "AAAAAAAAAAAAAAAUZ2V0X2NvbnRyYWN0X2JhbGFuY2UAAAAAAAAAAQAAAAs=" ]),
+        "AAAAAAAAAAAAAAAGYm9ycm93AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAAAs=",
+        "AAAAAAAAAAAAAAAUZ2V0X2NvbnRyYWN0X2JhbGFuY2UAAAAAAAAAAQAAAAs=",
+        "AAAAAQAAAAAAAAAAAAAAClBvb2xDb25maWcAAAAAAAIAAAAAAAAABm9yYWNsZQAAAAAAEwAAAAAAAAAGc3RhdHVzAAAAAAAE",
+        "AAAAAgAAAAAAAAAAAAAAC1Bvb2xEYXRhS2V5AAAAAAQAAAABAAAAAAAAAAVUb2tlbgAAAAAAAAEAAAATAAAAAQAAAAAAAAAKU2hhcmVUb2tlbgAAAAAAAQAAABMAAAABAAAAAAAAAAlQb3NpdGlvbnMAAAAAAAABAAAAEwAAAAEAAAAAAAAAC1RvdGFsU2hhcmVzAAAAAAEAAAAL" ]),
       options
     )
   }
@@ -159,6 +190,7 @@ export class Client extends ContractClient {
         share_id: this.txFromJSON<string>,
         deposit: this.txFromJSON<null>,
         withdraw: this.txFromJSON<readonly [i128, i128]>,
+        borrow: this.txFromJSON<i128>,
         get_contract_balance: this.txFromJSON<i128>
   }
 }
