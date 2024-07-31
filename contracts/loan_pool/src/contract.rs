@@ -4,6 +4,7 @@ use crate::token::create_contract;
 use crate::positions;
 
 use soroban_sdk::storage::{self, Storage};
+use soroban_sdk::xdr::Liabilities;
 use soroban_sdk::{
     contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, TryFromVal, Val
 };
@@ -187,7 +188,11 @@ impl LoanPoolTrait for LoanPoolContract {
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // Increase users position in pool as they deposit
-        positions::increase_positions(&e, user.clone(), amount.clone());
+        // as this is deposit amount is added to receivables and
+        // liabilities & collateral stays intact
+        let liabilities: i128 = 0; // temp test param
+        let collateral: i128 = 0; // temp test param
+        positions::increase_positions(&e, user.clone(), amount.clone(), liabilities, collateral);
 
         mint_shares(&e, user, amount);
     }
@@ -211,7 +216,7 @@ impl LoanPoolTrait for LoanPoolContract {
         let out = (balance * balance_shares) / total_shares;
 
         // Decrease users position in pool as they withdraw
-        positions::decrease_positions(&e, user.clone(), amount.clone());
+        // TEMP positions::decrease_positions(&e, user.clone(), amount.clone());
 
         burn_shares(&e, balance_shares);
         transfer_a(&e, user.clone(), out);
