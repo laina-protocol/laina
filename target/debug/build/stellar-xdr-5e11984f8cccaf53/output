@@ -1,0 +1,1 @@
+cargo:rustc-env=GIT_REVISION=da0cbc6f75eaf03423810b8e9d730a03dfa8517e

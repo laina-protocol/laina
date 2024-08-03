@@ -229,6 +229,14 @@ impl LoanPoolTrait for LoanPoolContract {
     }
 
     fn borrow(e: Env, user: Address, amount: i128) -> i128 {
+        /*  
+        Borrow should check from a collateral_pool:Address
+        parameter that
+        1. The user has the balance in the given pool and it's
+        in the 'collateral' balance in Positions.
+        2. Call health-factor contract to check... or maybe this should
+        be done in a separate contract that collects all loans.
+        */
         user.require_auth();
 
         // Extend instance storage rent

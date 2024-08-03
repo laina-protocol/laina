@@ -101,11 +101,14 @@ function deployLpWithFactory () {
   const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
   const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
   const shareTokenBytes = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/token.txt`).toString().trim();
-  const tokenAddress = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
+  const xlmTokenAddress = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
+  const usdcTokenAddress = "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"
   // Generate salt
-  const salt = crypto.randomBytes(32).toString('hex');
+  const salt1 = crypto.randomBytes(32).toString('hex');
+  const salt2 = crypto.randomBytes(32).toString('hex');
 
-  exe(`${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt} --init_fn initialize --token_wasm_hash ${shareTokenBytes} --token_contract ${tokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`);
+  exe(`${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt1} --init_fn initialize --token_wasm_hash ${shareTokenBytes} --token_contract ${xlmTokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`);
+  exe(`${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt2} --init_fn initialize --token_wasm_hash ${shareTokenBytes} --token_contract ${usdcTokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/usdc_pool.txt`);
 }
 
 function bind (contract) {
