@@ -144,7 +144,11 @@ pub trait LoanPoolTrait {
     // Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
     fn withdraw(e: Env, user: Address, share_amount: i128) -> (i128, i128);
 
+    // Borrow tokens from the pool
     fn borrow(e: Env, user: Address, amount: i128) -> i128;
+
+    // Deposit tokens to the pool to be used as collateral
+    fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128;
 
     // Get contract data entries
     fn get_contract_balance(e: Env) -> i128;
@@ -241,6 +245,26 @@ impl LoanPoolTrait for LoanPoolContract {
 
         amount
 
+    }
+
+    fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128 {
+        user.require_auth();
+        assert!(amount > 0, "Amount must be positive!");
+
+        // Extend instance storage rent
+        extend_instance(e.clone());
+
+        let client = token::Client::new(&e, &get_token(&e));
+        client.transfer(&user, &e.current_contract_address(), &amount);
+
+        // Increase users position in pool as they deposit
+        // as this is collateral amount is added to collateral and
+        // liabilities & receivables stays intact
+        let liabilities: i128 = 0; // temp test param
+        let receivables: i128 = 0; // temp test param
+        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount.clone());
+
+        amount
     }
 
     fn get_contract_balance(e: Env) -> i128 {
