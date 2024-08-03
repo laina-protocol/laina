@@ -237,9 +237,12 @@ impl LoanPoolTrait for LoanPoolContract {
         let balance = get_balance_a(&e);
         assert!(amount < balance, "Borrowed amount has to be less than available balance!"); // Check that there is enough available balance
 
-        // mint debt tokens
-        // TODO: this has to be switched to use it's own token.
-        mint_shares(&e, user.clone(), amount); 
+        // Increase users position in pool as they deposit
+        // as this is debt amount is added to liabilities and
+        // collateral & receivables stays intact
+        let collateral: i128 = 0; // temp test param
+        let receivables: i128 = 0; // temp test param
+        positions::increase_positions(&e, user.clone(), receivables, amount.clone(), collateral);
 
         transfer_a(&e, user.clone(), amount);
 
