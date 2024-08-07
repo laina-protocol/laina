@@ -14,7 +14,7 @@ pub fn read_positions(e: &Env, addr: Address) -> Val {
         // we'll need to create one with zeroes
 
         // Initialize the map with the environment
-        let mut empty_positions = Map::new(&e);
+        let mut empty_positions: Map<Symbol, i128> = Map::new(&e);
 
         // Set position values as 0
         let receivables: i128 = 0;
@@ -31,9 +31,9 @@ pub fn read_positions(e: &Env, addr: Address) -> Val {
 }
 
 fn write_positions(e: &Env, addr: Address, receivables: i128, liabilities: i128, collateral: i128) {
-    let key = PoolDataKey::Positions(addr);
+    let key: PoolDataKey = PoolDataKey::Positions(addr);
     // Initialize the map with the environment
-    let mut positions = Map::new(&e);
+    let mut positions: Map<Symbol, i128> = Map::new(&e);
 
     // Set position values in the map
     positions.set(Symbol::new(&e,"receivables"), receivables);

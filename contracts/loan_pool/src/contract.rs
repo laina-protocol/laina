@@ -3,8 +3,6 @@ use crate::token;
 use crate::token::create_contract;
 use crate::positions;
 
-use soroban_sdk::storage::{self, Storage};
-use soroban_sdk::xdr::Liabilities;
 use soroban_sdk::{
     contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, TryFromVal, Val
 };

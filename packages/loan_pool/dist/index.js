@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
-        contractId: "CCGZMNPJHXGWTS3U7A6NXNDJCS4ARGEKWPYUYDYXKMTM7G6CUN7SRBRU",
+        contractId: "CDW6ATMFVGFMQNWQODMIOBNW3LVWDBPQZJ3MMXNH4AKGC7JFOHAJQIRV",
     }
 };
 export const Errors = {};

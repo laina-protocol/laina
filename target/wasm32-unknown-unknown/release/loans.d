@@ -1,0 +1,1 @@
+/home/teemu/Laina-protocol/Laina/target/wasm32-unknown-unknown/release/loans.wasm: /home/teemu/Laina-protocol/Laina/contracts/loans/src/contract.rs /home/teemu/Laina-protocol/Laina/contracts/loans/src/lib.rs /home/teemu/Laina-protocol/Laina/contracts/loans/src/positions.rs /home/teemu/Laina-protocol/Laina/contracts/loans/src/storage_types.rs
