@@ -28,7 +28,7 @@ impl Deployer {
         let token_contract_raw = Val::try_from_val(&env, &token_contract).unwrap();
 
         // Construct the init_args
-        let init_args = vec![&env, token_wasm_hash_raw, token_contract_raw];
+        let init_args: soroban_sdk::Vec<Val> = vec![&env, token_wasm_hash_raw, token_contract_raw];
 
         // Deploy the contract using the uploaded Wasm with given hash.
         let deployed_address = env
