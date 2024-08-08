@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync, statSync, writeFileSync } from 'fs'
 import { execSync } from 'child_process'
 import path from 'path'
 import { fileURLToPath } from 'url'
-// import crypto from 'crypto'
+import crypto from 'crypto'
 
 // Load environment variables starting with PUBLIC_ into the environment,
 // so we don't need to specify duplicate variables in .env
@@ -46,8 +46,10 @@ function fundAll () {
 function buildAll () {
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.wasm`)
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.d`)
-  exe(`${soroban} contract build --package token`) // Token has to be built before others.
-  exe(`${soroban} contract build --package loan_pool`) // Then loan_pool as loan uses it
+  // Tokens has to be built before others.
+  exe(`${soroban} contract build --package token`)
+  // Then loan_pool as loan_pool uses it
+  exe(`${soroban} contract build --package loan_pool`)
   exe(`${soroban} contract build`)
 }
 
@@ -96,25 +98,17 @@ function deployLpWithFactory () {
   // Deploy liquidity pool with factory contract
 
   // Read values of parameters
-  const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim()
-  const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim()
-  const tokenBytes = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/token.txt`).toString().trim()
-
+  const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
+  const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
+  const shareTokenBytes = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/token.txt`).toString().trim();
+  const xlmTokenAddress = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
+  const usdcTokenAddress = "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"
   // Generate salt
-  // const salt = crypto.randomBytes(16).toString('hex');
-  const salt = 54
+  const salt1 = crypto.randomBytes(32).toString('hex');
+  const salt2 = crypto.randomBytes(32).toString('hex');
 
-  // construct init_args, for now hardcoded for native testnet XLM
-  const initArgsObject = {
-    vec: [
-      { bytes: tokenBytes },
-      { address: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC' }
-    ]
-  }
-
-  const initArgs = JSON.stringify(initArgsObject)
-
-  exe(`(${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --deployer alice --wasm_hash ${wasmHash} --salt ${salt} --init_fn initialize --init_args '${initArgs}') | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`)
+  exe(`${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt1} --init_fn initialize --token_wasm_hash ${shareTokenBytes} --token_contract ${xlmTokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`);
+  exe(`${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt2} --init_fn initialize --token_wasm_hash ${shareTokenBytes} --token_contract ${usdcTokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/usdc_pool.txt`);
 }
 
 function bind (contract) {

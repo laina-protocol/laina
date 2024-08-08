@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Symbol, Val, Vec};
+use soroban_sdk::{contract, contractimpl, vec, Address, BytesN, Env, Symbol, TryFromVal, Val};
 
 #[contract]
 pub struct Deployer;
@@ -17,27 +17,29 @@ impl Deployer {
     /// Returns the contract address and result of the init function.
     pub fn deploy(
         env: Env,
-        deployer: Address,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         init_fn: Symbol,
-        init_args: Vec<Val>,
+        token_wasm_hash: BytesN<32>,
+        token_contract: Address,
     ) -> Address {
-        // Skip authorization if deployer is the current contract.
-        if deployer != env.current_contract_address() {
-            deployer.require_auth();
-        }
+        //convert the arguments to Val
+        let token_wasm_hash_raw = Val::try_from_val(&env, &token_wasm_hash).unwrap();
+        let token_contract_raw = Val::try_from_val(&env, &token_contract).unwrap();
+
+        // Construct the init_args
+        let init_args: soroban_sdk::Vec<Val> = vec![&env, token_wasm_hash_raw, token_contract_raw];
 
         // Deploy the contract using the uploaded Wasm with given hash.
         let deployed_address = env
             .deployer()
-            .with_address(deployer, salt)
+            .with_current_contract(salt)
             .deploy(wasm_hash);
+
 
         // Invoke the init function with the given arguments.
         let _res: Val = env.invoke_contract(&deployed_address, &init_fn, init_args);
-        // Return the contract ID of the deployed contract and the result of
-        // invoking the init result.
+        // Return the contract ID of the deployed contract
         deployed_address
     }
 }
