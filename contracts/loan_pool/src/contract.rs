@@ -4,7 +4,7 @@ use crate::token::create_contract;
 use crate::positions;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, TryFromVal, Val
+    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, String, TryFromVal, Val
 };
 
 #[derive(Clone, Copy)]
@@ -228,13 +228,13 @@ impl LoanPoolTrait for LoanPoolContract {
 
     fn borrow(e: Env, user: Address, amount: i128) -> i128 {
         /*  
-        Borrow should check from a collateral_pool:Address
-        parameter that
-        1. The user has the balance in the given pool and it's
-        in the 'collateral' balance in Positions.
-        2. Call health-factor contract to check... or maybe this should
-        be done in a separate contract that collects all loans.
+        Borrow should only be callable from the loans contract. This is as the loans contract will
+        include the logic and checks that the borrowing can be actually done. Therefore we need to
+        include a check that the caller is the loans contract.
         */
+        let address = String::from_str(&e, "CAEVALPZSSNGFKVTHKUGV7PDPAQN5XFEBJDC6JPNJHU6HFTEPPHNAZE4");
+        let contract: Address = Address::from_string(&address);
+        contract.require_auth();
         user.require_auth();
 
         // Extend instance storage rent
