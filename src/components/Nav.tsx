@@ -1,4 +1,4 @@
-import logo from "/home/teemu/Laina-protocol/Laina/public/laina_v3_shrinked.png"
+import logo from "/public/laina_v3_shrinked.png"
 
 export default function Nav() {
     return (
