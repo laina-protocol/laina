@@ -55,8 +55,8 @@
   <script>
   import loan_pool from "../contracts/loan_pool";
       import { isAllowed, getPublicKey, signTransaction} from '@stellar/freighter-api';
-      const button_deposit = document.querySelector("[data-increment]");
-      const button_borrow = document.querySelector("[data-decrement");
+      const button_deposit = document.querySelector("[data-increment]") as HTMLButtonElement;
+      const button_borrow = document.querySelector("[data-decrement") as HTMLButtonElement;
       const currentValue = document.querySelector("#current-liquid");
       if (await isAllowed()) {
         const publicKey = await getPublicKey();
@@ -66,7 +66,7 @@
   
       let promise = loan_pool.get_contract_balance();
       console.log(promise);
-      promise.then(result => {
+      promise.then((result: any) => {
         const simulationValue = result.simulation.result.retval._value._attributes.lo._value; // FIXME: Property does not exist on type when it actually does.
         console.log(simulationValue);
         currentValue!.innerHTML = (simulationValue / BigInt(10000000)).toString();
@@ -108,28 +108,28 @@
         }
   
   
-      button_deposit!.addEventListener("click", async () => {
-        button_deposit!.disabled = true; // FIXME: Not sure why this happens
-        button_deposit!.classList.add("loading");
+      button_deposit.addEventListener("click", async () => {
+        button_deposit.disabled = true;
+        button_deposit.classList.add("loading");
   
         // Ensure that getPublicKey and signTransaction are defined and available
         // Call the async function
         depositCollateralToLoanPool();
     
-        button_deposit!.disabled = false; // FIXME: Not sure why this happens
-        button_deposit!.classList.remove("loading");
+        button_deposit.disabled = false;
+        button_deposit.classList.remove("loading");
       });
 
-      button_borrow!.addEventListener("click", async () => {
-        button_borrow!.disabled = true; // FIXME: Not sure why this happens
-        button_borrow!.classList.add("loading");
+      button_borrow.addEventListener("click", async () => {
+        button_borrow.disabled = true;
+        button_borrow.classList.add("loading");
   
         // Ensure that getPublicKey and signTransaction are defined and available
         // Call the async function
         borrowFromLoanPool();
     
-        button_borrow!.disabled = false; // FIXME: Not sure why this happens
-        button_borrow!.classList.remove("loading");
+        button_borrow.disabled = false;
+        button_borrow.classList.remove("loading");
       });
     
     </script>
