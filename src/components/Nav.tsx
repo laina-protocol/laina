@@ -1,10 +1,6 @@
 import logo from "/home/teemu/Laina-protocol/Laina/public/laina_v3_shrinked.png"
-import {motion} from 'framer-motion'
-import { useState } from "react"
 
 export default function Nav() {
-    const [toggled, setToggled] = useState(false)
-
     return (
         <nav className="relative max-w-screen-lg mx-auto mb-12 flex justify-between items-center pt-12 pb-6">
             <div>
