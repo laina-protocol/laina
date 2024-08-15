@@ -33,11 +33,11 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CAEVALPZSSNGFKVTHKUGV7PDPAQN5XFEBJDC6JPNJHU6HFTEPPHNAZE4",
+    contractId: "CCR7ARWZN4WODMEWVTRCMPPJJQKE2MBKUPJBSYWCDEOT3OLBPAPEGLPH",
   }
 } as const
 
-export type LoansDataKey = {tag: "Loan", values: readonly [string]};
+export type LoansDataKey = {tag: "Loan", values: readonly [string]} | {tag: "Addresses", values: void};
 
 export const Errors = {
   
@@ -64,16 +64,38 @@ export interface Client {
     simulate?: boolean;
   }) => Promise<AssembledTransaction<null>>
 
+  /**
+   * Construct and simulate a add_interest transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   */
+  add_interest: (options?: {
+    /**
+     * The fee to pay for the transaction. Default: BASE_FEE
+     */
+    fee?: number;
+
+    /**
+     * The maximum amount of time to wait for the transaction to complete. Default: DEFAULT_TIMEOUT
+     */
+    timeoutInSeconds?: number;
+
+    /**
+     * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
+     */
+    simulate?: boolean;
+  }) => Promise<AssembledTransaction<null>>
+
 }
 export class Client extends ContractClient {
   constructor(public readonly options: ContractClientOptions) {
     super(
       new ContractSpec([ "AAAAAAAAAAAAAAAKaW5pdGlhbGl6ZQAAAAAABQAAAAAAAAAEdXNlcgAAABMAAAAAAAAACGJvcnJvd2VkAAAACwAAAAAAAAANYm9ycm93ZWRfZnJvbQAAAAAAABMAAAAAAAAACmNvbGxhdGVyYWwAAAAAAAsAAAAAAAAAD2NvbGxhdGVyYWxfZnJvbQAAAAATAAAAAA==",
-        "AAAAAgAAAAAAAAAAAAAADExvYW5zRGF0YUtleQAAAAEAAAABAAAAAAAAAARMb2FuAAAAAQAAABM=" ]),
+        "AAAAAAAAAAAAAAAMYWRkX2ludGVyZXN0AAAAAAAAAAA=",
+        "AAAAAgAAAAAAAAAAAAAADExvYW5zRGF0YUtleQAAAAIAAAABAAAAAAAAAARMb2FuAAAAAQAAABMAAAAAAAAAAAAAAAlBZGRyZXNzZXMAAAA=" ]),
       options
     )
   }
   public readonly fromJSON = {
-    initialize: this.txFromJSON<null>
+    initialize: this.txFromJSON<null>,
+        add_interest: this.txFromJSON<null>
   }
 }

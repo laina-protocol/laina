@@ -18,6 +18,7 @@ pub(crate) const POSITIONS_LIFETIME_THRESHOLD: u32 = POSITIONS_BUMP_AMOUNT - DAY
 pub enum LoansDataKey {
     // Users positions in the pool
     Loan(Address),
+    Addresses,
 }
 
 /* Instance rent bumper */

@@ -232,7 +232,7 @@ impl LoanPoolTrait for LoanPoolContract {
         include the logic and checks that the borrowing can be actually done. Therefore we need to
         include a check that the caller is the loans contract.
         */
-        let address = String::from_str(&e, "CAEVALPZSSNGFKVTHKUGV7PDPAQN5XFEBJDC6JPNJHU6HFTEPPHNAZE4");
+        let address = String::from_str(&e, "CCR7ARWZN4WODMEWVTRCMPPJJQKE2MBKUPJBSYWCDEOT3OLBPAPEGLPH");
         let contract: Address = Address::from_string(&address);
         contract.require_auth();
         user.require_auth();
