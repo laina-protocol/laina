@@ -58,10 +58,10 @@
     import usdc_pool from "../contracts/usdc_pool";
     import { isAllowed, getPublicKey, signTransaction} from '@stellar/freighter-api';
 
-    const xlm_button_deposit = document.querySelector("[xlm-deposit]");
-    const xlm_button_withdraw = document.querySelector("[xlm-withdraw]");
-    const usdc_button_deposit = document.querySelector("[usdc-deposit]");
-    const usdc_button_withdraw = document.querySelector("[usdc-withdraw]");
+    const xlm_button_deposit = document.querySelector("[xlm-deposit]") as HTMLButtonElement;
+    const xlm_button_withdraw = document.querySelector("[xlm-withdraw]") as HTMLButtonElement;
+    const usdc_button_deposit = document.querySelector("[usdc-deposit]") as HTMLButtonElement;
+    const usdc_button_withdraw = document.querySelector("[usdc-withdraw]") as HTMLButtonElement;
 
     const currentValue = document.querySelector("#current-liquid");
     const currentValueUsdc = document.querySelector("#current-liquid-usdc")
@@ -77,10 +77,15 @@
     function update_xlm_deposited () {
       let promise = loan_pool.get_contract_balance();
       console.log(promise);
-      promise.then(result => {
-        const simulationValue = result.simulation.result.retval._value._attributes.lo._value; // FIXME: Property does not exist on type when it actually does.
-        console.log(simulationValue);
-        currentValue!.innerHTML = (simulationValue / BigInt(10000000)).toString(); // FIXME: Proper bigInt value handling, related to fixme before.
+      promise.then((result: any) => {
+        if(result.simulation) {
+          const simulationValue = result.simulation.result.retval._value._attributes.lo._value; // FIXME: Property does not exist on type when it actually does.
+          console.log(simulationValue);
+          currentValue!.innerHTML = (simulationValue / BigInt(10000000)).toString(); // FIXME: Proper bigInt value handling, related to fixme before.
+        } else {
+          // Handle the case where result.simulation is undefined
+          console.error('Simulation result is undefined')
+        }
       }).catch(error => {
         console.error("Promise rejected with error:", error);
     })
@@ -88,13 +93,19 @@
 
     update_xlm_deposited();
 
+    
     function update_usdc_deposited () {
       let promise_usdc = usdc_pool.get_contract_balance();
       console.log(promise_usdc);
-      promise_usdc.then(result => {
-        const simulationValue = result.simulation.result.retval._value._attributes.lo._value; // FIXME: Property does not exist on type when it actually does.
-        console.log(simulationValue);
-        currentValueUsdc!.innerHTML = (simulationValue / BigInt(10000000)).toString(); // FIXME: Proper bigInt value handling, related to fixme before.
+      promise_usdc.then((result: any) => {
+        if (result.simulation) {
+          const simulationValue = result.simulation.result.retval._value._attributes.lo._value; // FIXME: Property does not exist on type when it actually does.
+          console.log(simulationValue);
+          currentValueUsdc!.innerHTML = (simulationValue / BigInt(10000000)).toString(); // FIXME: Proper bigInt value handling, related to fixme before.
+        } else {
+          // Handle the case where result.simulation is undefined
+          console.error('Simulation result is undefined')
+        }
       }).catch(error => {
         console.error("Promise rejected with error:", error);
       })
@@ -166,55 +177,55 @@
       }
 
 
-    xlm_button_deposit!.addEventListener("click", async () => {
-      xlm_button_deposit!.disabled = true; // FIXME: Not sure why this happens
-      xlm_button_deposit!.classList.add("loading");
+    xlm_button_deposit.addEventListener("click", async () => {
+      xlm_button_deposit.disabled = true;
+      xlm_button_deposit.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
       depositToLoanPool();
   
-      xlm_button_deposit!.disabled = false; // FIXME: Not sure why this happens
-      xlm_button_deposit!.classList.remove("loading");
+      xlm_button_deposit.disabled = false;
+      xlm_button_deposit.classList.remove("loading");
       update_xlm_deposited();
     });
 
 
-    xlm_button_withdraw!.addEventListener("click", async () => {
-      xlm_button_withdraw!.disabled = true; // FIXME: Not sure why this happens
-      xlm_button_withdraw!.classList.add("loading");
+    xlm_button_withdraw.addEventListener("click", async () => {
+      xlm_button_withdraw.disabled = true;
+      xlm_button_withdraw.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
       withdrawFromLoanPool();
   
-      xlm_button_withdraw!.disabled = false; // FIXME: Not sure why this happens
+      xlm_button_withdraw!.disabled = false;
       xlm_button_withdraw!.classList.remove("loading");
     });
 
-    usdc_button_deposit!.addEventListener("click", async () => {
-      usdc_button_deposit!.disabled = true; // FIXME: Not sure why this happens
-      usdc_button_deposit!.classList.add("loading");
+    usdc_button_deposit.addEventListener("click", async () => {
+      usdc_button_deposit.disabled = true;
+      usdc_button_deposit.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
       depositToUsdcPool();
   
-      usdc_button_deposit!.disabled = false; // FIXME: Not sure why this happens
-      usdc_button_deposit!.classList.remove("loading");
+      usdc_button_deposit.disabled = false;
+      usdc_button_deposit.classList.remove("loading");
     });
 
 
-    usdc_button_withdraw!.addEventListener("click", async () => {
-      usdc_button_withdraw!.disabled = true; // FIXME: Not sure why this happens
-      usdc_button_withdraw!.classList.add("loading");
+    usdc_button_withdraw.addEventListener("click", async () => {
+      usdc_button_withdraw.disabled = true;
+      usdc_button_withdraw.classList.add("loading");
 
       // Ensure that getPublicKey and signTransaction are defined and available
       // Call the async function
       withdrawFromUsdcPool();
   
-      usdc_button_withdraw!.disabled = false; // FIXME: Not sure why this happens
-      usdc_button_withdraw!.classList.remove("loading");
+      usdc_button_withdraw.disabled = false;
+      usdc_button_withdraw .classList.remove("loading");
     });  
   </script>
 
