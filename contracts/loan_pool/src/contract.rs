@@ -1,12 +1,9 @@
-use crate::positions;
 use crate::pool;
-use crate::storage_types::{
-    self, extend_instance, PoolDataKey, INSTANCE_BUMP_AMOUNT, INSTANCE_LIFETIME_THRESHOLD,
-};
+use crate::positions;
+use crate::storage_types::extend_instance;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, String,
-    TryFromVal, Val, token::Client, Map, Symbol,
+    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal,
 };
 
 // Metadata that is added on to the WASM custom section
@@ -52,7 +49,8 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        transfer(&e, &user, &e.current_contract_address(), &amount);
+        let client = token::Client::new(&e, &pool::read_token(&e));
+        client.transfer(&user, &e.current_contract_address(), &amount);
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
@@ -68,8 +66,8 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let positions_val = positions::read_positions(&e, user);
-        let positions_map: Map<Symbol, i128> = Map::try_from_val(e, &positions_val).unwrap();
+        let positions_val = positions::read_positions(&e, user.clone());
+        let positions_map: Map<Symbol, i128> = Map::try_from_val(&e, &positions_val).unwrap();
         // Get current positions from the map
         let balance = positions_map.get_unchecked(Symbol::new(&e, "receivables"));
 
@@ -83,7 +81,8 @@ impl LoanPoolTrait for LoanPoolContract {
         // Decrease users position in pool as they withdraw
         // TEMP positions::decrease_positions(&e, user.clone(), amount.clone());
 
-        transfer(&e, user.clone(), out);
+        let client = token::Client::new(&e, &pool::read_token(&e));
+        client.transfer(&e.current_contract_address(), &user, &amount);
 
         (out, total_balance)
     }
@@ -105,7 +104,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let balance = get_balance_a(&e);
+        let balance = pool::read_available_balance(&e);
         assert!(
             amount < balance,
             "Borrowed amount has to be less than available balance!"
@@ -118,7 +117,8 @@ impl LoanPoolTrait for LoanPoolContract {
         let receivables: i128 = 0; // temp test param
         positions::increase_positions(&e, user.clone(), receivables, amount.clone(), collateral);
 
-        transfer(&e, user.clone(), amount);
+        let client = token::Client::new(&e, &pool::read_token(&e));
+        client.transfer(&e.current_contract_address(), &user, &amount);
 
         amount
     }
@@ -130,7 +130,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let client = token::Client::new(&e, &get_token(&e));
+        let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // Increase users position in pool as they deposit
@@ -147,11 +147,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let balance = get_total_shares(&e);
+        let balance = pool::read_total_balance(&e);
         balance
     }
-}
-
-fn transfer(e: &Env) {
-
 }

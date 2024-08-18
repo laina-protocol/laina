@@ -31,6 +31,8 @@ pub enum PoolDataKey {
     TotalShares,
     // Total balance of pool
     TotalBalance,
+    // Available balance of pool
+    AvailableBalance,
 }
 
 /* Instance rent bumper */
