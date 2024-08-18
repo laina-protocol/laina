@@ -16,7 +16,8 @@ export default function Nav() {
 			</div>
 
 			<div className="bg-black text-white px-8 py-2 rounded-full">
-				<a>Connect Wallet</a>
+				{/* biome-ignore lint: TODO: connect wallet */}
+				<a href="#">Connect Wallet</a>
 			</div>
 		</nav>
 	);

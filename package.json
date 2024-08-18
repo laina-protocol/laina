@@ -27,6 +27,7 @@
     "preview": "astro preview",
     "start": "npm run init && astro dev",
     "continue": "astro dev",
+    "lint": "npx @biomejs/biome check --write ./src",
     "format": "npx @biomejs/biome format --write ./src"
   },
   "type": "module",
