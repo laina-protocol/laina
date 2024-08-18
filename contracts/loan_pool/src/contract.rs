@@ -40,6 +40,8 @@ impl LoanPoolTrait for LoanPoolContract {
     fn initialize(e: Env, token: Address) {
         pool::write_token(&e, token);
         pool::write_total_shares(&e, 0);
+        pool::write_total_balance(&e, 0);
+        pool::write_available_balance(&e, 0);
     }
 
     fn deposit(e: Env, user: Address, amount: i128) {

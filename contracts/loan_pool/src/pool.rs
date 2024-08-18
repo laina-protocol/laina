@@ -37,12 +37,14 @@ pub fn read_total_balance(e: &Env) -> i128 {
     e.storage().persistent().get(&key).unwrap()
 }
 
-fn write_available_balance(e: &Env) {}
+pub fn write_available_balance(e: &Env, amount: i128) {
+    let key: PoolDataKey = PoolDataKey::AvailableBalance;
 
-pub fn increase_available_balance(e: &Env) {}
-
-pub fn decrease_available_balance(e: &Env) {}
+    e.storage().persistent().set(&key, &amount);
+}
 
 pub fn read_available_balance(e: &Env) -> i128 {
-    1200
+    let key: PoolDataKey = PoolDataKey::AvailableBalance;
+
+    e.storage().persistent().get(&key).unwrap()
 }

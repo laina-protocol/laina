@@ -1,11 +1,8 @@
 use crate::positions;
-use crate::storage_types::{
-    self, extend_instance, LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
-};
+use crate::storage_types::{POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
 
 use soroban_sdk::{
-    contract, contractimpl, vec, Address, BytesN, ConversionError, Env, IntoVal, Map, Symbol,
-    TryFromVal, Val, Vec,
+    contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec,
 };
 
 pub trait LoansTrait {
