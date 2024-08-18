@@ -1,10 +1,9 @@
-name: Rust Format Check
+name: "Rust: Format Check"
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - "**"
 
 jobs:
   rustfmt:

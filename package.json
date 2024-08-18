@@ -15,8 +15,11 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.8.3",
     "@vitejs/plugin-basic-ssl": "^1.1.0",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "prettier": "^3.3.3",
+    "prettier-plugin-astro": "^0.14.1"
   },
   "name": "sorobanathon",
   "scripts": {
@@ -27,8 +30,10 @@
     "preview": "astro preview",
     "start": "npm run init && astro dev",
     "continue": "astro dev",
-    "lint": "npx @biomejs/biome check --write ./src",
-    "format": "npx @biomejs/biome format --write ./src"
+    "lint": "biome check --write ./src",
+    "format": "prettier --write ./src",
+    "prettier:check": "prettier --check ./src",
+    "biome:check": "biome check ./src"
   },
   "type": "module",
   "version": "0.0.1",
