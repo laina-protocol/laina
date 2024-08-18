@@ -25,8 +25,6 @@ pub struct PoolConfig {
 pub enum PoolDataKey {
     // Pools tokens address
     Token(Address),
-    // Token address for pool share token
-    ShareToken(Address),
     // Users positions in the pool
     Positions(Address),
     // Total amount of shares in circulation
