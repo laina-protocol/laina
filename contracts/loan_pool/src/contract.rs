@@ -1,11 +1,12 @@
 use crate::positions;
+use crate::pool;
 use crate::storage_types::{
     self, extend_instance, PoolDataKey, INSTANCE_BUMP_AMOUNT, INSTANCE_LIFETIME_THRESHOLD,
 };
 
 use soroban_sdk::{
     contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, String,
-    TryFromVal, Val,
+    TryFromVal, Val, token::Client, Map, Symbol,
 };
 
 // Metadata that is added on to the WASM custom section
@@ -17,9 +18,6 @@ contractmeta!(
 pub trait LoanPoolTrait {
     // Sets the token contract address for the pool
     fn initialize(e: Env, token: Address);
-
-    // Returns the token contract address for the pool share token
-    fn share_id(e: Env) -> Address;
 
     // Deposits token. Also, mints pool shares for the "user" Identifier.
     fn deposit(e: Env, user: Address, amount: i128);
@@ -43,15 +41,8 @@ struct LoanPoolContract;
 #[contractimpl]
 impl LoanPoolTrait for LoanPoolContract {
     fn initialize(e: Env, token: Address) {
-        put_token(&e, token);
-        put_total_shares(&e, 0);
-    }
-
-    fn share_id(e: Env) -> Address {
-        // Extend instance storage rent
-        extend_instance(e.clone());
-
-        get_token_share(&e)
+        pool::write_token(&e, token);
+        pool::write_total_shares(&e, 0);
     }
 
     fn deposit(e: Env, user: Address, amount: i128) {
@@ -69,8 +60,6 @@ impl LoanPoolTrait for LoanPoolContract {
         let liabilities: i128 = 0; // temp test param
         let collateral: i128 = 0; // temp test param
         positions::increase_positions(&e, user.clone(), amount.clone(), liabilities, collateral);
-
-        mint_shares(&e, user, amount);
     }
 
     fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
@@ -79,25 +68,24 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        // First transfer the pool shares that need to be redeemed
-        let share_token_client = token::Client::new(&e, &get_token_share(&e));
-        share_token_client.transfer(&user, &e.current_contract_address(), &amount);
+        let positions_val = positions::read_positions(&e, user);
+        let positions_map: Map<Symbol, i128> = Map::try_from_val(e, &positions_val).unwrap();
+        // Get current positions from the map
+        let balance = positions_map.get_unchecked(Symbol::new(&e, "receivables"));
 
-        let balance = get_balance_a(&e);
-        let balance_shares = get_balance_shares(&e);
+        let balance_shares = pool::read_total_shares(&e);
 
-        let total_shares = get_total_shares(&e);
+        let total_balance = pool::read_total_balance(&e);
 
         // Now calculate the withdraw amounts
-        let out = (balance * balance_shares) / total_shares;
+        let out = (balance * balance_shares) / total_balance;
 
         // Decrease users position in pool as they withdraw
         // TEMP positions::decrease_positions(&e, user.clone(), amount.clone());
 
-        burn_shares(&e, balance_shares);
-        transfer_a(&e, user.clone(), out);
+        transfer(&e, user.clone(), out);
 
-        (out, total_shares)
+        (out, total_balance)
     }
 
     fn borrow(e: Env, user: Address, amount: i128) -> i128 {
@@ -130,7 +118,7 @@ impl LoanPoolTrait for LoanPoolContract {
         let receivables: i128 = 0; // temp test param
         positions::increase_positions(&e, user.clone(), receivables, amount.clone(), collateral);
 
-        transfer_a(&e, user.clone(), amount);
+        transfer(&e, user.clone(), amount);
 
         amount
     }
@@ -164,118 +152,6 @@ impl LoanPoolTrait for LoanPoolContract {
     }
 }
 
-#[derive(Clone, Copy)]
-#[repr(u32)]
-pub enum DataKey {
-    Token = 0,
-    TokenShare = 1,
-    TotalShares = 2,
-}
+fn transfer(e: &Env) {
 
-impl TryFromVal<Env, DataKey> for Val {
-    type Error = ConversionError;
-
-    fn try_from_val(_env: &Env, v: &DataKey) -> Result<Self, Self::Error> {
-        Ok((*v as u32).into())
-    }
-}
-
-fn get_token(e: &Env) -> Address {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().get(&DataKey::Token).unwrap()
-}
-
-fn get_token_share(e: &Env) -> Address {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().get(&DataKey::TokenShare).unwrap()
-}
-
-fn get_total_shares(e: &Env) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().get(&DataKey::TotalShares).unwrap()
-}
-
-fn get_balance(e: &Env, contract: Address) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    token::Client::new(e, &contract).balance(&e.current_contract_address())
-}
-
-fn get_balance_a(e: &Env) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    get_balance(e, get_token(e))
-}
-
-fn get_balance_shares(e: &Env) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    get_balance(e, get_token_share(e))
-}
-
-fn put_token(e: &Env, contract: Address) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().set(&DataKey::Token, &contract);
-}
-
-fn put_token_share(e: &Env, contract: Address) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().set(&DataKey::TokenShare, &contract);
-}
-
-fn put_total_shares(e: &Env, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().set(&DataKey::TotalShares, &amount)
-}
-
-fn burn_shares(e: &Env, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    let total = get_total_shares(e);
-    let share_contract = get_token_share(e);
-
-    token::Client::new(e, &share_contract).burn(&e.current_contract_address(), &amount);
-    put_total_shares(e, total - amount);
-}
-
-fn mint_shares(e: &Env, to: Address, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    let total = get_total_shares(e);
-    let share_contract_id = get_token_share(e);
-
-    token::Client::new(e, &share_contract_id).mint(&to, &amount);
-
-    put_total_shares(e, total + amount);
-}
-
-fn transfer_a(e: &Env, to: Address, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    transfer(e, get_token(e), to, amount);
-}
-
-fn transfer(e: &Env, token: Address, to: Address, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    token::Client::new(e, &token).transfer(&e.current_contract_address(), &to, &amount);
 }

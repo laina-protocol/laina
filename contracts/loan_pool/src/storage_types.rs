@@ -24,11 +24,13 @@ pub struct PoolConfig {
 #[contracttype]
 pub enum PoolDataKey {
     // Pools tokens address
-    Token(Address),
+    Token,
     // Users positions in the pool
     Positions(Address),
     // Total amount of shares in circulation
-    TotalShares(i128),
+    TotalShares,
+    // Total balance of pool
+    TotalBalance,
 }
 
 /* Instance rent bumper */
