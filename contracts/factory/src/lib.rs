@@ -31,11 +31,7 @@ impl Deployer {
         let init_args: soroban_sdk::Vec<Val> = vec![&env, token_wasm_hash_raw, token_contract_raw];
 
         // Deploy the contract using the uploaded Wasm with given hash.
-        let deployed_address = env
-            .deployer()
-            .with_current_contract(salt)
-            .deploy(wasm_hash);
-
+        let deployed_address = env.deployer().with_current_contract(salt).deploy(wasm_hash);
 
         // Invoke the init function with the given arguments.
         let _res: Val = env.invoke_contract(&deployed_address, &init_fn, init_args);
