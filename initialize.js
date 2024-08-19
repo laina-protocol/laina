@@ -68,7 +68,7 @@ function deployFactory() {
   // try to deploy only factory contract that will be used to generate others. Maybe later it has to be some sort of admin contract?
   deploy(`${dirname}/target/wasm32-unknown-unknown/release/factory.wasm`);
   // Deploy loans contract as there will only be one for all
-  // deploy(`${dirname}/target/wasm32-unknown-unknown/release/loans.wasm`)
+  deploy(`${dirname}/target/wasm32-unknown-unknown/release/loan_manager.wasm`);
 
   // const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter(file => file.endsWith('.wasm'));
 
