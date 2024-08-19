@@ -1,13 +1,11 @@
 use crate::positions;
-use crate::storage_types::{
-    self, extend_instance, LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
-};
+use crate::storage_types::{POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
 
 use soroban_sdk::{
-    contract, contractimpl, vec, Address, BytesN, ConversionError, Env, IntoVal, Map, Symbol,
-    TryFromVal, Val, Vec,
+    contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec,
 };
 
+#[allow(dead_code)]
 pub trait LoansTrait {
     // Initialize new loan
     fn initialize(
@@ -22,6 +20,7 @@ pub trait LoansTrait {
     fn add_interest(e: Env);
 }
 
+#[allow(dead_code)]
 #[contract]
 struct LoansContract;
 
@@ -50,7 +49,7 @@ impl LoansTrait for LoansContract {
 
         // Create args for borrow
         let borrowed_val: Val = Val::try_from_val(&e, &borrowed).unwrap();
-        let args_borrow: soroban_sdk::Vec<Val> = vec![&e, user_val.clone(), borrowed_val];
+        let args_borrow: soroban_sdk::Vec<Val> = vec![&e, user_val, borrowed_val];
         // Function to be called
         let func2: Symbol = Symbol::new(&e, "borrow");
         // Borrow the funds
@@ -83,19 +82,12 @@ impl LoansTrait for LoansContract {
 
     fn add_interest(e: Env) {
         // Get current interest rates of pools.
-        let apy = 12000; // temporary, also this is 12,000% * 1000. We'll want to make calculations using integers only if possible.
-                         // Get ledger number of last time rates were added and calculate the rate for the time between
-        let last_ledger: u32 = 1014250; // temporary, also this has to be inserted to storage.
-        let current_ledger: u32 = e.ledger().sequence();
-        let ledgers_in_year: u32 = 6307200; // temporary, this should be made a global constant. This is assuming 5s ledger and not a leap year.
-        let ledgers_between: u32 = current_ledger - last_ledger;
 
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
         and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
         Perfect calculations are impossible in real world time as we must use ledgers as our time and ledger times vary between 5-6s.
         */
-        let interest: u32 = (apy / ledgers_in_year) * ledgers_between;
 
         // Update current ledger as the new 'last time'
 

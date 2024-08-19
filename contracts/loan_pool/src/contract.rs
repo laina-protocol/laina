@@ -1,130 +1,10 @@
+use crate::pool;
 use crate::positions;
-use crate::storage_types::{
-    self, extend_instance, PoolDataKey, INSTANCE_BUMP_AMOUNT, INSTANCE_LIFETIME_THRESHOLD,
-};
-use crate::token;
-use crate::token::create_contract;
+use crate::storage_types::extend_instance;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, String,
-    TryFromVal, Val,
+    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal, Val,
 };
-
-#[derive(Clone, Copy)]
-#[repr(u32)]
-pub enum DataKey {
-    Token = 0,
-    TokenShare = 1,
-    TotalShares = 2,
-}
-
-impl TryFromVal<Env, DataKey> for Val {
-    type Error = ConversionError;
-
-    fn try_from_val(_env: &Env, v: &DataKey) -> Result<Self, Self::Error> {
-        Ok((*v as u32).into())
-    }
-}
-
-fn get_token(e: &Env) -> Address {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().get(&DataKey::Token).unwrap()
-}
-
-fn get_token_share(e: &Env) -> Address {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().get(&DataKey::TokenShare).unwrap()
-}
-
-fn get_total_shares(e: &Env) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().get(&DataKey::TotalShares).unwrap()
-}
-
-fn get_balance(e: &Env, contract: Address) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    token::Client::new(e, &contract).balance(&e.current_contract_address())
-}
-
-fn get_balance_a(e: &Env) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    get_balance(e, get_token(e))
-}
-
-fn get_balance_shares(e: &Env) -> i128 {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    get_balance(e, get_token_share(e))
-}
-
-fn put_token(e: &Env, contract: Address) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().set(&DataKey::Token, &contract);
-}
-
-fn put_token_share(e: &Env, contract: Address) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().set(&DataKey::TokenShare, &contract);
-}
-
-fn put_total_shares(e: &Env, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    e.storage().instance().set(&DataKey::TotalShares, &amount)
-}
-
-fn burn_shares(e: &Env, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    let total = get_total_shares(e);
-    let share_contract = get_token_share(e);
-
-    token::Client::new(e, &share_contract).burn(&e.current_contract_address(), &amount);
-    put_total_shares(e, total - amount);
-}
-
-fn mint_shares(e: &Env, to: Address, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    let total = get_total_shares(e);
-    let share_contract_id = get_token_share(e);
-
-    token::Client::new(e, &share_contract_id).mint(&to, &amount);
-
-    put_total_shares(e, total + amount);
-}
-
-fn transfer_a(e: &Env, to: Address, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    transfer(e, get_token(e), to, amount);
-}
-
-fn transfer(e: &Env, token: Address, to: Address, amount: i128) {
-    // Extend instance storage rent
-    extend_instance(e.clone());
-
-    token::Client::new(e, &token).transfer(&e.current_contract_address(), &to, &amount);
-}
 
 // Metadata that is added on to the WASM custom section
 contractmeta!(
@@ -132,12 +12,10 @@ contractmeta!(
     val = "Lending pool with variable interest rate."
 );
 
+#[allow(dead_code)]
 pub trait LoanPoolTrait {
     // Sets the token contract address for the pool
-    fn initialize(e: Env, token_wasm_hash: BytesN<32>, token: Address);
-
-    // Returns the token contract address for the pool share token
-    fn share_id(e: Env) -> Address;
+    fn initialize(e: Env, token: Address);
 
     // Deposits token. Also, mints pool shares for the "user" Identifier.
     fn deposit(e: Env, user: Address, amount: i128);
@@ -155,31 +33,17 @@ pub trait LoanPoolTrait {
     fn get_contract_balance(e: Env) -> i128;
 }
 
+#[allow(dead_code)]
 #[contract]
 struct LoanPoolContract;
 
 #[contractimpl]
 impl LoanPoolTrait for LoanPoolContract {
-    fn initialize(e: Env, token_wasm_hash: BytesN<32>, token: Address) {
-        // Create a token for the pool shares using the token contract
-        let share_contract = create_contract(&e, token_wasm_hash, &token);
-        token::Client::new(&e, &share_contract).initialize(
-            &e.current_contract_address(),
-            &7u32,
-            &"XLM Pool Share Token".into_val(&e),
-            &"pXLM".into_val(&e),
-        );
-
-        put_token(&e, token);
-        put_token_share(&e, share_contract.try_into().unwrap());
-        put_total_shares(&e, 0);
-    }
-
-    fn share_id(e: Env) -> Address {
-        // Extend instance storage rent
-        extend_instance(e.clone());
-
-        get_token_share(&e)
+    fn initialize(e: Env, token: Address) {
+        pool::write_token(&e, token);
+        pool::write_total_shares(&e, 0);
+        pool::write_total_balance(&e, 0);
+        pool::write_available_balance(&e, 0);
     }
 
     fn deposit(e: Env, user: Address, amount: i128) {
@@ -189,17 +53,19 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let client = token::Client::new(&e, &get_token(&e));
+        let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
+
+        // TODO: Increase AvailableBalance
+        // TODO: Increase TotalShares
+        // TODO: Increase TotalBalance
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
         // liabilities & collateral stays intact
         let liabilities: i128 = 0; // temp test param
         let collateral: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), amount.clone(), liabilities, collateral);
-
-        mint_shares(&e, user, amount);
+        positions::increase_positions(&e, user.clone(), amount, liabilities, collateral);
     }
 
     fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
@@ -208,25 +74,31 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        // First transfer the pool shares that need to be redeemed
-        let share_token_client = token::Client::new(&e, &get_token_share(&e));
-        share_token_client.transfer(&user, &e.current_contract_address(), &amount);
+        // Get users receivables
+        let receivables_val: Val = positions::read_positions(&e, user.clone());
+        let receivables_map: Map<Symbol, i128> = Map::try_from_val(&e, &receivables_val).unwrap();
+        let receivables: i128 = receivables_map.get_unchecked(Symbol::new(&e, "receivables"));
 
-        let balance = get_balance_a(&e);
-        let balance_shares = get_balance_shares(&e);
+        // Check that user is not trying to move more than receivables (TODO: also include collateral?)
+        assert!(
+            amount <= receivables,
+            "Amount can not be greater than receivables!"
+        );
 
-        let total_shares = get_total_shares(&e);
-
-        // Now calculate the withdraw amounts
-        let out = (balance * balance_shares) / total_shares;
+        // TODO: Decrease AvailableBalance
+        // TODO: Decrease TotalShares
+        // TODO: Decrease TotalBalance
 
         // Decrease users position in pool as they withdraw
-        // TEMP positions::decrease_positions(&e, user.clone(), amount.clone());
+        let liabilities: i128 = 0;
+        let collateral: i128 = 0;
+        positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral);
 
-        burn_shares(&e, balance_shares);
-        transfer_a(&e, user.clone(), out);
+        // Transfer tokens from pool to user
+        let client = token::Client::new(&e, &pool::read_token(&e));
+        client.transfer(&e.current_contract_address(), &user, &amount);
 
-        (out, total_shares)
+        (amount, amount)
     }
 
     fn borrow(e: Env, user: Address, amount: i128) -> i128 {
@@ -246,7 +118,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let balance = get_balance_a(&e);
+        let balance = pool::read_available_balance(&e);
         assert!(
             amount < balance,
             "Borrowed amount has to be less than available balance!"
@@ -257,9 +129,10 @@ impl LoanPoolTrait for LoanPoolContract {
         // collateral & receivables stays intact
         let collateral: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, amount.clone(), collateral);
+        positions::increase_positions(&e, user.clone(), receivables, amount, collateral);
 
-        transfer_a(&e, user.clone(), amount);
+        let client = token::Client::new(&e, &pool::read_token(&e));
+        client.transfer(&e.current_contract_address(), &user, &amount);
 
         amount
     }
@@ -271,7 +144,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let client = token::Client::new(&e, &get_token(&e));
+        let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // Increase users position in pool as they deposit
@@ -279,7 +152,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // liabilities & receivables stays intact
         let liabilities: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount.clone());
+        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount);
 
         amount
     }
@@ -288,7 +161,6 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let balance = get_total_shares(&e);
-        balance
+        pool::read_total_balance(&e)
     }
 }

@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Env, TryFromVal, Val};
+use soroban_sdk::{contracttype, Address, Env};
 
 /* Ledger Thresholds */
 
@@ -24,13 +24,15 @@ pub struct PoolConfig {
 #[contracttype]
 pub enum PoolDataKey {
     // Pools tokens address
-    Token(Address),
-    // Token address for pool share token
-    ShareToken(Address),
+    Token,
     // Users positions in the pool
     Positions(Address),
     // Total amount of shares in circulation
-    TotalShares(i128),
+    TotalShares,
+    // Total balance of pool
+    TotalBalance,
+    // Available balance of pool
+    AvailableBalance,
 }
 
 /* Instance rent bumper */
