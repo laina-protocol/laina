@@ -71,7 +71,7 @@ impl LoanPoolTrait for LoanPoolContract {
         let positions_val = positions::read_positions(&e, user.clone());
         let positions_map: Map<Symbol, i128> = Map::try_from_val(&e, &positions_val).unwrap();
         // Get current positions from the map
-        let balance = positions_map.get_unchecked(Symbol::new(&e, "receivables"));
+        let balance = positions_map.get(Symbol::new(&e, "receivables")).unwrap();
 
         let balance_shares = pool::read_total_shares(&e);
 
