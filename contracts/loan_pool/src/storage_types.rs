@@ -1,5 +1,4 @@
-use soroban_sdk::{contracttype, Address, TryFromVal, Env, Val};
-
+use soroban_sdk::{contracttype, Address, Env, TryFromVal, Val};
 
 /* Ledger Thresholds */
 
@@ -18,7 +17,7 @@ pub(crate) const POSITIONS_LIFETIME_THRESHOLD: u32 = POSITIONS_BUMP_AMOUNT - DAY
 #[contracttype]
 pub struct PoolConfig {
     pub oracle: Address, // The contract address for the price oracle
-    pub status: u32, // Status of the pool
+    pub status: u32,     // Status of the pool
 }
 
 #[derive(Clone)]

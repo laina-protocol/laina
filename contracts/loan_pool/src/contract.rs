@@ -1,10 +1,13 @@
-use crate::storage_types::{self, extend_instance, PoolDataKey, INSTANCE_BUMP_AMOUNT, INSTANCE_LIFETIME_THRESHOLD};
+use crate::positions;
+use crate::storage_types::{
+    self, extend_instance, PoolDataKey, INSTANCE_BUMP_AMOUNT, INSTANCE_LIFETIME_THRESHOLD,
+};
 use crate::token;
 use crate::token::create_contract;
-use crate::positions;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, String, TryFromVal, Val
+    contract, contractimpl, contractmeta, Address, BytesN, ConversionError, Env, IntoVal, String,
+    TryFromVal, Val,
 };
 
 #[derive(Clone, Copy)]
@@ -26,7 +29,7 @@ impl TryFromVal<Env, DataKey> for Val {
 fn get_token(e: &Env) -> Address {
     // Extend instance storage rent
     extend_instance(e.clone());
-    
+
     e.storage().instance().get(&DataKey::Token).unwrap()
 }
 
@@ -227,12 +230,15 @@ impl LoanPoolTrait for LoanPoolContract {
     }
 
     fn borrow(e: Env, user: Address, amount: i128) -> i128 {
-        /*  
+        /*
         Borrow should only be callable from the loans contract. This is as the loans contract will
         include the logic and checks that the borrowing can be actually done. Therefore we need to
         include a check that the caller is the loans contract.
         */
-        let address = String::from_str(&e, "CCR7ARWZN4WODMEWVTRCMPPJJQKE2MBKUPJBSYWCDEOT3OLBPAPEGLPH");
+        let address = String::from_str(
+            &e,
+            "CCR7ARWZN4WODMEWVTRCMPPJJQKE2MBKUPJBSYWCDEOT3OLBPAPEGLPH",
+        );
         let contract: Address = Address::from_string(&address);
         contract.require_auth();
         user.require_auth();
@@ -241,7 +247,10 @@ impl LoanPoolTrait for LoanPoolContract {
         extend_instance(e.clone());
 
         let balance = get_balance_a(&e);
-        assert!(amount < balance, "Borrowed amount has to be less than available balance!"); // Check that there is enough available balance
+        assert!(
+            amount < balance,
+            "Borrowed amount has to be less than available balance!"
+        ); // Check that there is enough available balance
 
         // Increase users position in pool as they deposit
         // as this is debt amount is added to liabilities and
@@ -253,7 +262,6 @@ impl LoanPoolTrait for LoanPoolContract {
         transfer_a(&e, user.clone(), amount);
 
         amount
-
     }
 
     fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128 {
