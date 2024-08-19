@@ -1,10 +1,15 @@
 ---
+import '@fontsource/inter';
+import '@fontsource/inter/600.css';
+
+import Nav from '../components/Nav';
+
 interface Props {
   title: string;
+  pathname: 'index' | 'lend' | 'borrow' | 'liquidate';
 }
 
-const { title } = Astro.props;
-import Nav from '../components/Nav';
+const { title, pathname } = Astro.props;
 ---
 
 <!doctype html>
@@ -17,9 +22,11 @@ import Nav from '../components/Nav';
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
-  <body>
-    <Nav />
-    <slot />
+  <body class="font-sans bg-grey-light min-h-screen">
+    <Nav pathname={pathname} />
+    <main class="max-w-full w-256">
+      <slot />
+    </main>
   </body>
 </html>
 <style is:global>

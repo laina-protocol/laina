@@ -1,6 +1,11 @@
 import logo from '/public/laina_v3_shrinked.png';
+import { SelectButtonWrapper, SelectLinkButton } from './Button';
 
-export default function Nav() {
+interface NavProps {
+  pathname: 'index' | 'lend' | 'borrow' | 'liquidate';
+}
+
+export default function Nav({ pathname }: NavProps) {
   return (
     <nav className="relative max-w-screen-lg mx-auto mb-12 flex justify-between items-center pt-12 pb-6">
       <div>
@@ -9,11 +14,17 @@ export default function Nav() {
         </a>
       </div>
 
-      <div className="flex gap-12 bg-gray-200 rounded-full px-8 py-2 text-white font-bold">
-        <a href="/lend">Lend</a>
-        <a href="/borrow">Borrow</a>
-        <a href="/liquidate">Liquidate</a>
-      </div>
+      <SelectButtonWrapper>
+        <SelectLinkButton href="/lend" selected={pathname === 'lend'}>
+          Lend
+        </SelectLinkButton>
+        <SelectLinkButton href="/borrow" selected={pathname === 'borrow'}>
+          Borrow
+        </SelectLinkButton>
+        <SelectLinkButton href="/liquidate" selected={pathname === 'liquidate'}>
+          Liquidate
+        </SelectLinkButton>
+      </SelectButtonWrapper>
 
       <div className="bg-black text-white px-8 py-2 rounded-full">
         {/* biome-ignore lint: TODO: connect wallet */}
