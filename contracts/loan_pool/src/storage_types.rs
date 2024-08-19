@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Env, TryFromVal, Val};
+use soroban_sdk::{contracttype, Address, Env};
 
 /* Ledger Thresholds */
 

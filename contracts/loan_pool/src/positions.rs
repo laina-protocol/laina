@@ -16,16 +16,16 @@ pub fn read_positions(e: &Env, addr: Address) -> Val {
         // we'll need to create one with zeroes
 
         // Initialize the map with the environment
-        let mut empty_positions: Map<Symbol, i128> = Map::new(&e);
+        let mut empty_positions: Map<Symbol, i128> = Map::new(e);
 
         // Set position values as 0
         let receivables: i128 = 0;
         let liabilities: i128 = 0;
         let collateral: i128 = 0;
 
-        empty_positions.set(Symbol::new(&e, "receivables"), receivables);
-        empty_positions.set(Symbol::new(&e, "liabilities"), liabilities);
-        empty_positions.set(Symbol::new(&e, "collateral"), collateral);
+        empty_positions.set(Symbol::new(e, "receivables"), receivables);
+        empty_positions.set(Symbol::new(e, "liabilities"), liabilities);
+        empty_positions.set(Symbol::new(e, "collateral"), collateral);
 
         // Return empty positions as Val
         empty_positions.into_val(e)
@@ -35,12 +35,12 @@ pub fn read_positions(e: &Env, addr: Address) -> Val {
 fn write_positions(e: &Env, addr: Address, receivables: i128, liabilities: i128, collateral: i128) {
     let key: PoolDataKey = PoolDataKey::Positions(addr);
     // Initialize the map with the environment
-    let mut positions: Map<Symbol, i128> = Map::new(&e);
+    let mut positions: Map<Symbol, i128> = Map::new(e);
 
     // Set position values in the map
-    positions.set(Symbol::new(&e, "receivables"), receivables);
-    positions.set(Symbol::new(&e, "liabilities"), liabilities);
-    positions.set(Symbol::new(&e, "collateral"), collateral);
+    positions.set(Symbol::new(e, "receivables"), receivables);
+    positions.set(Symbol::new(e, "liabilities"), liabilities);
+    positions.set(Symbol::new(e, "collateral"), collateral);
 
     // Transform the map of positions in to Val so it can be stored
     let val: Val = positions.into_val(e);
@@ -64,9 +64,9 @@ pub fn increase_positions(
     let positions_map: Map<Symbol, i128> = Map::try_from_val(e, &positions_val).unwrap();
     // TODO: Might need to use get rather than get_unchecked and convert from Option<V> to V
     // Get current positions from the map
-    let receivables_now = positions_map.get_unchecked(Symbol::new(&e, "receivables"));
-    let liabilities_now = positions_map.get_unchecked(Symbol::new(&e, "liabilities"));
-    let collateral_now = positions_map.get_unchecked(Symbol::new(&e, "collateral"));
+    let receivables_now = positions_map.get_unchecked(Symbol::new(e, "receivables"));
+    let liabilities_now = positions_map.get_unchecked(Symbol::new(e, "liabilities"));
+    let collateral_now = positions_map.get_unchecked(Symbol::new(e, "collateral"));
     write_positions(
         e,
         addr,
@@ -89,9 +89,9 @@ pub fn decrease_positions(
     let positions_map: Map<Symbol, i128> = Map::try_from_val(e, &positions_val).unwrap();
     // TODO: Might need to use get rather than get_unchecked and convert from Option<V> to V
     // Get current positions from the map
-    let receivables_now = positions_map.get_unchecked(Symbol::new(&e, "receivables"));
-    let liabilities_now = positions_map.get_unchecked(Symbol::new(&e, "liabilities"));
-    let collateral_now = positions_map.get_unchecked(Symbol::new(&e, "collateral"));
+    let receivables_now = positions_map.get_unchecked(Symbol::new(e, "receivables"));
+    let liabilities_now = positions_map.get_unchecked(Symbol::new(e, "liabilities"));
+    let collateral_now = positions_map.get_unchecked(Symbol::new(e, "collateral"));
 
     if receivables_now < receivables {
         panic!("insufficient receivables");

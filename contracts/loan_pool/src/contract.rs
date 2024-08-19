@@ -3,7 +3,7 @@ use crate::positions;
 use crate::storage_types::extend_instance;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal, Val
+    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal, Val,
 };
 
 // Metadata that is added on to the WASM custom section
@@ -12,6 +12,7 @@ contractmeta!(
     val = "Lending pool with variable interest rate."
 );
 
+#[allow(dead_code)]
 pub trait LoanPoolTrait {
     // Sets the token contract address for the pool
     fn initialize(e: Env, token: Address);
@@ -32,6 +33,7 @@ pub trait LoanPoolTrait {
     fn get_contract_balance(e: Env) -> i128;
 }
 
+#[allow(dead_code)]
 #[contract]
 struct LoanPoolContract;
 
@@ -54,7 +56,7 @@ impl LoanPoolTrait for LoanPoolContract {
         let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        // TODO: Increase AvailableBalance 
+        // TODO: Increase AvailableBalance
         // TODO: Increase TotalShares
         // TODO: Increase TotalBalance
 
@@ -63,7 +65,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // liabilities & collateral stays intact
         let liabilities: i128 = 0; // temp test param
         let collateral: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), amount.clone(), liabilities, collateral);
+        positions::increase_positions(&e, user.clone(), amount, liabilities, collateral);
     }
 
     fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
@@ -78,16 +80,19 @@ impl LoanPoolTrait for LoanPoolContract {
         let receivables: i128 = receivables_map.get_unchecked(Symbol::new(&e, "receivables"));
 
         // Check that user is not trying to move more than receivables (TODO: also include collateral?)
-        assert!(amount <= receivables, "Amount can not be greater than receivables!");
+        assert!(
+            amount <= receivables,
+            "Amount can not be greater than receivables!"
+        );
 
-        // TODO: Decrease AvailableBalance 
+        // TODO: Decrease AvailableBalance
         // TODO: Decrease TotalShares
         // TODO: Decrease TotalBalance
 
         // Decrease users position in pool as they withdraw
         let liabilities: i128 = 0;
         let collateral: i128 = 0;
-        positions::decrease_positions(&e, user.clone(), amount.clone(), liabilities, collateral);
+        positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral);
 
         // Transfer tokens from pool to user
         let client = token::Client::new(&e, &pool::read_token(&e));
@@ -124,7 +129,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // collateral & receivables stays intact
         let collateral: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, amount.clone(), collateral);
+        positions::increase_positions(&e, user.clone(), receivables, amount, collateral);
 
         let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&e.current_contract_address(), &user, &amount);
@@ -147,7 +152,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // liabilities & receivables stays intact
         let liabilities: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount.clone());
+        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount);
 
         amount
     }
@@ -156,7 +161,6 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let balance = pool::read_total_balance(&e);
-        balance
+        pool::read_total_balance(&e)
     }
 }

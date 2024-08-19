@@ -19,12 +19,6 @@ pub fn write_total_shares(e: &Env, amount: i128) {
     e.storage().persistent().set(&key, &amount);
 }
 
-pub fn read_total_shares(e: &Env) -> i128 {
-    let key: PoolDataKey = PoolDataKey::TotalShares;
-
-    e.storage().persistent().get(&key).unwrap()
-}
-
 pub fn write_total_balance(e: &Env, amount: i128) {
     let key: PoolDataKey = PoolDataKey::TotalBalance;
 
