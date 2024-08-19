@@ -1,5 +1,5 @@
 use crate::positions;
-use crate::storage_types::{POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
+use crate::storage_types::{LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
 
 use soroban_sdk::{
     contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec,
@@ -81,13 +81,14 @@ impl LoansTrait for LoansContract {
     }
 
     fn add_interest(e: Env) {
-        // Get current interest rates of pools.
-
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
         and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
         Perfect calculations are impossible in real world time as we must use ledgers as our time and ledger times vary between 5-6s.
         */
+        // TODO: we must store the init ledger for loans as loans started on different times would pay the same amount of interest on the given time.
+
+        let current_ledger = e.ledger().sequence();
 
         // Update current ledger as the new 'last time'
 
@@ -100,23 +101,21 @@ impl LoansTrait for LoansContract {
             .get(&Symbol::new(&e, "Addresses"))
             .unwrap();
         for user in addresses.iter() {
-            // Construct the key for each user's loan
             let key = (Symbol::new(&e, "Loan"), user.clone());
 
-            // get the loan from storage as a Val
             let loan: Val = e
                 .storage()
                 .persistent()
                 .get::<(Symbol, Address), Val>(&key)
                 .unwrap();
-            // Convert the Val to Map<Symbol, Val>
+
             let mut loan_map: Map<Symbol, Val> =
                 Map::try_from_val(&e, &loan).expect("Failed to convert Val to Map");
-            // Get the value of "borrowed" as Val, then convert it to i128
+
             let borrowed: Val = loan_map.get(Symbol::new(&e, "borrowed")).unwrap();
             let borrowed_as_int: i128 =
                 i128::try_from_val(&e, &borrowed).expect("Failed to convert Val to i128");
-            // Calculate new borrowed
+
             // FIXME: the calculation doesn't work, perhaps because of the change in types. OR it could be that the value is not retrieved properly
             let interest_rate: i128 = 12000;
             let interest_amount: i128 = borrowed_as_int * interest_rate;
@@ -134,5 +133,9 @@ impl LoansTrait for LoansContract {
             );
             // TODO: this should also invoke the pools and update the amounts lended to liabilities.
         }
+
+        let key: LoansDataKey = LoansDataKey::LastUpdated;
+
+        e.storage().persistent().set(&key, &current_ledger);
     }
 }

@@ -56,9 +56,10 @@ impl LoanPoolTrait for LoanPoolContract {
         let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        // TODO: Increase AvailableBalance
-        // TODO: Increase TotalShares
-        // TODO: Increase TotalBalance
+        // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
+        pool::write_available_balance(&e, amount);
+        pool::write_total_shares(&e, amount);
+        pool::write_total_balance(&e, amount);
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
@@ -109,7 +110,7 @@ impl LoanPoolTrait for LoanPoolContract {
         */
         let address = String::from_str(
             &e,
-            "CCR7ARWZN4WODMEWVTRCMPPJJQKE2MBKUPJBSYWCDEOT3OLBPAPEGLPH",
+            "CB6MHNR6FJMQHJZDWOKAU4KESR4OARLPZ4RMN57R55P2QUBH4QJENHLY",
         );
         let contract: Address = Address::from_string(&address);
         contract.require_auth();
