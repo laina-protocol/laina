@@ -1,0 +1,5 @@
+node_modules/
+build/
+dist/
+contracts/
+package-lock.json

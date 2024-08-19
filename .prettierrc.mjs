@@ -16,7 +16,7 @@ const config = {
   singleQuote: true,
   jsxSingleQuote: false,
   bracketSpacing: true,
-  semi: true
-}
+  semi: true,
+};
 
 export default config;
