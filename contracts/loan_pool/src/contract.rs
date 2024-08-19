@@ -3,7 +3,7 @@ use crate::positions;
 use crate::storage_types::extend_instance;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal,
+    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal, Val
 };
 
 // Metadata that is added on to the WASM custom section
@@ -54,6 +54,10 @@ impl LoanPoolTrait for LoanPoolContract {
         let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
 
+        // TODO: Increase AvailableBalance 
+        // TODO: Increase TotalShares
+        // TODO: Increase TotalBalance
+
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
         // liabilities & collateral stays intact
@@ -68,25 +72,28 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let positions_val = positions::read_positions(&e, user.clone());
-        let positions_map: Map<Symbol, i128> = Map::try_from_val(&e, &positions_val).unwrap();
-        // Get current positions from the map
-        let balance = positions_map.get(Symbol::new(&e, "receivables")).unwrap();
+        // Get users receivables
+        let receivables_val: Val = positions::read_positions(&e, user.clone());
+        let receivables_map: Map<Symbol, i128> = Map::try_from_val(&e, &receivables_val).unwrap();
+        let receivables: i128 = receivables_map.get_unchecked(Symbol::new(&e, "receivables"));
 
-        let balance_shares = pool::read_total_shares(&e);
+        // Check that user is not trying to move more than receivables (TODO: also include collateral?)
+        assert!(amount <= receivables, "Amount can not be greater than receivables!");
 
-        let total_balance = pool::read_total_balance(&e);
-
-        // Now calculate the withdraw amounts
-        let out = (balance * balance_shares) / total_balance;
+        // TODO: Decrease AvailableBalance 
+        // TODO: Decrease TotalShares
+        // TODO: Decrease TotalBalance
 
         // Decrease users position in pool as they withdraw
-        // TEMP positions::decrease_positions(&e, user.clone(), amount.clone());
+        let liabilities: i128 = 0;
+        let collateral: i128 = 0;
+        positions::decrease_positions(&e, user.clone(), amount.clone(), liabilities, collateral);
 
+        // Transfer tokens from pool to user
         let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&e.current_contract_address(), &user, &amount);
 
-        (out, total_balance)
+        (amount, amount)
     }
 
     fn borrow(e: Env, user: Address, amount: i128) -> i128 {
