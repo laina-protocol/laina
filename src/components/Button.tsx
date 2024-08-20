@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react';
+import { Link } from 'react-router-dom';
 
 export interface ButtonProps {
   onClick: () => void;
@@ -20,15 +21,15 @@ export const SelectButtonWrapper = ({ children }: PropsWithChildren) => (
 );
 
 export interface SelectLinkButtonProps {
-  href: string;
+  to: string;
   selected: boolean;
 }
 
-export const SelectLinkButton = ({ href, selected, children }: PropsWithChildren<SelectLinkButtonProps>) => (
-  <a
+export const SelectLinkButton = ({ to, selected, children }: PropsWithChildren<SelectLinkButtonProps>) => (
+  <Link
     className={`font-bold px-6 py-1.5 rounded-full hover:text-black transition ${selected ? 'bg-white text-black' : 'text-white'}`}
-    href={href}
+    to={to}
   >
     {children}
-  </a>
+  </Link>
 );

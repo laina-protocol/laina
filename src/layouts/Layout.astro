@@ -2,14 +2,11 @@
 import '@fontsource/inter';
 import '@fontsource/inter/600.css';
 
-import Nav from '../components/Nav';
-
 interface Props {
   title: string;
-  pathname: 'index' | 'lend' | 'borrow' | 'liquidate';
 }
 
-const { title, pathname } = Astro.props;
+const { title } = Astro.props;
 ---
 
 <!doctype html>
@@ -23,10 +20,7 @@ const { title, pathname } = Astro.props;
     <title>{title}</title>
   </head>
   <body class="font-sans bg-grey-light min-h-screen">
-    <Nav pathname={pathname} />
-    <main class="max-w-full w-256">
-      <slot />
-    </main>
+    <slot />
   </body>
 </html>
 <style is:global>
