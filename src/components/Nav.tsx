@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useWallet } from 'src/stellar-wallet';
 import logo from '/public/laina_v3_shrinked.png';
-import { SelectButtonWrapper, SelectLinkButton } from './Button';
+import { Button, SelectButtonWrapper, SelectLinkButton } from './Button';
 
 export default function Nav() {
   const { pathname } = useLocation();
+  const { openConnectWalletModal, wallet } = useWallet();
 
   return (
     <nav className="relative max-w-screen-lg mx-auto mb-12 flex justify-between items-center pt-12 pb-6">
@@ -25,10 +27,14 @@ export default function Nav() {
         </SelectLinkButton>
       </SelectButtonWrapper>
 
-      <div className="bg-black text-white px-8 py-2 rounded-full">
-        {/* biome-ignore lint: TODO: connect wallet */}
-        <a href="#">Connect Wallet</a>
-      </div>
+      {wallet ? (
+        <div>
+          <p className="text-sm">Signed in as</p>
+          <p className="font-bold">{wallet.displayName}</p>
+        </div>
+      ) : (
+        <Button onClick={openConnectWalletModal}>Connect Wallet</Button>
+      )}
     </nav>
   );
 }

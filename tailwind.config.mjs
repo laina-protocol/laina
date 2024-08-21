@@ -15,7 +15,7 @@ export default {
       black: '#000',
     },
     fontSize: {
-      sm: ['16px', '20px'],
+      sm: ['14px', '20px'],
       base: ['18px', '24px'],
       lg: ['20px', '28px'],
       xl: ['26px', '32px'],

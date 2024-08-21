@@ -6,6 +6,7 @@ import BorrowPage from '@pages/borrow/BorrowPage';
 import LandingPage from '@pages/landing/LandingPage';
 import LendPage from '@pages/lend/LendPage';
 import LiquidatePage from '@pages/liquidate/LiquidatePage';
+import { WalletProvider } from './stellar-wallet';
 
 const PageWrapper = () => (
   <>
@@ -31,7 +32,9 @@ const router = createBrowserRouter([
 const App = () => {
   return (
     <React.StrictMode>
-      <RouterProvider router={router} />
+      <WalletProvider>
+        <RouterProvider router={router} />
+      </WalletProvider>
     </React.StrictMode>
   );
 };
