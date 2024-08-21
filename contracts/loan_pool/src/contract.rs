@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected="Amount can not be greater than receivables!")]
+    #[should_panic(expected = "Amount can not be greater than receivables!")]
     fn withdraw_more_than_balance() {
         let e: Env = Env::default();
         e.mock_all_auths();
@@ -278,6 +278,5 @@ mod tests {
         let withdraw_args = vec![&e, user.to_val(), amount_2];
         let _withdraw_result: (i128, i128) =
             e.invoke_contract(&contract_id, &Symbol::new(&e, "withdraw"), withdraw_args);
-
     }
 }

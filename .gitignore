@@ -57,3 +57,6 @@ packages/*
 # generated contract client imports
 src/contracts/*
 !src/contracts/util.ts
+
+# contract unit test test-snapshots
+**/test_snapshots
