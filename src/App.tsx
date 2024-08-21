@@ -2,10 +2,10 @@ import React from 'react';
 import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import Nav from '@components/Nav';
-import BorrowPage from '@pages/borrow/BorrowPage';
-import LandingPage from '@pages/landing/LandingPage';
-import LendPage from '@pages/lend/LendPage';
-import LiquidatePage from '@pages/liquidate/LiquidatePage';
+import BorrowPage from '@pages/_borrow/BorrowPage';
+import LandingPage from '@pages/_landing/LandingPage';
+import LendPage from '@pages/_lend/LendPage';
+import LiquidatePage from '@pages/_liquidate/LiquidatePage';
 import { WalletProvider } from './stellar-wallet';
 
 const PageWrapper = () => (

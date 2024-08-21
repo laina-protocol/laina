@@ -12,7 +12,7 @@ export type WalletContext = {
 };
 
 const Context = createContext<WalletContext>({
-  openConnectWalletModal: () => { },
+  openConnectWalletModal: () => {},
   wallet: null,
 });
 
