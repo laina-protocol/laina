@@ -1,13 +1,13 @@
 use crate::positions;
 use crate::storage_types::{LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
+use crate::oracle::{self, Asset};
 
 use soroban_sdk::{
-    contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec,
+    contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec
 };
 
 #[allow(dead_code)]
 pub trait LoansTrait {
-    // Initialize new loan
     fn initialize(
         e: Env,
         user: Address,
@@ -16,8 +16,15 @@ pub trait LoansTrait {
         collateral: i128,
         collateral_from: Address,
     );
-    // Add accumulated interest to the borrowed capital
     fn add_interest(e: Env);
+    fn calculate_health_factor(
+        e: Env,
+        reflector_contract_id: Address,
+        token_a: Address,
+        token_a_amount: i128,
+        token_b: Address,
+        token_b_amount: i128,
+    ) -> i128;
 }
 
 #[allow(dead_code)]
@@ -147,4 +154,32 @@ impl LoansTrait for LoansContract {
 
         e.storage().persistent().set(&key, &current_ledger);
     }
+
+    fn calculate_health_factor(
+        e: Env,
+        reflector_contract_id: Address,
+        token: Address,
+        token_amount: i128,
+        token_collateral: Address,
+        token_collateral_amount: i128,
+        ) -> i128 {        
+            let reflector_contract: oracle::Client = oracle::Client::new(&e, &reflector_contract_id);
+        
+            // get the price and calculate the value of the collateral
+            let collateral_asset: Asset = Asset::Other(Symbol::new(&e, "XLM"));
+
+            let collateral_asset_price: oracle::PriceData = reflector_contract.lastprice(&collateral_asset).unwrap();
+            let collateral_value: i128 = collateral_asset_price.price * token_collateral_amount;
+        
+            // get the price and calculate the value of the borrowed asset
+            let borrowed_asset: Asset = Asset::Other(Symbol::new(&e, "USDC"));
+
+            let asset_price: oracle::PriceData = reflector_contract.lastprice(&borrowed_asset).unwrap();
+            let borrowed_value: i128 = asset_price.price * token_amount;
+        
+            let health_ratio: i128 = collateral_value * 10000000_i128 / borrowed_value;
+        
+            health_ratio
+    }
+
 }

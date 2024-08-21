@@ -828,6 +828,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "reflector-oracle"
+version = "4.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "rfc6979"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
