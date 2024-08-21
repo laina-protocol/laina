@@ -91,11 +91,15 @@ impl LoansTrait for LoansContract {
         let current_ledger = e.ledger().sequence();
 
         let key: LoansDataKey = LoansDataKey::LastUpdated;
-        let previous_ledger_val: Val = e.storage().persistent().get(&key).unwrap_or(current_ledger.into_val(&e)); // If there is no previous ledger, use current.
-        let previous_ledger: u32 = u32::try_from_val(&e, &previous_ledger_val).expect("Failed to convert Val to u32");
+        let previous_ledger_val: Val = e
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(current_ledger.into_val(&e)); // If there is no previous ledger, use current.
+        let previous_ledger: u32 =
+            u32::try_from_val(&e, &previous_ledger_val).expect("Failed to convert Val to u32");
 
         let _ledgers_since_update: u32 = current_ledger - previous_ledger; // Currently unused but is a placeholder for interest calculations. Now time is handled.
-        
 
         // Update current ledger as the new 'last time'
 
