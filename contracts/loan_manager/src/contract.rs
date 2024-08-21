@@ -1,9 +1,9 @@
+use crate::oracle::{self, Asset};
 use crate::positions;
 use crate::storage_types::{LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
-use crate::oracle::{self, Asset};
 
 use soroban_sdk::{
-    contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec
+    contract, contractimpl, vec, Address, Env, IntoVal, Map, Symbol, TryFromVal, Val, Vec,
 };
 
 #[allow(dead_code)]
@@ -162,24 +162,57 @@ impl LoansTrait for LoansContract {
         token_amount: i128,
         token_collateral: Address,
         token_collateral_amount: i128,
-        ) -> i128 {        
-            let reflector_contract: oracle::Client = oracle::Client::new(&e, &reflector_contract_id);
-        
-            // get the price and calculate the value of the collateral
-            let collateral_asset: Asset = Asset::Other(Symbol::new(&e, "XLM"));
+    ) -> i128 {
+        let reflector_contract: oracle::Client = oracle::Client::new(&e, &reflector_contract_id);
 
-            let collateral_asset_price: oracle::PriceData = reflector_contract.lastprice(&collateral_asset).unwrap();
-            let collateral_value: i128 = collateral_asset_price.price * token_collateral_amount;
-        
-            // get the price and calculate the value of the borrowed asset
-            let borrowed_asset: Asset = Asset::Other(Symbol::new(&e, "USDC"));
+        // get the price and calculate the value of the collateral
+        let collateral_asset: Asset = Asset::Other(Symbol::new(&e, "BTC"));
 
-            let asset_price: oracle::PriceData = reflector_contract.lastprice(&borrowed_asset).unwrap();
-            let borrowed_value: i128 = asset_price.price * token_amount;
-        
-            let health_ratio: i128 = collateral_value * 10000000_i128 / borrowed_value;
-        
-            health_ratio
+        let collateral_asset_price: oracle::PriceData =
+            reflector_contract.lastprice(&collateral_asset).unwrap();
+        let collateral_value: i128 = collateral_asset_price.price * token_collateral_amount;
+
+        // get the price and calculate the value of the borrowed asset
+        let borrowed_asset: Asset = Asset::Other(Symbol::new(&e, "ETH"));
+
+        let asset_price: oracle::PriceData = reflector_contract.lastprice(&borrowed_asset).unwrap();
+        let borrowed_value: i128 = asset_price.price * token_amount;
+
+        let health_ratio: i128 = collateral_value * 10000000_i128 / borrowed_value;
+
+        health_ratio
     }
+}
+#[cfg(test)]
+mod tests {
+    use super::*; // This imports LoanPoolContract and everything else from the parent module
+    use soroban_sdk::{
+        testutils::Address as _,
+        token::{Client as TokenClient, StellarAssetClient},
+        vec, Env, IntoVal,
+    };
 
+    #[test]
+    fn create_loan() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
+
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
+
+        let admin2: Address = Address::generate(&e);
+        let token_contract_id2 = e.register_stellar_asset_contract(admin2.clone());
+        let stellar_asset2 = StellarAssetClient::new(&e, &token_contract_id2);
+        let collateral_token = TokenClient::new(&e, &token_contract_id);
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        stellar_asset2.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+        assert_eq!(collateral_token.balance(&user), 1000);
+
+        //TODO: study how to create loan_pools for testing as one can not initialize without it. for now this should pass but it doesn't test anything
+    }
 }

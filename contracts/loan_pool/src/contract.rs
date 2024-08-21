@@ -244,6 +244,34 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn deposit_more_than_account_balance() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
+
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let amount_i: i128 = 2000;
+        let amount: Val = amount_i.into_val(&e);
+
+        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
+        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+
+        let _init_result: () =
+            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
+
+        let _result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+    }
+
+    #[test]
     #[should_panic(expected = "Amount can not be greater than receivables!")]
     fn withdraw_more_than_balance() {
         let e: Env = Env::default();
