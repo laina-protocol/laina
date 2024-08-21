@@ -4,6 +4,7 @@
     "@astrojs/react": "^3.6.0",
     "@astrojs/tailwind": "^5.1.0",
     "@creit.tech/stellar-wallets-kit": "^0.9.2",
+    "@fontsource/inter": "^5.0.20",
     "@stellar/freighter-api": "^2.0.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -11,21 +12,22 @@
     "framer-motion": "^11.3.17",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.1",
     "tailwindcss": "^3.4.7",
     "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
     "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "dotenv": "^16.4.5",
     "prettier": "^3.3.3",
-    "prettier-plugin-astro": "^0.14.1",
-    "dotenv": "^16.4.5"
+    "prettier-plugin-astro": "^0.14.1"
   },
   "name": "sorobanathon",
   "scripts": {
     "astro": "astro",
     "build": "astro check && astro build",
-    "dev": "npm run init && astro dev",
+    "dev": "astro dev",
     "init": "node initialize.js",
     "preview": "astro preview",
     "start": "npm run init && astro dev",

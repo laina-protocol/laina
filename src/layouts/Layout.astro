@@ -1,10 +1,12 @@
 ---
+import '@fontsource/inter';
+import '@fontsource/inter/600.css';
+
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
-import Nav from '../components/Nav';
 ---
 
 <!doctype html>
@@ -17,8 +19,7 @@ import Nav from '../components/Nav';
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
-  <body>
-    <Nav />
+  <body class="font-sans bg-grey-light min-h-screen">
     <slot />
   </body>
 </html>
@@ -27,6 +28,15 @@ import Nav from '../components/Nav';
     font-family: system-ui, sans-serif;
     background: #ffffff;
     background-size: 224px;
+  }
+  main {
+    margin: auto;
+    padding: 1rem;
+    width: 800px;
+    max-width: calc(100% - 2rem);
+    color: rgb(0, 0, 0);
+    font-size: 18px;
+    line-height: 1.6;
   }
   code {
     font-family:
@@ -38,44 +48,6 @@ import Nav from '../components/Nav';
       Bitstream Vera Sans Mono,
       Courier New,
       monospace;
-  }
-  button {
-    border: 1px solid rgb(var(--accent));
-    background-color: #000000;
-    background-image: none;
-    background-size: 400%;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    font-size: inherit;
-    padding: 0.5rem 1rem;
-    background-position: 100%;
-    transition: background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  button:is(:hover, :focus-within) {
-    color: rgb(185, 185, 185);
-    background-position: 0;
-    background-size: 400%;
-    background-image: var(--accent-gradient);
-  }
-  button:is(:disabled) {
-    color: white;
-    background: var(--accent-light);
-    cursor: not-allowed;
-  }
-
-  button:is(:disabled).loading {
-    background: linear-gradient(-45deg, #ffffff44, #ffffff22);
-    background-size: 200%;
-    animation: loading-gradient 4s linear infinite;
-  }
-  @keyframes loading-gradient {
-    0% {
-      background-position: 0% 50%;
-    }
-    100% {
-      background-position: -200% 50%;
-    }
   }
   .visually-hidden {
     clip: rect(0 0 0 0);
