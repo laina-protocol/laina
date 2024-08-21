@@ -15,4 +15,5 @@ pub enum LoansDataKey {
     // Users positions in the pool
     Loan(Address),
     Addresses,
+    LastUpdated,
 }

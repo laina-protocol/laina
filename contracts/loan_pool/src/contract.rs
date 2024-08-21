@@ -18,7 +18,7 @@ pub trait LoanPoolTrait {
     fn initialize(e: Env, token: Address);
 
     // Deposits token. Also, mints pool shares for the "user" Identifier.
-    fn deposit(e: Env, user: Address, amount: i128);
+    fn deposit(e: Env, user: Address, amount: i128) -> i128;
 
     // Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
     fn withdraw(e: Env, user: Address, share_amount: i128) -> (i128, i128);
@@ -46,7 +46,7 @@ impl LoanPoolTrait for LoanPoolContract {
         pool::write_available_balance(&e, 0);
     }
 
-    fn deposit(e: Env, user: Address, amount: i128) {
+    fn deposit(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth(); // Depositor needs to authorize the deposit
         assert!(amount > 0, "Amount must be positive!");
 
@@ -56,9 +56,10 @@ impl LoanPoolTrait for LoanPoolContract {
         let client = token::Client::new(&e, &pool::read_token(&e));
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        // TODO: Increase AvailableBalance
-        // TODO: Increase TotalShares
-        // TODO: Increase TotalBalance
+        // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
+        pool::write_available_balance(&e, amount);
+        pool::write_total_shares(&e, amount);
+        pool::write_total_balance(&e, amount);
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
@@ -66,6 +67,8 @@ impl LoanPoolTrait for LoanPoolContract {
         let liabilities: i128 = 0; // temp test param
         let collateral: i128 = 0; // temp test param
         positions::increase_positions(&e, user.clone(), amount, liabilities, collateral);
+
+        amount
     }
 
     fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
@@ -109,7 +112,7 @@ impl LoanPoolTrait for LoanPoolContract {
         */
         let address = String::from_str(
             &e,
-            "CCR7ARWZN4WODMEWVTRCMPPJJQKE2MBKUPJBSYWCDEOT3OLBPAPEGLPH",
+            "CB6MHNR6FJMQHJZDWOKAU4KESR4OARLPZ4RMN57R55P2QUBH4QJENHLY",
         );
         let contract: Address = Address::from_string(&address);
         contract.require_auth();
@@ -162,5 +165,118 @@ impl LoanPoolTrait for LoanPoolContract {
         extend_instance(e.clone());
 
         pool::read_total_balance(&e)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*; // This imports LoanPoolContract and everything else from the parent module
+    use soroban_sdk::{
+        testutils::Address as _,
+        token::{Client as TokenClient, StellarAssetClient},
+        vec, Env, IntoVal,
+    };
+
+    #[test]
+    fn good_deposit() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
+
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let amount_i: i128 = 100;
+        let amount: Val = amount_i.into_val(&e);
+
+        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
+        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+
+        let _init_result: () =
+            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
+
+        let result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+
+        assert_eq!(result, amount_i);
+
+        // Add assertions to validate expected behavior
+    }
+
+    #[test]
+    fn good_withdraw() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
+
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let amount_i: i128 = 100;
+        let amount: Val = amount_i.into_val(&e);
+
+        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
+        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+
+        let _init_result: () =
+            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
+
+        let result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+
+        assert_eq!(result, amount_i);
+
+        let withdraw_args = vec![&e, user.to_val(), amount];
+        let withdraw_result: (i128, i128) =
+            e.invoke_contract(&contract_id, &Symbol::new(&e, "withdraw"), withdraw_args);
+
+        assert_eq!(withdraw_result, (amount_i, amount_i));
+    }
+
+    #[test]
+    #[should_panic(expected = "Amount can not be greater than receivables!")]
+    fn withdraw_more_than_balance() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
+
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let amount_i: i128 = 100;
+        let amount: Val = amount_i.into_val(&e);
+
+        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
+        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+
+        let _init_result: () =
+            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
+
+        let result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+
+        assert_eq!(result, amount_i);
+
+        let amount_i_2: i128 = 200;
+        let amount_2: Val = amount_i_2.into_val(&e);
+
+        let withdraw_args = vec![&e, user.to_val(), amount_2];
+        let _withdraw_result: (i128, i128) =
+            e.invoke_contract(&contract_id, &Symbol::new(&e, "withdraw"), withdraw_args);
     }
 }
