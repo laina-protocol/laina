@@ -9,13 +9,29 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-rust:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Build Reflector
+        run: |
+          cd contracts/reflector
+          cargo build --release --target wasm32-unknown-unknown
+          cd ../..
+
       - name: Build
         run: cargo build --release --target wasm32-unknown-unknown
+
       - name: Run tests
         run: cargo test --verbose
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
