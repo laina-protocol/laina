@@ -59,19 +59,19 @@ pub trait EnvExtensions {
 
 impl EnvExtensions for Env {
     fn is_initialized(&self) -> bool {
-        get_instance_storage(&self).has(&ADMIN_KEY)
+        get_instance_storage(self).has(&ADMIN_KEY)
     }
 
     fn get_admin(&self) -> Option<Address> {
-        get_instance_storage(&self).get(&ADMIN_KEY)
+        get_instance_storage(self).get(&ADMIN_KEY)
     }
 
     fn set_admin(&self, admin: &Address) {
-        get_instance_storage(&self).set(&ADMIN_KEY, admin);
+        get_instance_storage(self).set(&ADMIN_KEY, admin);
     }
 
     fn set_base_asset(&self, base_asset: &Asset) {
-        get_instance_storage(&self).set(&BASE_ASSET, base_asset)
+        get_instance_storage(self).set(&BASE_ASSET, base_asset)
     }
 
     fn get_base_asset(&self) -> Asset {
@@ -83,7 +83,7 @@ impl EnvExtensions for Env {
     }
 
     fn set_decimals(&self, decimals: u32) {
-        get_instance_storage(&self).set(&DECIMALS, &decimals)
+        get_instance_storage(self).set(&DECIMALS, &decimals)
     }
 
     fn get_resolution(&self) -> u32 {
@@ -91,17 +91,17 @@ impl EnvExtensions for Env {
     }
 
     fn set_resolution(&self, resolution: u32) {
-        get_instance_storage(&self).set(&RESOLUTION, &resolution)
+        get_instance_storage(self).set(&RESOLUTION, &resolution)
     }
 
     fn get_retention_period(&self) -> u64 {
-        get_instance_storage(&self)
+        get_instance_storage(self)
             .get(&RETENTION_PERIOD)
             .unwrap_or_default()
     }
 
     fn set_retention_period(&self, rdm_period: u64) {
-        get_instance_storage(&self).set(&RETENTION_PERIOD, &rdm_period);
+        get_instance_storage(self).set(&RETENTION_PERIOD, &rdm_period);
     }
 
     fn get_price(&self, asset: u8, timestamp: u64) -> Option<i128> {
@@ -116,7 +116,7 @@ impl EnvExtensions for Env {
         let data_key = U128Helper::encode_price_record_key(timestamp, asset);
 
         //set the price
-        let temps_storage = get_temporary_storage(&self);
+        let temps_storage = get_temporary_storage(self);
         temps_storage.set(&data_key, &price);
         if ledgers_to_live > 16 {
             //16 is the minimum number
@@ -126,50 +126,45 @@ impl EnvExtensions for Env {
 
     fn get_last_timestamp(&self) -> u64 {
         //get the marker
-        get_instance_storage(&self)
+        get_instance_storage(self)
             .get(&LAST_TIMESTAMP)
             .unwrap_or_default()
     }
 
     fn set_last_timestamp(&self, timestamp: u64) {
-        get_instance_storage(&self).set(&LAST_TIMESTAMP, &timestamp);
+        get_instance_storage(self).set(&LAST_TIMESTAMP, &timestamp);
     }
 
     fn get_assets(&self) -> Vec<Asset> {
-        get_instance_storage(&self)
+        get_instance_storage(self)
             .get(&ASSETS)
-            .unwrap_or_else(|| Vec::new(&self))
+            .unwrap_or_else(|| Vec::new(self))
     }
 
     fn set_assets(&self, assets: Vec<Asset>) {
-        get_instance_storage(&self).set(&ASSETS, &assets);
+        get_instance_storage(self).set(&ASSETS, &assets);
     }
 
     fn set_asset_index(&self, asset: &Asset, index: u32) {
         match asset {
             Asset::Stellar(address) => {
-                get_instance_storage(&self).set(&address, &index);
+                get_instance_storage(self).set(&address, &index);
             }
             Asset::Other(symbol) => {
-                get_instance_storage(&self).set(&symbol, &index);
+                get_instance_storage(self).set(&symbol, &index);
             }
         }
     }
 
     fn get_asset_index(&self, asset: &Asset) -> Option<u8> {
-        let index: Option<u32>;
-        match asset {
-            Asset::Stellar(address) => {
-                index = get_instance_storage(self).get(&address);
-            }
-            Asset::Other(symbol) => {
-                index = get_instance_storage(self).get(&symbol);
-            }
-        }
-        if index.is_none() {
-            return None;
-        }
-        return Some(index.unwrap() as u8);
+        let index: Option<u32> = match asset {
+            Asset::Stellar(address) => get_instance_storage(self).get(&address),
+            Asset::Other(symbol) => get_instance_storage(self).get(&symbol),
+        };
+
+        index?;
+
+        Some(index.unwrap() as u8)
     }
 
     fn panic_if_not_admin(&self) {

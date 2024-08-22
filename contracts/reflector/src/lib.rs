@@ -51,9 +51,9 @@ impl PriceOracleContract {
     pub fn period(e: Env) -> Option<u64> {
         let period = e.get_retention_period();
         if period == 0 {
-            return None;
+            None
         } else {
-            return Some(period / 1000); //convert to seconds
+            Some(period / 1000) //convert to seconds
         }
     }
 
@@ -124,9 +124,7 @@ impl PriceOracleContract {
     // Prices for the given asset or None if the asset is not supported
     pub fn prices(e: Env, asset: Asset, records: u32) -> Option<Vec<PriceData>> {
         let asset_index = e.get_asset_index(&asset); //get the asset index to avoid multiple calls
-        if asset_index.is_none() {
-            return None;
-        }
+        asset_index?;
         prices(
             &e,
             |timestamp| get_price_data_by_index(&e, asset_index.unwrap(), timestamp),
@@ -193,9 +191,7 @@ impl PriceOracleContract {
         records: u32,
     ) -> Option<Vec<PriceData>> {
         let asset_pair_indexes = get_asset_pair_indexes(&e, base_asset, quote_asset);
-        if asset_pair_indexes.is_none() {
-            return None;
-        }
+        asset_pair_indexes?;
         let decimals = e.get_decimals();
         prices(
             &e,
@@ -218,9 +214,7 @@ impl PriceOracleContract {
     // TWAP for the given asset over N recent records or None if the asset is not supported
     pub fn twap(e: Env, asset: Asset, records: u32) -> Option<i128> {
         let asset_index = e.get_asset_index(&asset); //get the asset index to avoid multiple calls
-        if asset_index.is_none() {
-            return None;
-        }
+        asset_index?;
         get_twap(
             &e,
             |timestamp| get_price_data_by_index(&e, asset_index.unwrap(), timestamp),
@@ -241,9 +235,7 @@ impl PriceOracleContract {
     pub fn x_twap(e: Env, base_asset: Asset, quote_asset: Asset, records: u32) -> Option<i128> {
         //get asset index to avoid multiple calls
         let asset_pair_indexes = get_asset_pair_indexes(&e, base_asset, quote_asset);
-        if asset_pair_indexes.is_none() {
-            return None;
-        }
+        asset_pair_indexes?;
         let decimals = e.get_decimals();
         get_twap(
             &e,
@@ -354,10 +346,7 @@ impl PriceOracleContract {
         }
         let timeframe: u64 = e.get_resolution().into();
         let ledger_timestamp = now(&e);
-        if timestamp == 0
-            || !timestamp.is_valid_timestamp(timeframe)
-            || timestamp > ledger_timestamp
-        {
+        if timestamp == 0 || !timestamp.valid_timestamp(timeframe) || timestamp > ledger_timestamp {
             panic_with_error!(&e, Error::InvalidTimestamp);
         }
 
@@ -459,7 +448,7 @@ fn now(e: &Env) -> u64 {
 
 fn obtain_record_timestamp(e: &Env) -> u64 {
     let last_timestamp = e.get_last_timestamp();
-    let ledger_timestamp = now(&e);
+    let ledger_timestamp = now(e);
     let resolution = e.get_resolution() as u64;
     if last_timestamp == 0 //no prices yet
         || last_timestamp > ledger_timestamp //last timestamp is in the future
@@ -476,7 +465,7 @@ fn get_twap<F: Fn(u64) -> Option<PriceData>>(
     get_price_fn: F,
     records: u32,
 ) -> Option<i128> {
-    let prices = prices(&e, get_price_fn, records)?;
+    let prices = prices(e, get_price_fn, records)?;
 
     if prices.len() != records {
         return None;
@@ -484,7 +473,7 @@ fn get_twap<F: Fn(u64) -> Option<PriceData>>(
 
     let last_price_timestamp = prices.first()?.timestamp * 1000; //convert to milliseconds to match the timestamp format
     let timeframe = e.get_resolution() as u64;
-    let current_time = now(&e);
+    let current_time = now(e);
 
     //check if the last price is too old
     if last_price_timestamp + timeframe + 60 * 1000 < current_time {
@@ -503,9 +492,7 @@ fn get_x_price(
     decimals: u32,
 ) -> Option<PriceData> {
     let asset_pair_indexes = get_asset_pair_indexes(e, base_asset, quote_asset);
-    if asset_pair_indexes.is_none() {
-        return None;
-    }
+    asset_pair_indexes?;
     get_x_price_by_indexes(e, asset_pair_indexes.unwrap(), timestamp, decimals)
 }
 
@@ -523,15 +510,11 @@ fn get_x_price_by_indexes(
 
     //get the price for base_asset
     let base_asset_price = e.get_price(base_asset, timestamp);
-    if base_asset_price.is_none() {
-        return None;
-    }
+    base_asset_price?;
 
     //get the price for quote_asset
     let quote_asset_price = e.get_price(quote_asset, timestamp);
-    if quote_asset_price.is_none() {
-        return None;
-    }
+    quote_asset_price?;
 
     //calculate the cross price
     Some(get_normalized_price_data(
@@ -544,31 +527,23 @@ fn get_x_price_by_indexes(
 
 fn get_asset_pair_indexes(e: &Env, base_asset: Asset, quote_asset: Asset) -> Option<(u8, u8)> {
     let base_asset = e.get_asset_index(&base_asset);
-    if base_asset.is_none() {
-        return None;
-    }
+    base_asset?;
 
     let quote_asset = e.get_asset_index(&quote_asset);
-    if quote_asset.is_none() {
-        return None;
-    }
+    quote_asset?;
 
     Some((base_asset.unwrap(), quote_asset.unwrap()))
 }
 
 fn get_price_data(e: &Env, asset: Asset, timestamp: u64) -> Option<PriceData> {
     let asset: Option<u8> = e.get_asset_index(&asset);
-    if asset.is_none() {
-        return None;
-    }
+    asset?;
     get_price_data_by_index(e, asset.unwrap(), timestamp)
 }
 
 fn get_price_data_by_index(e: &Env, asset: u8, timestamp: u64) -> Option<PriceData> {
     let price = e.get_price(asset, timestamp);
-    if price.is_none() {
-        return None;
-    }
+    price?;
     Some(get_normalized_price_data(price.unwrap(), timestamp))
 }
 
