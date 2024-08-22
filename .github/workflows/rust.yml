@@ -14,6 +14,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Build
         run: cargo build --release --target wasm32-unknown-unknown
       - name: Run tests
