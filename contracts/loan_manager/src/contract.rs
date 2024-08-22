@@ -166,14 +166,14 @@ impl LoansTrait for LoansContract {
         let reflector_contract: oracle::Client = oracle::Client::new(&e, &reflector_contract_id);
 
         // get the price and calculate the value of the collateral
-        let collateral_asset: Asset = Asset::Other(Symbol::new(&e, "BTC"));
+        let collateral_asset: Asset = Asset::Stellar(token_collateral);
 
         let collateral_asset_price: oracle::PriceData =
             reflector_contract.lastprice(&collateral_asset).unwrap();
         let collateral_value: i128 = collateral_asset_price.price * token_collateral_amount;
 
         // get the price and calculate the value of the borrowed asset
-        let borrowed_asset: Asset = Asset::Other(Symbol::new(&e, "ETH"));
+        let borrowed_asset: Asset = Asset::Stellar(token);
 
         let asset_price: oracle::PriceData = reflector_contract.lastprice(&borrowed_asset).unwrap();
         let borrowed_value: i128 = asset_price.price * token_amount;
@@ -189,7 +189,7 @@ mod tests {
     use soroban_sdk::{
         testutils::Address as _,
         token::{Client as TokenClient, StellarAssetClient},
-        vec, Env, IntoVal,
+        Env,
     };
 
     #[test]
