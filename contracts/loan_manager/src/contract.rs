@@ -20,10 +20,10 @@ pub trait LoansTrait {
     fn calculate_health_factor(
         e: Env,
         reflector_contract_id: Address,
-        token_a: Address,
-        token_a_amount: i128,
-        token_b: Address,
-        token_b_amount: i128,
+        token_ticker: Symbol,
+        token_amount: i128,
+        token_collateral_ticker: Symbol,
+        token_collateral_amount: i128,
     ) -> i128;
 }
 
@@ -158,23 +158,22 @@ impl LoansTrait for LoansContract {
     fn calculate_health_factor(
         e: Env,
         reflector_contract_id: Address,
-        token: Address,
+        token_ticker: Symbol,
         token_amount: i128,
-        token_collateral: Address,
+        token_collateral_ticker: Symbol,
         token_collateral_amount: i128,
     ) -> i128 {
         let reflector_contract: oracle::Client = oracle::Client::new(&e, &reflector_contract_id);
 
         // get the price and calculate the value of the collateral
-        let collateral_asset: Asset = Asset::Stellar(token_collateral);
+        let collateral_asset: Asset = Asset::Other(token_collateral_ticker);
 
         let collateral_asset_price: oracle::PriceData =
             reflector_contract.lastprice(&collateral_asset).unwrap();
         let collateral_value: i128 = collateral_asset_price.price * token_collateral_amount;
 
         // get the price and calculate the value of the borrowed asset
-        let borrowed_asset: Asset = Asset::Stellar(token);
-
+        let borrowed_asset: Asset = Asset::Other(token_ticker);
         let asset_price: oracle::PriceData = reflector_contract.lastprice(&borrowed_asset).unwrap();
         let borrowed_value: i128 = asset_price.price * token_amount;
 

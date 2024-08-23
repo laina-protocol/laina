@@ -169,16 +169,17 @@ impl LoanPoolTrait for LoanPoolContract {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
+
     use super::*; // This imports LoanPoolContract and everything else from the parent module
     use soroban_sdk::{
         testutils::Address as _,
         token::{Client as TokenClient, StellarAssetClient},
-        vec, Env, IntoVal,
+        Env,
     };
 
     #[test]
-    fn good_deposit() {
+    fn initialize() {
         let e: Env = Env::default();
         e.mock_all_auths();
 
@@ -192,24 +193,14 @@ mod tests {
         assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
-        let amount_i: i128 = 100;
-        let amount: Val = amount_i.into_val(&e);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
 
-        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
-        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
-
-        let _init_result: () =
-            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
-
-        let result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
-
-        assert_eq!(result, amount_i);
-
-        // Add assertions to validate expected behavior
+        contract_client.initialize(&token_contract_id);
+    
     }
 
     #[test]
-    fn good_withdraw() {
+    fn deposit() {
         let e: Env = Env::default();
         e.mock_all_auths();
 
@@ -223,24 +214,43 @@ mod tests {
         assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
-        let amount_i: i128 = 100;
-        let amount: Val = amount_i.into_val(&e);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 100;
 
-        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
-        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+        contract_client.initialize(&token_contract_id);
 
-        let _init_result: () =
-            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
+        let result: i128 = contract_client.deposit(&user, &amount);
 
-        let result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+        assert_eq!(result, amount);
+    }
 
-        assert_eq!(result, amount_i);
+    #[test]
+    fn withdraw() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
 
-        let withdraw_args = vec![&e, user.to_val(), amount];
-        let withdraw_result: (i128, i128) =
-            e.invoke_contract(&contract_id, &Symbol::new(&e, "withdraw"), withdraw_args);
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
 
-        assert_eq!(withdraw_result, (amount_i, amount_i));
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 100;
+
+        contract_client.initialize(&token_contract_id);
+
+        let result: i128 = contract_client.deposit(&user, &amount);
+
+        assert_eq!(result, amount);
+
+        let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
+
+        assert_eq!(withdraw_result, (amount, amount));
     }
 
     #[test]
@@ -259,16 +269,12 @@ mod tests {
         assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
-        let amount_i: i128 = 2000;
-        let amount: Val = amount_i.into_val(&e);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 2000;
 
-        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
-        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+        contract_client.initialize(&token_contract_id);
 
-        let _init_result: () =
-            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
-
-        let _result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+        contract_client.deposit(&user, &amount);
     }
 
     #[test]
@@ -287,24 +293,15 @@ mod tests {
         assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
-        let amount_i: i128 = 100;
-        let amount: Val = amount_i.into_val(&e);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 100;
 
-        let args: soroban_sdk::Vec<Val> = vec![&e, user.to_val(), amount];
-        let init_args: soroban_sdk::Vec<Val> = vec![&e, token_contract_id.to_val()];
+        contract_client.initialize(&token_contract_id);
 
-        let _init_result: () =
-            e.invoke_contract(&contract_id, &Symbol::new(&e, "initialize"), init_args);
+        let result: i128 = contract_client.deposit(&user, &amount);
 
-        let result: i128 = e.invoke_contract(&contract_id, &Symbol::new(&e, "deposit"), args);
+        assert_eq!(result, amount);
 
-        assert_eq!(result, amount_i);
-
-        let amount_i_2: i128 = 200;
-        let amount_2: Val = amount_i_2.into_val(&e);
-
-        let withdraw_args = vec![&e, user.to_val(), amount_2];
-        let _withdraw_result: (i128, i128) =
-            e.invoke_contract(&contract_id, &Symbol::new(&e, "withdraw"), withdraw_args);
+        contract_client.withdraw(&user, &(amount*2));
     }
 }
