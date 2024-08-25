@@ -112,7 +112,7 @@ impl LoanPoolTrait for LoanPoolContract {
         */
         let address = String::from_str(
             &e,
-            "CB6MHNR6FJMQHJZDWOKAU4KESR4OARLPZ4RMN57R55P2QUBH4QJENHLY",
+            "CCQRPKHADXTTZHLQKED66D77RE7IIDY7TU52TVUOSG3EKMM3LP72XVCI",
         );
         let contract: Address = Address::from_string(&address);
         contract.require_auth();
@@ -196,7 +196,6 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
 
         contract_client.initialize(&token_contract_id);
-    
     }
 
     #[test]
@@ -302,6 +301,6 @@ mod test {
 
         assert_eq!(result, amount);
 
-        contract_client.withdraw(&user, &(amount*2));
+        contract_client.withdraw(&user, &(amount * 2));
     }
 }
