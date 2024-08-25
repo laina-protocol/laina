@@ -8,9 +8,8 @@ pub fn init_loan(
     borrowed_from: Address,
     collateral: i128,
     collateral_from: Address,
+    health_factor: i128,
 ) {
-    // Here this part has to call health factor calculator but for now:
-    let health_factor: i32 = 1000;
     write_positions(
         e,
         addr,
@@ -29,7 +28,7 @@ fn write_positions(
     borrowed_from: Address,
     collateral: i128,
     collateral_from: Address,
-    health_factor: i32,
+    health_factor: i128,
 ) {
     let key = LoansDataKey::Loan(addr);
     // Initialize the map with the environment
