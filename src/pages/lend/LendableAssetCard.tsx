@@ -1,15 +1,35 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
+import type XLMPoolContract from '@contracts/loan_pool';
+import { useWallet } from 'src/stellar-wallet';
 
 export interface LendableAssetCardProps {
   name: string;
   symbol: string;
   icon: string;
+  contractClient: typeof XLMPoolContract; // All loan pool contract clients have the same API
 }
 
-export const LendableAssetCard = ({ name, symbol, icon }: LendableAssetCardProps) => {
-  const handleDepositClick = () => {
-    console.log('deposit clicked');
+export const LendableAssetCard = ({ name, symbol, icon, contractClient }: LendableAssetCardProps) => {
+  const { wallet, signTransaction } = useWallet();
+
+  const handleDepositClick = async () => {
+    if (!wallet) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    contractClient.options.publicKey = wallet.address;
+
+    const amount = BigInt(1000000);
+    const tx = await contractClient.deposit({ user: wallet.address, amount });
+
+    try {
+      const { result } = await tx.signAndSend({ signTransaction });
+      alert(`Deposit successful, result: ${result}`);
+    } catch (err) {
+      alert(`Error depositing: ${JSON.stringify(err)}`);
+    }
   };
 
   return (
@@ -32,7 +52,7 @@ export const LendableAssetCard = ({ name, symbol, icon }: LendableAssetCardProps
         <p className="text-xl font-bold leading-6">12.34%</p>
       </div>
 
-      <Button onClick={handleDepositClick}>Deposit</Button>
+      {wallet && <Button onClick={handleDepositClick}>Deposit</Button>}
     </Card>
   );
 };
