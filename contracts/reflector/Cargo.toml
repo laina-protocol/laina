@@ -1,0 +1,16 @@
+[build]
+target = "wasm32-unknown-unknown"
+
+[package]
+name = "reflector-oracle"
+version = "4.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

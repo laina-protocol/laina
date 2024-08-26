@@ -46,8 +46,8 @@ function fundAll() {
 function buildAll() {
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.wasm`);
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.d`);
-  // Then loan_pool as loan_pool uses it
   exe(`${soroban} contract build --package loan_pool`);
+  exe(`${soroban} contract build --package reflector-oracle`);
   exe(`${soroban} contract build`);
 }
 
