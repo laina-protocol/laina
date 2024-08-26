@@ -1,16 +1,14 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
-import type XLMPoolContract from '@contracts/loan_pool';
+import type { Currency } from 'src/currencies';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface LendableAssetCardProps {
-  name: string;
-  symbol: string;
-  icon: string;
-  contractClient: typeof XLMPoolContract; // All loan pool contract clients have the same API
+  currency: Currency;
 }
 
-export const LendableAssetCard = ({ name, symbol, icon, contractClient }: LendableAssetCardProps) => {
+export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
+  const { icon, name, symbol, loanPoolContract } = currency;
   const { wallet, signTransaction } = useWallet();
 
   const handleDepositClick = async () => {
@@ -19,10 +17,10 @@ export const LendableAssetCard = ({ name, symbol, icon, contractClient }: Lendab
       return;
     }
 
-    contractClient.options.publicKey = wallet.address;
+    loanPoolContract.options.publicKey = wallet.address;
 
     const amount = BigInt(1000000);
-    const tx = await contractClient.deposit({ user: wallet.address, amount });
+    const tx = await loanPoolContract.deposit({ user: wallet.address, amount });
 
     try {
       const { result } = await tx.signAndSend({ signTransaction });

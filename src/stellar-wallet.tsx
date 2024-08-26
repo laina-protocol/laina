@@ -1,5 +1,5 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
-import { type PropsWithChildren, createContext, useContext, useEffect, useState } from 'react';
+import { type PropsWithChildren, createContext, useContext, useState } from 'react';
 
 export type Wallet = {
   address: string;
@@ -42,10 +42,6 @@ const createWalletObj = (address: string): Wallet => ({
 
 export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [address, setAddress] = useState<string | null>(null);
-
-  useEffect(() => {
-    kit.getAddress().then(({ address }) => setAddress(address));
-  });
 
   const signTransaction: SignTransaction = async (tx, opts) => {
     const { signedTxXdr } = await kit.signTransaction(tx, opts);
