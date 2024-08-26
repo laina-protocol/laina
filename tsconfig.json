@@ -8,7 +8,8 @@
     "paths": {
       "@images/*": ["src/images/*"],
       "@components/*": ["src/components/*"],
-      "@pages/*": ["src/pages/*"]
+      "@pages/*": ["src/pages/*"],
+      "@contracts/*": ["src/contracts/*"]
     }
   }
 }

@@ -5,7 +5,7 @@ import { Button, SelectButtonWrapper, SelectLinkButton } from './Button';
 
 export default function Nav() {
   const { pathname } = useLocation();
-  const { openConnectWalletModal, wallet } = useWallet();
+  const { wallet, openConnectWalletModal } = useWallet();
 
   return (
     <nav className="relative max-w-screen-lg mx-auto mb-12 flex justify-between items-center pt-12 pb-6">

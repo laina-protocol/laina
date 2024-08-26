@@ -1,5 +1,5 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
-import { type PropsWithChildren, createContext, useContext, useState } from 'react';
+import { type PropsWithChildren, createContext, useContext, useEffect, useState } from 'react';
 
 export type Wallet = {
   address: string;
@@ -7,13 +7,26 @@ export type Wallet = {
 };
 
 export type WalletContext = {
-  openConnectWalletModal: () => void;
   wallet: Wallet | null;
+  openConnectWalletModal: () => void;
+  signTransaction: SignTransaction;
 };
+
+type SignTransaction = (
+  tx: XDR_BASE64,
+  opts?: {
+    network?: string;
+    networkPassphrase?: string;
+    accountToSign?: string;
+  },
+) => Promise<XDR_BASE64>;
+
+type XDR_BASE64 = string;
 
 const Context = createContext<WalletContext>({
   openConnectWalletModal: () => {},
   wallet: null,
+  signTransaction: () => Promise.reject(),
 });
 
 const kit: StellarWalletsKit = new StellarWalletsKit({
@@ -22,18 +35,22 @@ const kit: StellarWalletsKit = new StellarWalletsKit({
   modules: allowAllModules(),
 });
 
-const initialWallet: Wallet | null = await kit
-  .getAddress()
-  .then(({ address }) => ({
-    address,
-    displayName: formatDisplayName(address),
-  }))
-  .catch(() => null);
-
-const formatDisplayName = (address: string): string => `${address.slice(0, 4)}...${address.slice(-4)}`;
+const createWalletObj = (address: string): Wallet => ({
+  address,
+  displayName: `${address.slice(0, 4)}...${address.slice(-4)}`,
+});
 
 export const WalletProvider = ({ children }: PropsWithChildren) => {
-  const [wallet, setWallet] = useState(initialWallet);
+  const [address, setAddress] = useState<string | null>(null);
+
+  useEffect(() => {
+    kit.getAddress().then(({ address }) => setAddress(address));
+  });
+
+  const signTransaction: SignTransaction = async (tx, opts) => {
+    const { signedTxXdr } = await kit.signTransaction(tx, opts);
+    return signedTxXdr;
+  };
 
   const openConnectWalletModal = () => {
     kit.openModal({
@@ -41,10 +58,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         kit.setWallet(option.id);
         try {
           const { address } = await kit.getAddress();
-          setWallet({
-            address,
-            displayName: formatDisplayName(address),
-          });
+          setAddress(address);
         } catch (err) {
           console.error('Error connecting wallet: ', err);
         }
@@ -52,7 +66,19 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     });
   };
 
-  return <Context.Provider value={{ openConnectWalletModal, wallet }}>{children}</Context.Provider>;
+  const wallet: Wallet | null = address ? createWalletObj(address) : null;
+
+  return (
+    <Context.Provider
+      value={{
+        wallet,
+        openConnectWalletModal,
+        signTransaction,
+      }}
+    >
+      {children}
+    </Context.Provider>
+  );
 };
 
 export const useWallet = (): WalletContext => useContext(Context);
