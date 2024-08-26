@@ -60,9 +60,10 @@ impl LoansTrait for LoansContract {
 
         // Health factor has to be over 1.2 for the loan to be initialized.
         // Health factor is defined as so: 1.0 = 10000000_i128
+        const HEALTH_FACTOR_THRESHOLD: i128 = 12000000;
         assert!(
-            health_factor > 12000000,
-            "Health factor must be over 1.2 to create a new loan!"
+            health_factor > HEALTH_FACTOR_THRESHOLD,
+            "Health factor must be over {HEALTH_FACTOR_THRESHOLD} to create a new loan!"
         );
 
         let user_val: Val = Val::try_from_val(&e, &user).unwrap();
@@ -183,6 +184,7 @@ impl LoansTrait for LoansContract {
         token_collateral_ticker: Symbol,
         token_collateral_amount: i128,
     ) -> i128 {
+        const DECIMAL_TO_INT_MULTIPLIER: i128 = 10000000;
         let reflector_contract: oracle::Client = oracle::Client::new(e, &reflector_contract_id);
 
         // get the price and calculate the value of the collateral
@@ -197,7 +199,7 @@ impl LoansTrait for LoansContract {
         let asset_price: oracle::PriceData = reflector_contract.lastprice(&borrowed_asset).unwrap();
         let borrowed_value: i128 = asset_price.price * token_amount;
 
-        let health_ratio: i128 = collateral_value * 10000000_i128 / borrowed_value;
+        let health_ratio: i128 = collateral_value * DECIMAL_TO_INT_MULTIPLIER / borrowed_value;
 
         health_ratio
     }
