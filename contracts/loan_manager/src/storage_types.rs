@@ -8,6 +8,15 @@ pub(crate) const POSITIONS_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 pub(crate) const POSITIONS_LIFETIME_THRESHOLD: u32 = POSITIONS_BUMP_AMOUNT - DAY_IN_LEDGERS;
 
 /* Storage Types */
+#[derive(Clone)]
+#[contracttype]
+pub struct Loan {
+    pub borrowed_amount: i128,
+    pub borrowed_from: Address,
+    pub collateral_amount: i128,
+    pub collateral_from: Address,
+    pub health_factor: i128,
+}
 
 #[derive(Clone)]
 #[contracttype]

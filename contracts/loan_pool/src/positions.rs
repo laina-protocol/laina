@@ -1,7 +1,7 @@
 use crate::storage_types::{
     PoolDataKey, Positions, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
 };
-use soroban_sdk::{Address, Env, IntoVal, Map, Symbol, TryFromVal, Val};
+use soroban_sdk::{Address, Env, IntoVal, TryFromVal, Val};
 
 pub fn read_positions(e: &Env, addr: Address) -> Val {
     let key = PoolDataKey::Positions(addr);

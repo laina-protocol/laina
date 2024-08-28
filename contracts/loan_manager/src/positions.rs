@@ -1,21 +1,23 @@
-use crate::storage_types::{LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD};
-use soroban_sdk::{Address, Env, IntoVal, Map, Symbol, Val};
+use crate::storage_types::{
+    Loan, LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
+};
+use soroban_sdk::{Address, Env, IntoVal, Val};
 
 pub fn init_loan(
     e: &Env,
     addr: Address,
-    borrowed: i128,
+    borrowed_amount: i128,
     borrowed_from: Address,
-    collateral: i128,
+    collateral_amount: i128,
     collateral_from: Address,
     health_factor: i128,
 ) {
     write_positions(
         e,
         addr,
-        borrowed,
+        borrowed_amount,
         borrowed_from,
-        collateral,
+        collateral_amount,
         collateral_from,
         health_factor,
     );
@@ -24,30 +26,26 @@ pub fn init_loan(
 fn write_positions(
     e: &Env,
     addr: Address,
-    borrowed: i128,
+    borrowed_amount: i128,
     borrowed_from: Address,
-    collateral: i128,
+    collateral_amount: i128,
     collateral_from: Address,
     health_factor: i128,
 ) {
     let key = LoansDataKey::Loan(addr);
-    // Initialize the map with the environment
-    let mut positions: Map<Symbol, Val> = Map::new(e);
 
-    // Set position values in the map
-    positions.set(Symbol::new(e, "borrowed"), borrowed.into_val(e));
-    positions.set(Symbol::new(e, "borrowed_from"), borrowed_from.into_val(e));
-    positions.set(Symbol::new(e, "collateral"), collateral.into_val(e));
-    positions.set(
-        Symbol::new(e, "collateral_from"),
-        collateral_from.into_val(e),
-    );
-    positions.set(Symbol::new(e, "health_factor"), health_factor.into_val(e));
+    let loan: Loan = Loan {
+        borrowed_amount,
+        borrowed_from,
+        collateral_amount,
+        collateral_from,
+        health_factor,
+    };
 
-    // Transform the map of positions in to Val so it can be stored
-    let val: Val = positions.into_val(e);
+    let val: Val = loan.into_val(e);
 
     e.storage().persistent().set(&key, &val);
+
     e.storage()
         .persistent()
         .extend_ttl(&key, POSITIONS_LIFETIME_THRESHOLD, POSITIONS_BUMP_AMOUNT);
