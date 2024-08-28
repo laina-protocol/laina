@@ -22,6 +22,15 @@ pub struct PoolConfig {
 
 #[derive(Clone)]
 #[contracttype]
+pub struct Positions {
+    // struct names under 9 characters are marginally more efficient. Need to think if we value marginal efficiency over readibility
+    pub receivables: i128,
+    pub liabilities: i128,
+    pub collateral: i128,
+}
+
+#[derive(Clone)]
+#[contracttype]
 pub enum PoolDataKey {
     // Pools tokens address
     Token,
