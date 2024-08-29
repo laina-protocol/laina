@@ -52,7 +52,7 @@ pub fn increase_positions(
     let positions_val: Val = read_positions(e, addr.clone());
 
     let positions: Positions = Positions::try_from_val(e, &positions_val).unwrap();
-    // TODO: Might need to use get rather than get_unchecked and convert from Option<V> to V
+
     let receivables_now: i128 = positions.receivables;
     let liabilities_now: i128 = positions.liabilities;
     let collateral_now = positions.collateral;
