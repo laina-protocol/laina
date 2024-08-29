@@ -1,8 +1,7 @@
 name: Build and Deploy
 on:
   push:
-    branches:
-      - chore/actions-to-deploy-pages
+    branches: [ main ]
   workflow_run:
     workflows: [nodejs, rust, rustfmt]
     types:
@@ -23,9 +22,25 @@ jobs:
         run: echo ::set-output name=NVMRC::$(cat .nvmrc)
         id: nvm
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: '${{ steps.nvm.outputs.NVMRC }}'
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - name: Install Stellar
+        run: |
+          cargo install --locked stellar-cli --features opt
+      - name: Setup env
+        run: cp .env.example .env
+      - name: Build Reflector
+        run: |
+          cd contracts/reflector
+          soroban contract build
+          cd ../..
+    
       - name: Install and build
         run: |
           npm install
@@ -38,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{  steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
