@@ -12,6 +12,9 @@ contractmeta!(
     val = "Lending pool with variable interest rate."
 );
 
+// TODO: get this dynamically when creating the contract.
+const LOAN_MANAGER_ADDRESS: &str = "CC62OM25XWZY6QECTFQR4NP7PINU6JN46FSDUOXC7Y5PUFJX3ZPVHZDF";
+
 #[allow(dead_code)]
 pub trait LoanPoolTrait {
     // Sets the token contract address for the pool
@@ -110,12 +113,8 @@ impl LoanPoolTrait for LoanPoolContract {
         include the logic and checks that the borrowing can be actually done. Therefore we need to
         include a check that the caller is the loans contract.
         */
-        let address = String::from_str(
-            &e,
-            "CCQRPKHADXTTZHLQKED66D77RE7IIDY7TU52TVUOSG3EKMM3LP72XVCI",
-        );
-        let contract: Address = Address::from_string(&address);
-        contract.require_auth();
+        let loan_manager_addr = Address::from_string(&String::from_str(&e, LOAN_MANAGER_ADDRESS));
+        loan_manager_addr.require_auth();
         user.require_auth();
 
         // Extend instance storage rent
