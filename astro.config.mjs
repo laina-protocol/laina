@@ -6,11 +6,13 @@ import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://www.laina-de.fi',
   vite: {
     plugins: [basicSsl()],
     server: {
       https: true,
     },
   },
+  output: 'static',
   integrations: [react(), tailwind()],
 });

@@ -1,0 +1,60 @@
+name: Build and Deploy
+on:
+  push:
+    branches: [ main ]
+  workflow_run:
+    workflows: [nodejs, rust, rustfmt]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repository using git
+        uses: actions/checkout@v4
+      - name: Read .nvmrc
+        run: echo ::set-output name=NVMRC::$(cat .nvmrc)
+        id: nvm
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '${{ steps.nvm.outputs.NVMRC }}'
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - name: Install Stellar
+        run: |
+          cargo install --locked stellar-cli --features opt
+      - name: Setup env
+        run: cp .env.example .env
+      - name: Build Reflector
+        run: |
+          cd contracts/reflector
+          soroban contract build
+          cd ../..
+    
+      - name: Install and build
+        run: |
+          npm install
+          npm run init
+      - name: Install, build, and upload your site output
+        uses: withastro/action@v2
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{  steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
