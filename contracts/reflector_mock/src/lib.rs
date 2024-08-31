@@ -29,5 +29,3 @@ impl MockPriceOracleContract {
         })
     }
 }
-
-mod test;

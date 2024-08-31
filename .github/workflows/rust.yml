@@ -27,6 +27,18 @@ jobs:
           cargo build --release --target wasm32-unknown-unknown
           cd ../..
 
+      - name: Build mock Reflector
+        run: |
+          cd contracts/reflector_mock
+          cargo build --release --target wasm32-unknown-unknown
+          cd ../..
+
+      - name: Build Loan pool contract
+        run: |
+          cd contracts/loan_pool
+          cargo build --release --target wasm32-unknown-unknown
+          cd ../..
+
       - name: Build
         run: cargo build --release --target wasm32-unknown-unknown
 
