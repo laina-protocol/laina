@@ -21,26 +21,11 @@ jobs:
           profile: minimal
           toolchain: stable
 
-      - name: Build Reflector
-        run: |
-          cd contracts/reflector
-          cargo build --release --target wasm32-unknown-unknown
-          cd ../..
-
-      - name: Build mock Reflector
-        run: |
-          cd contracts/reflector_mock
-          cargo build --release --target wasm32-unknown-unknown
-          cd ../..
-
-      - name: Build Loan pool contract
-        run: |
-          cd contracts/loan_pool
-          cargo build --release --target wasm32-unknown-unknown
-          cd ../..
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo build --release --target wasm32-unknown-unknown
+        run: make build
 
       - name: Run tests
         run: cargo test --verbose
