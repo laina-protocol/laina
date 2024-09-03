@@ -1,16 +1,28 @@
 use crate::storage_types::PoolDataKey;
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{contracttype, Address, Env, Symbol};
 
-pub fn write_token(e: &Env, token: Address) {
-    let key: PoolDataKey = PoolDataKey::Token;
-
-    e.storage().persistent().set(&key, &token);
+#[contracttype]
+pub struct Currency {
+    pub token_address: Address,
+    pub ticker: Symbol,
 }
 
-pub fn read_token(e: &Env) -> Address {
-    let key: PoolDataKey = PoolDataKey::Token;
+pub fn write_currency(e: &Env, currency: Currency) {
+    let key = PoolDataKey::Currency;
+
+    e.storage().persistent().set(&key, &currency);
+}
+
+pub fn read_currency(e: &Env) -> Currency {
+    let key = PoolDataKey::Currency;
 
     e.storage().persistent().get(&key).unwrap()
+}
+
+pub fn write_liquidation_threshold(e: &Env, threshold: i128) {
+    let key = PoolDataKey::LiquidationThreshold;
+
+    e.storage().persistent().set(&key, &threshold);
 }
 
 pub fn write_total_shares(e: &Env, amount: i128) {

@@ -219,11 +219,19 @@ mod tests {
         let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
         let loan_token = TokenClient::new(&e, &loan_token_contract_id);
         loan_asset.mint(&admin, &1000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let admin2 = Address::generate(&e);
         let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
         let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
         let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
@@ -249,10 +257,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&loan_token_contract_id);
+        loan_pool_client.initialize(&loan_currency, &800_000);
         loan_pool_client.deposit(&admin, &1000);
 
-        collateral_pool_client.initialize(&collateral_token_contract_id);
+        collateral_pool_client.initialize(&collateral_currency, &800_000);
 
         // Create a loan.
         contract_client.initialize(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
