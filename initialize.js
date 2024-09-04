@@ -103,7 +103,7 @@ function deployLpWithFactory() {
   const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
   const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
 
-  const initializePool = (tokenAddress, ticker, salt) => {
+  const initializePool = (tokenAddress, ticker, salt, poolName) => {
     exe(
       `${soroban} contract invoke \
 --id ${contractId} \
@@ -115,19 +115,19 @@ function deployLpWithFactory() {
 --token_address ${tokenAddress} \
 --ticker ${ticker} \
 --liquidation_threshold 800000 \
-| tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`,
+| tr -d '"' > ${dirname}/.soroban/contract-ids/${poolName}.txt`,
     );
   };
 
   // XLM Pool
   const xlmTokenAddress = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
   const salt1 = crypto.randomBytes(32).toString('hex');
-  initializePool(xlmTokenAddress, 'XLM', salt1);
+  initializePool(xlmTokenAddress, 'XLM', salt1, 'loan_pool');
 
   // USDC Pool
   const usdcTokenAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
   const salt2 = crypto.randomBytes(32).toString('hex');
-  initializePool(usdcTokenAddress, 'USDC', salt2);
+  initializePool(usdcTokenAddress, 'USDC', salt2, 'usdc_pool');
 }
 
 function bind(contract) {
