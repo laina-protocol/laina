@@ -5,7 +5,7 @@ import type { Currency } from 'src/currencies';
 import { useWallet } from 'src/stellar-wallet';
 
 // Temporary hack to use XLM pool for all loans and collaterals.
-const XLM_LOAN_POOL_ID = 'CBGVA2KV423WKDNYILW3BPZSNPDCQI3LXA7XYR7H36XUDOPO3UCNQ3RC';
+const XLM_LOAN_POOL_ID = 'CCME5C2PJFCWGW5O5MCO4O6X3AUJLD6XHVH3ZJHC7SD7XK5OTPJRPHF7';
 
 interface BorrowableAssetCardProps {
   currency: Currency;
