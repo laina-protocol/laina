@@ -32,8 +32,10 @@ pub struct Positions {
 #[derive(Clone)]
 #[contracttype]
 pub enum PoolDataKey {
-    // Pools tokens address
-    Token,
+    // Pool's token's address & ticker
+    Currency,
+    // The threshold when a loan should liquidate, unit is one-millionth
+    LiquidationThreshold,
     // Users positions in the pool
     Positions(Address),
     // Total amount of shares in circulation

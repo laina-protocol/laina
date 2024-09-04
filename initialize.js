@@ -46,9 +46,7 @@ function fundAll() {
 function buildAll() {
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.wasm`);
   exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.d`);
-  exe(`${soroban} contract build --package loan_pool`);
-  exe(`${soroban} contract build --package reflector-oracle`);
-  exe(`${soroban} contract build`);
+  exe(`make build`);
 }
 
 function filenameNoExtension(filename) {
@@ -67,7 +65,7 @@ function deployFactory() {
 
   // try to deploy only factory contract that will be used to generate others. Maybe later it has to be some sort of admin contract?
   deploy(`${dirname}/target/wasm32-unknown-unknown/release/factory.wasm`);
-  // Deploy loans contract as there will only be one for all
+  // Deploy loan_manager contract as there will only be one for all
   deploy(`${dirname}/target/wasm32-unknown-unknown/release/loan_manager.wasm`);
 
   // const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter(file => file.endsWith('.wasm'));
@@ -99,23 +97,37 @@ function installAll() {
 }
 
 function deployLpWithFactory() {
-  // Deploy liquidity pool with factory contract
+  // Deploy liquidity pools with the factory contract
 
   // Read values of parameters
   const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
   const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
-  const xlmTokenAddress = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
-  const usdcTokenAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
-  // Generate salt
-  const salt1 = crypto.randomBytes(32).toString('hex');
-  const salt2 = crypto.randomBytes(32).toString('hex');
 
-  exe(
-    `${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt1} --init_fn initialize --token_contract ${xlmTokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`,
-  );
-  exe(
-    `${soroban} contract invoke --id ${contractId} --source-account alice --network testnet -- deploy --wasm_hash ${wasmHash} --salt ${salt2} --init_fn initialize --token_contract ${usdcTokenAddress}  | tr -d '"' > ${dirname}/.soroban/contract-ids/usdc_pool.txt`,
-  );
+  const initializePool = (tokenAddress, ticker, salt) => {
+    exe(
+      `${soroban} contract invoke \
+--id ${contractId} \
+--source-account alice \
+--network testnet \
+-- deploy \
+--wasm_hash ${wasmHash} \
+--salt ${salt} \
+--token_address ${tokenAddress} \
+--ticker ${ticker} \
+--liquidation_threshold 800000 \
+| tr -d '"' > ${dirname}/.soroban/contract-ids/loan_pool.txt`,
+    );
+  };
+
+  // XLM Pool
+  const xlmTokenAddress = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
+  const salt1 = crypto.randomBytes(32).toString('hex');
+  initializePool(xlmTokenAddress, 'XLM', salt1);
+
+  // USDC Pool
+  const usdcTokenAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
+  const salt2 = crypto.randomBytes(32).toString('hex');
+  initializePool(usdcTokenAddress, 'USDC', salt2);
 }
 
 function bind(contract) {

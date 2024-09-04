@@ -1,4 +1,5 @@
 use crate::pool;
+use crate::pool::Currency;
 use crate::positions;
 use crate::storage_types::extend_instance;
 
@@ -18,7 +19,7 @@ const LOAN_MANAGER_ADDRESS: &str = "CC62OM25XWZY6QECTFQR4NP7PINU6JN46FSDUOXC7Y5P
 #[allow(dead_code)]
 pub trait LoanPoolTrait {
     // Sets the token contract address for the pool
-    fn initialize(e: Env, token: Address);
+    fn initialize(e: Env, currency: Currency, liquidation_threshold: i128);
 
     // Deposits token. Also, mints pool shares for the "user" Identifier.
     fn deposit(e: Env, user: Address, amount: i128) -> i128;
@@ -42,8 +43,9 @@ struct LoanPoolContract;
 
 #[contractimpl]
 impl LoanPoolTrait for LoanPoolContract {
-    fn initialize(e: Env, token: Address) {
-        pool::write_token(&e, token);
+    fn initialize(e: Env, currency: Currency, liquidation_threshold: i128) {
+        pool::write_currency(&e, currency);
+        pool::write_liquidation_threshold(&e, liquidation_threshold);
         pool::write_total_shares(&e, 0);
         pool::write_total_balance(&e, 0);
         pool::write_available_balance(&e, 0);
@@ -56,7 +58,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let client = token::Client::new(&e, &pool::read_token(&e));
+        let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
@@ -101,7 +103,8 @@ impl LoanPoolTrait for LoanPoolContract {
         positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral);
 
         // Transfer tokens from pool to user
-        let client = token::Client::new(&e, &pool::read_token(&e));
+        let token_address = &pool::read_currency(&e).token_address;
+        let client = token::Client::new(&e, token_address);
         client.transfer(&e.current_contract_address(), &user, &amount);
 
         (amount, amount)
@@ -133,7 +136,8 @@ impl LoanPoolTrait for LoanPoolContract {
         let receivables: i128 = 0; // temp test param
         positions::increase_positions(&e, user.clone(), receivables, amount, collateral);
 
-        let client = token::Client::new(&e, &pool::read_token(&e));
+        let token_address = &pool::read_currency(&e).token_address;
+        let client = token::Client::new(&e, token_address);
         client.transfer(&e.current_contract_address(), &user, &amount);
 
         amount
@@ -146,7 +150,8 @@ impl LoanPoolTrait for LoanPoolContract {
         // Extend instance storage rent
         extend_instance(e.clone());
 
-        let client = token::Client::new(&e, &pool::read_token(&e));
+        let token_address = &pool::read_currency(&e).token_address;
+        let client = token::Client::new(&e, token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // Increase users position in pool as they deposit
@@ -177,6 +182,8 @@ mod test {
         Env,
     };
 
+    const TEST_LIQUIDATION_THRESHOLD: i128 = 800_000;
+
     #[test]
     fn initialize() {
         let e: Env = Env::default();
@@ -186,6 +193,10 @@ mod test {
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
         let token = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
@@ -194,7 +205,7 @@ mod test {
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
 
-        contract_client.initialize(&token_contract_id);
+        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
     }
 
     #[test]
@@ -206,6 +217,10 @@ mod test {
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
         let token = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
@@ -215,7 +230,7 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
-        contract_client.initialize(&token_contract_id);
+        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
 
         let result: i128 = contract_client.deposit(&user, &amount);
 
@@ -231,6 +246,10 @@ mod test {
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
         let token = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
@@ -240,7 +259,7 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
-        contract_client.initialize(&token_contract_id);
+        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
 
         let result: i128 = contract_client.deposit(&user, &amount);
 
@@ -261,6 +280,10 @@ mod test {
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
         let token = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
@@ -270,7 +293,7 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 2000;
 
-        contract_client.initialize(&token_contract_id);
+        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
 
         contract_client.deposit(&user, &amount);
     }
@@ -285,6 +308,10 @@ mod test {
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
         let token = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
@@ -294,7 +321,7 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
-        contract_client.initialize(&token_contract_id);
+        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
 
         let result: i128 = contract_client.deposit(&user, &amount);
 

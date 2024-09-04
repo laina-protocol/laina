@@ -1,6 +1,12 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, vec, Address, BytesN, Env, Symbol, TryFromVal, Val};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Symbol};
+
+mod loan_pool {
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/loan_pool.wasm"
+    );
+}
 
 #[contract]
 pub struct Deployer;
@@ -19,20 +25,22 @@ impl Deployer {
         env: Env,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
-        init_fn: Symbol,
-        token_contract: Address,
+        token_address: Address,
+        ticker: Symbol,
+        liquidation_threshold: i128,
     ) -> Address {
-        //convert the arguments to Val
-        let token_contract_raw = Val::try_from_val(&env, &token_contract).unwrap();
-
-        // Construct the init_args
-        let init_args: soroban_sdk::Vec<Val> = vec![&env, token_contract_raw];
-
         // Deploy the contract using the uploaded Wasm with given hash.
-        let deployed_address = env.deployer().with_current_contract(salt).deploy(wasm_hash);
+        let deployed_address: Address =
+            env.deployer().with_current_contract(salt).deploy(wasm_hash);
 
-        // Invoke the init function with the given arguments.
-        let _res: Val = env.invoke_contract(&deployed_address, &init_fn, init_args);
+        let pool_client = loan_pool::Client::new(&env, &deployed_address);
+
+        let currency = loan_pool::Currency {
+            token_address,
+            ticker,
+        };
+        pool_client.initialize(&currency, &liquidation_threshold);
+
         // Return the contract ID of the deployed contract
         deployed_address
     }

@@ -18,33 +18,39 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
+
       - name: Read .nvmrc
         run: echo ::set-output name=NVMRC::$(cat .nvmrc)
         id: nvm
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
           node-version: '${{ steps.nvm.outputs.NVMRC }}'
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
       - name: Install Stellar
-        run: |
-          cargo install --locked stellar-cli --features opt
+        run: cargo install --locked stellar-cli --features opt
+
+      - name: Build contracts
+        run: make build
+
       - name: Setup env
         run: cp .env.example .env
-      - name: Build Reflector
-        run: |
-          cd contracts/reflector
-          soroban contract build
-          cd ../..
-    
+
       - name: Install and build
         run: |
           npm install
           npm run init
+
       - name: Install, build, and upload your site output
         uses: withastro/action@v2
 
