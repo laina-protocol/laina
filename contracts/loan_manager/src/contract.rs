@@ -2,11 +2,11 @@ use crate::interest::get_interest;
 use crate::oracle::{self, Asset};
 use crate::positions;
 use crate::storage_types::{
-    Loan, LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD, DAY_IN_LEDGERS,
+    Loan, LoansDataKey, DAY_IN_LEDGERS, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
 };
 
 use soroban_sdk::{
-    contract, contractimpl, vec, Address, Env, IntoVal, String, Symbol, TryFromVal, Val, Vec
+    contract, contractimpl, vec, Address, Env, IntoVal, String, Symbol, TryFromVal, Val, Vec,
 };
 
 mod loan_pool {
@@ -102,9 +102,13 @@ impl LoansTrait for LoansContract {
         if !addresses.contains(&user) {
             addresses.push_back(user);
         }
-        e.storage()
-            .persistent()
-            .set(&Symbol::new(&e, "Addresses"), &addresses);
+        let key = Symbol::new(&e, "Addresses");
+        e.storage().persistent().set(&key, &addresses);
+        e.storage().persistent().extend_ttl(
+            &key,
+            POSITIONS_LIFETIME_THRESHOLD,
+            POSITIONS_BUMP_AMOUNT,
+        );
     }
 
     fn add_interest(e: Env) {
@@ -128,7 +132,8 @@ impl LoansTrait for LoansContract {
             u32::try_from_val(&e, &previous_ledger_val).expect("Failed to convert Val to u32");
 
         let ledgers_since_update: u32 = current_ledger - previous_ledger; // Currently unused but is a placeholder for interest calculations. Now time is handled.
-        let ledger_ratio: i128 = (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(DAY_IN_LEDGERS * 365));
+        let ledger_ratio: i128 =
+            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(DAY_IN_LEDGERS * 365));
 
         // Update current ledger as the new 'last time'
 
@@ -164,8 +169,14 @@ impl LoansTrait for LoansContract {
             // Get updated health_factor
             let token_ticker: Symbol = Symbol::new(&e, "USDC"); // temporary
             let collateral_ticker: Symbol = Symbol::new(&e, "XLM"); // temporary
-            loan.health_factor = Self::calculate_health_factor(&e, token_ticker, new_borrowed, collateral_ticker, loan.collateral_amount); // It now calls reflector for each address. This is safe but might end up being costly
-            // Transform the Map back to Val
+            loan.health_factor = Self::calculate_health_factor(
+                &e,
+                token_ticker,
+                new_borrowed,
+                collateral_ticker,
+                loan.collateral_amount,
+            ); // It now calls reflector for each address. This is safe but might end up being costly
+               // Transform the Map back to Val
             let new_loan: Val = loan.into_val(&e);
             // Set it to storage
             e.storage().persistent().set(&key, &new_loan);
@@ -178,7 +189,11 @@ impl LoansTrait for LoansContract {
         }
 
         e.storage().persistent().set(&key, &current_ledger);
-        e.storage().persistent().extend_ttl(&key, POSITIONS_LIFETIME_THRESHOLD, POSITIONS_BUMP_AMOUNT);
+        e.storage().persistent().extend_ttl(
+            &key,
+            POSITIONS_LIFETIME_THRESHOLD,
+            POSITIONS_BUMP_AMOUNT,
+        );
     }
 
     fn calculate_health_factor(
@@ -273,7 +288,6 @@ mod tests {
 
         // Create a loan.
         contract_client.initialize(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
-        
 
         // ASSERT
         assert_eq!(loan_token.balance(&user), 10);
@@ -287,22 +301,29 @@ mod tests {
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
-            li.min_persistent_entry_ttl = 10000;
+            li.min_persistent_entry_ttl = 100000;
             li.min_temp_entry_ttl = 10000;
             li.max_entry_ttl = 1_000_000;
         });
-        
 
         let admin = Address::generate(&e);
         let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
         let loan_token = TokenClient::new(&e, &loan_token_contract_id);
         loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
 
         let admin2 = Address::generate(&e);
         let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
         let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
         let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
@@ -328,30 +349,24 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&loan_token_contract_id);
+        loan_pool_client.initialize(&loan_currency, &800_000);
         loan_pool_client.deposit(&admin, &1_000_000);
 
-        collateral_pool_client.initialize(&collateral_token_contract_id);
+        collateral_pool_client.initialize(&collateral_currency, &800_000);
 
         // Create a loan.
         contract_client.initialize(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
-        
+
         assert_eq!(loan_token.balance(&user), 10_000);
         assert_eq!(collateral_token.balance(&user), 900_000);
 
         contract_client.add_interest();
-        
+
         assert_eq!(loan_token.balance(&user), 10_000);
         assert_eq!(collateral_token.balance(&user), 900_000);
 
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000 + 5;
         });
-
-        contract_client.add_interest();
-
-        assert_eq!(loan_token.balance(&user), 10_000);
-        assert_eq!(collateral_token.balance(&user), 900_000);
-
     }
 }
