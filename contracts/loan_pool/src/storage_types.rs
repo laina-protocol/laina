@@ -1,14 +1,4 @@
-use soroban_sdk::{contracttype, Address, Env};
-
-/* Ledger Thresholds */
-
-pub(crate) const DAY_IN_LEDGERS: u32 = 17280; // if ledger takes 5 seconds
-
-pub(crate) const INSTANCE_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
-pub(crate) const INSTANCE_LIFETIME_THRESHOLD: u32 = INSTANCE_BUMP_AMOUNT - DAY_IN_LEDGERS;
-
-pub(crate) const POSITIONS_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
-pub(crate) const POSITIONS_LIFETIME_THRESHOLD: u32 = POSITIONS_BUMP_AMOUNT - DAY_IN_LEDGERS;
+use soroban_sdk::{contracttype, Address, Symbol};
 
 /* Storage Types */
 
@@ -20,6 +10,12 @@ pub struct PoolConfig {
     pub status: u32,     // Status of the pool
 }
 
+#[contracttype]
+pub struct Currency {
+    pub token_address: Address,
+    pub ticker: Symbol,
+}
+
 #[derive(Clone)]
 #[contracttype]
 pub struct Positions {
@@ -29,28 +25,10 @@ pub struct Positions {
     pub collateral: i128,
 }
 
-#[derive(Clone)]
-#[contracttype]
-pub enum PoolDataKey {
-    // Address of the loan manager for authorization.
-    LoanManagerAddress,
-    // Pool's token's address & ticker
-    Currency,
-    // The threshold when a loan should liquidate, unit is one-millionth
-    LiquidationThreshold,
-    // Users positions in the pool
-    Positions(Address),
-    // Total amount of shares in circulation
-    TotalShares,
-    // Total balance of pool
-    TotalBalance,
-    // Available balance of pool
-    AvailableBalance,
-}
+/* Input types */
 
-/* Instance rent bumper */
-pub fn extend_instance(e: Env) {
-    e.storage()
-        .instance()
-        .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+pub struct PositionsInput {
+    pub receivables: Option<i128>,
+    pub liabilities: Option<i128>,
+    pub collateral: Option<i128>,
 }
