@@ -5,9 +5,7 @@ use crate::storage_types::{
     Loan, LoansDataKey, DAY_IN_LEDGERS, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
 };
 
-use soroban_sdk::{
-    contract, contractimpl, vec, Address, Env, IntoVal, String, Symbol, TryFromVal, Val, Vec,
-};
+use soroban_sdk::{contract, contractimpl, vec, Address, Env, String, Symbol, Vec};
 
 mod loan_pool {
     soroban_sdk::contractimport!(
@@ -124,19 +122,11 @@ impl LoansTrait for LoansContract {
         let current_ledger = e.ledger().sequence();
 
         let key: LoansDataKey = LoansDataKey::LastUpdated;
-        let previous_ledger_val: Val = e
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(current_ledger.into_val(&e)); // If there is no previous ledger, use current.
-        let previous_ledger: u32 =
-            u32::try_from_val(&e, &previous_ledger_val).expect("Failed to convert Val to u32");
+        let previous_ledger: u32 = e.storage().persistent().get(&key).unwrap_or(current_ledger); // If there is no previous ledger, use current.
 
         let ledgers_since_update: u32 = current_ledger - previous_ledger; // Currently unused but is a placeholder for interest calculations. Now time is handled.
         let ledger_ratio: i128 =
             (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(DAY_IN_LEDGERS * 365));
-
-        // Update current ledger as the new 'last time'
 
         // Iterate over loans and add interest to capital borrowed.
         // In the same iteration add the amount to the liabilities of the lending pool.
@@ -149,14 +139,7 @@ impl LoansTrait for LoansContract {
         for user in addresses.iter() {
             let key = (Symbol::new(&e, "Loan"), user.clone());
 
-            let loan_val: Val = e
-                .storage()
-                .persistent()
-                .get::<(Symbol, Address), Val>(&key)
-                .unwrap();
-
-            let mut loan: Loan =
-                Loan::try_from_val(&e, &loan_val).expect("Failed to convert Val to Loan");
+            let mut loan: Loan = e.storage().persistent().get(&key).unwrap();
 
             let borrowed: i128 = loan.borrowed_amount;
 
@@ -177,10 +160,8 @@ impl LoansTrait for LoansContract {
                 collateral_ticker,
                 loan.collateral_amount,
             ); // It now calls reflector for each address. This is safe but might end up being costly
-               // Transform the Map back to Val
-            let new_loan: Val = loan.into_val(&e);
-            // Set it to storage
-            e.storage().persistent().set(&key, &new_loan);
+               // Set it to storage
+            e.storage().persistent().set(&key, &loan);
             e.storage().persistent().extend_ttl(
                 &key,
                 POSITIONS_LIFETIME_THRESHOLD,
@@ -238,7 +219,7 @@ mod tests {
     use soroban_sdk::{
         testutils::{Address as _, Ledger},
         token::{Client as TokenClient, StellarAssetClient},
-        Env, TryIntoVal,
+        Env,
     };
 
     #[test]
