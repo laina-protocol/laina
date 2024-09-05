@@ -50,3 +50,11 @@ fn write_positions(
         .persistent()
         .extend_ttl(&key, POSITIONS_LIFETIME_THRESHOLD, POSITIONS_BUMP_AMOUNT);
 }
+
+pub fn read_positions(e: &Env, addr: Address) -> Option<Loan> {
+    let key = LoansDataKey::Loan(addr);
+
+    let value: Option<Loan> = e.storage().persistent().get(&key)?;
+
+    value
+}
