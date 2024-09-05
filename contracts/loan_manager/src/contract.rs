@@ -37,6 +37,7 @@ pub trait LoansTrait {
         token_collateral_ticker: Symbol,
         token_collateral_amount: i128,
     ) -> i128;
+    fn get_loan(e: &Env, addr: Address) -> Loan;
 }
 
 #[allow(dead_code)]
@@ -161,7 +162,7 @@ impl LoansTrait for LoansContract {
 
             // FIXME: the calculation doesn't work, perhaps because of the change in types. OR it could be that the value is not retrieved properly
             let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
-            let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
+            let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL; // TODO: this is 10x what it should be currently
             let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
             let new_borrowed: i128 = borrowed + interest_since_update;
             // Insert the new value to the loan_map
@@ -219,6 +220,14 @@ impl LoansTrait for LoansContract {
 
         const DECIMAL_TO_INT_MULTIPLIER: i128 = 10000000;
         collateral_value * DECIMAL_TO_INT_MULTIPLIER / borrowed_value
+    }
+
+    fn get_loan(e: &Env, addr: Address) -> Loan {
+        if let Some(loan) = positions::read_positions(e, addr) {
+            loan
+        } else {
+            panic!() // TODO: It should be panic_with_error or something and give out detailed error.
+        }
     }
 }
 
@@ -301,15 +310,14 @@ mod tests {
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
-            li.min_persistent_entry_ttl = 100000;
-            li.min_temp_entry_ttl = 10000;
-            li.max_entry_ttl = 1_000_000;
+            li.min_persistent_entry_ttl = 1_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
         });
 
         let admin = Address::generate(&e);
         let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
-        let loan_token = TokenClient::new(&e, &loan_token_contract_id);
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
             token_address: loan_token_contract_id.clone(),
@@ -357,16 +365,33 @@ mod tests {
         // Create a loan.
         contract_client.initialize(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
-        assert_eq!(loan_token.balance(&user), 10_000);
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 10_000);
         assert_eq!(collateral_token.balance(&user), 900_000);
 
         contract_client.add_interest();
 
-        assert_eq!(loan_token.balance(&user), 10_000);
+        // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
+        assert_eq!(user_loan.borrowed_amount, 10_000);
+        assert_eq!(user_loan.health_factor, 100_000_000);
         assert_eq!(collateral_token.balance(&user), 900_000);
 
+        // Move time
         e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000 + 5;
+            li.sequence_number = 100_000 + 10_000;
         });
+
+        // A new instance of reflector mock needs to be created, they only live for one ledger.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        contract_client.add_interest();
+
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 10_003);
+        assert_eq!(user_loan.health_factor, 99_970_008);
+        assert_eq!(user_loan.collateral_amount, 100_000);
     }
 }
