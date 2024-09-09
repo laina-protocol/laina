@@ -11,7 +11,7 @@ pub(crate) const POSITIONS_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 pub(crate) const POSITIONS_LIFETIME_THRESHOLD: u32 = POSITIONS_BUMP_AMOUNT - DAY_IN_LEDGERS;
 
 #[contracttype]
-enum PoolDataKey {
+pub enum PoolDataKey {
     // Address of the loan manager for authorization.
     LoanManagerAddress,
     // Pool's token's address & ticker
@@ -43,8 +43,6 @@ pub trait LoanPoolEnvExtensions {
 
     fn set_total_shares(&self, shares: i128);
 
-    fn get_total_shares(&self) -> i128;
-
     fn set_total_balance(&self, shares: i128);
 
     fn get_total_balance(&self) -> i128;
@@ -58,6 +56,8 @@ pub trait LoanPoolEnvExtensions {
     fn get_positions(&self, user: &Address) -> Positions;
 
     fn set_positions(&self, user: &Address, positions: &Positions);
+
+    fn extend_positions_ttl(&self, key: &PoolDataKey);
 }
 
 impl LoanPoolEnvExtensions for Env {
@@ -105,13 +105,6 @@ impl LoanPoolEnvExtensions for Env {
             .set(&PoolDataKey::TotalShares, &shares)
     }
 
-    fn get_total_shares(&self) -> i128 {
-        self.storage()
-            .persistent()
-            .get(&PoolDataKey::TotalShares)
-            .unwrap()
-    }
-
     fn set_total_balance(&self, shares: i128) {
         self.storage()
             .persistent()
@@ -144,18 +137,20 @@ impl LoanPoolEnvExtensions for Env {
 
     fn get_positions(&self, user: &Address) -> Positions {
         let key = PoolDataKey::Positions(user.clone());
+        let opt_positions = self.storage().persistent().get(&key);
 
-        self.storage().persistent().extend_ttl(
-            &key,
-            POSITIONS_LIFETIME_THRESHOLD,
-            POSITIONS_BUMP_AMOUNT,
-        );
+        // Extend the TTL if the position exists and return the positions
+        if let Some(positions) = opt_positions {
+            self.extend_positions_ttl(&key);
+            return positions;
+        }
 
-        self.storage().persistent().get(&key).unwrap_or(Positions {
+        // If the position doesn't exist, return a default empty value
+        Positions {
             receivables: 0,
             liabilities: 0,
             collateral: 0,
-        })
+        }
     }
 
     fn set_positions(&self, user: &Address, positions: &Positions) {
@@ -163,8 +158,13 @@ impl LoanPoolEnvExtensions for Env {
 
         self.storage().persistent().set(&key, positions);
 
+        // Extend TTL after setting the positions
+        self.extend_positions_ttl(&key);
+    }
+
+    fn extend_positions_ttl(&self, key: &PoolDataKey) {
         self.storage().persistent().extend_ttl(
-            &key,
+            key,
             POSITIONS_LIFETIME_THRESHOLD,
             POSITIONS_BUMP_AMOUNT,
         );
