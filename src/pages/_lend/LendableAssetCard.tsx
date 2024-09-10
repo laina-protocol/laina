@@ -58,7 +58,6 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
       const price_hi = BigInt(currentPrice.simulation.result.retval._value._attributes.hi);
       const price_lo = BigInt(currentPrice.simulation.result.retval._value._attributes.lo);
       const price_combined = (price_hi << BigInt(64)) + price_lo;
-      console.log(price_combined);
 
       setTotalSuppliedPrice(price_combined);
     } catch (error) {
@@ -74,7 +73,6 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
       const ten_k = BigInt(10_000 * 10_000_000);
       const one_m = BigInt(1_000_000 * 10_000_000);
       const total_price = ((price / BigInt(10_000_000)) * totalSupplied) / BigInt(10_000_000);
-      console.log(total_price);
       switch (true) {
         case total_price > one_m:
           return `$${(Number(total_price) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
