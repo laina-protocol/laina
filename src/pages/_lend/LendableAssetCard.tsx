@@ -15,7 +15,6 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
-  const [supplyAPY, setSupplyAPY] = useState('0.00%');
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!loanPoolContract) return;
@@ -132,7 +131,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       <div className="w-64">
         <p className="text-grey">Supply APY</p>
-        <p className="text-xl font-bold leading-6">{supplyAPY}</p>
+        <p className="text-xl font-bold leading-6">1.23%</p>
       </div>
 
       {wallet && <Button onClick={handleDepositClick}>Deposit</Button>}
