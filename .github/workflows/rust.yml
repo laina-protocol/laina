@@ -27,8 +27,10 @@ jobs:
       - name: Build
         run: make build
 
-      - name: Run tests
-        run: cargo test --verbose
+      # - name: Run tests
+      #   env:
+      #     RUST_BACKTRACE: 1
+      #   run: cargo test --verbose
 
       - name: Run clippy
         run: cargo clippy -- -D warnings

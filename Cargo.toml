@@ -12,10 +12,10 @@ soroban-token-sdk = "21.5.1"
 [profile.release]
 opt-level = "z"
 overflow-checks = true
-debug = 0
+debug = true
+debug-assertions = true
 strip = "symbols"
-debug-assertions = false
-panic = "abort"
+# panic = "abort"
 codegen-units = 1
 lto = true
 
