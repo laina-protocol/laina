@@ -15,7 +15,7 @@ mod loan_pool {
 
 // This is the real address of the Reflector Oracle in testnet.
 // We use the same adress to mock it for testing.
-const REFLECTOR_ADDRESS: &str = "CBKZFI26PDCZUJ5HYYKVB5BWCNYUSNA5LVL4R2JTRVSOB4XEP7Y34OPN";
+const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
 #[allow(dead_code)]
 pub trait LoansTrait {
@@ -36,6 +36,7 @@ pub trait LoansTrait {
         token_collateral_amount: i128,
     ) -> i128;
     fn get_loan(e: &Env, addr: Address) -> Loan;
+    fn get_price(e: &Env, token: Symbol) -> i128;
 }
 
 #[allow(dead_code)]
@@ -209,6 +210,16 @@ impl LoansTrait for LoansContract {
         } else {
             panic!() // TODO: It should be panic_with_error or something and give out detailed error.
         }
+    }
+
+    fn get_price(e: &Env, token: Symbol) -> i128 {
+        let reflector_address = Address::from_string(&String::from_str(e, REFLECTOR_ADDRESS));
+        let reflector_contract = oracle::Client::new(e, &reflector_address);
+
+        let asset = Asset::Other(token);
+
+        let asset_pricedata = reflector_contract.lastprice(&asset).unwrap();
+        asset_pricedata.price
     }
 }
 

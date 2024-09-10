@@ -54,3 +54,9 @@ pub fn read_available_balance(e: &Env) -> i128 {
 
     e.storage().persistent().get(&key).unwrap()
 }
+
+pub fn increase_total_balance(e: &Env, amount: i128) {
+    let current_balance = read_total_balance(e);
+
+    write_total_balance(e, amount + current_balance);
+}

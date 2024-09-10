@@ -14,7 +14,7 @@ contractmeta!(
 );
 
 // TODO: get this dynamically when creating the contract.
-const LOAN_MANAGER_ADDRESS: &str = "CDIK5MXMF5F3TRW7XHPMUXGHDKBH2SESVDSG2RFGOP2GHXOPCDHTC7VO";
+const LOAN_MANAGER_ADDRESS: &str = "CBCAJ6EHX4NEDXLLIZEVOTNMXOBMOGJMMX6X7ARVNTUGJX5DTXAGZM3R";
 
 #[allow(dead_code)]
 pub trait LoanPoolTrait {
@@ -64,7 +64,7 @@ impl LoanPoolTrait for LoanPoolContract {
         // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
         pool::write_available_balance(&e, amount);
         pool::write_total_shares(&e, amount);
-        pool::write_total_balance(&e, amount);
+        pool::increase_total_balance(&e, amount);
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
