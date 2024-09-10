@@ -238,6 +238,40 @@ mod test {
     }
 
     #[test]
+    fn borrow() {
+        let e = Env::default();
+        e.mock_all_auths();
+
+        let admin = Address::generate(&e);
+
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let asset = StellarAssetClient::new(&e, &token_contract_id);
+
+        let token_client = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+
+        // Deposit funds for the borrower to loan.
+        let depositer = Address::generate(&e);
+        asset.mint(&depositer, &100);
+        contract_client.deposit(&depositer, &100);
+
+        // Borrow some of those funds
+        let borrower = Address::generate(&e);
+        contract_client.borrow(&borrower, &50);
+
+        // Did the funds move?
+        assert_eq!(token_client.balance(&depositer), 0);
+        assert_eq!(token_client.balance(&borrower), 50);
+    }
+
+    #[test]
     fn withdraw() {
         let e: Env = Env::default();
         e.mock_all_auths();
