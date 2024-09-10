@@ -350,6 +350,7 @@ mod tests {
     #[test]
     fn initialize() {
         let e = Env::default();
+        e.budget().reset_unlimited();
         let admin = Address::generate(&e);
 
         let contract_id = e.register_contract(None, LoanManager);
@@ -361,6 +362,7 @@ mod tests {
     #[test]
     fn cannot_re_initialize() {
         let e = Env::default();
+        e.budget().reset_unlimited();
         let admin = Address::generate(&e);
 
         let contract_id = e.register_contract(None, LoanManager);
@@ -375,6 +377,7 @@ mod tests {
     fn deploy_pool() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_unlimited();
 
         let admin = Address::generate(&e);
         let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
@@ -407,6 +410,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin = Address::generate(&e);
 
@@ -431,6 +435,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
+        e.budget().reset_unlimited();
 
         let admin = Address::generate(&e);
         let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
@@ -492,6 +497,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
+        e.budget().reset_unlimited();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
             li.min_persistent_entry_ttl = 1_000_000;
@@ -583,6 +589,7 @@ mod tests {
     fn repay() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -657,6 +664,7 @@ mod tests {
     fn repay_more_than_borrowed() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
