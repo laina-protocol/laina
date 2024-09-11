@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
 
+import Footer from '@components/Footer';
 import Nav from '@components/Nav';
 import BorrowPage from '@pages/_borrow/BorrowPage';
 import LandingPage from '@pages/_landing/LandingPage';
@@ -19,6 +20,7 @@ const PageWrapper = () => {
       <main className={`max-w-screen ${isIndex ? 'w-[74rem]' : 'w-256'}`}>
         <Outlet />
       </main>
+      <Footer />
     </body>
   );
 };
