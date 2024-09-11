@@ -8,7 +8,7 @@ const team = [
   {
     image: Teemu.src,
     name: 'Teemu Hynnä',
-    discord: 'h0suja',
+    discord: '.h0suja',
     github: 'teolhyn',
   },
   {
