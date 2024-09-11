@@ -1,6 +1,7 @@
 ---
-import '@fontsource/inter';
-import '@fontsource/inter/600.css';
+import '@fontsource/manrope';
+import '@fontsource/manrope/600.css';
+import '@fontsource/manrope/700.css';
 
 interface Props {
   title: string;
@@ -21,7 +22,6 @@ const { title, description } = Astro.props;
     <title>{title}</title>
   </head>
   <slot />
-
   <style is:global>
     html {
       font-family: system-ui, sans-serif;

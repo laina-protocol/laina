@@ -128,19 +128,19 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
       <img src={icon} alt="" className="w-12" />
 
       <div className="ml-6 w-64">
-        <h2 className="font-bold text-2xl">{name}</h2>
+        <h2 className="font-semibold text-2xl">{name}</h2>
         <span>{symbol}</span>
       </div>
 
       <div className="w-64">
-        <p className="text-grey">Total Supplied</p>
-        <p className="text-xl font-bold leading-6">{formatSuppliedAmount(totalSupplied)}</p>
+        <p className="text-grey font-semibold">Total Supplied</p>
+        <p className="text-xl font-semibold leading-6">{formatSuppliedAmount(totalSupplied)}</p>
         <p>{formatSuppliedAmountPrice(totalSuppliedPrice)}</p>
       </div>
 
       <div className="w-64">
-        <p className="text-grey">Supply APY</p>
-        <p className="text-xl font-bold leading-6">1.23%</p>
+        <p className="text-grey font-semibold">Supply APY</p>
+        <p className="text-xl font-semibold leading-6">1.23%</p>
       </div>
 
       {wallet && <Button onClick={handleDepositClick}>Deposit</Button>}
