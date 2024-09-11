@@ -16,7 +16,7 @@ const PageWrapper = () => {
   return (
     <body className={`font-sans min-h-screen ${isIndex ? 'bg-white' : 'bg-grey-light'}`}>
       <Nav />
-      <main className={`max-w-screen ${isIndex ? 'w-[70rem]' : 'w-256'}`}>
+      <main className={`max-w-screen ${isIndex ? 'w-[74rem]' : 'w-256'}`}>
         <Outlet />
       </main>
     </body>

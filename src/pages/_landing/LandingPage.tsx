@@ -1,9 +1,26 @@
-import { LinkButton } from '@components/Button';
+import { LinkButton, NativeLinkButton } from '@components/Button';
 import CardsImage from '@images/cards.jpg';
+import Teemu from '@images/teemu.jpg';
+import Konsta from '@images/konsta.jpeg';
+
+const team = [
+  {
+    image: Teemu.src,
+    name: "Teemu Hynnä",
+    discord: "",
+    github: "https://github.com/teolhyn"
+  },
+  {
+    image: Konsta.src,
+    name: "Konsta Purtsi",
+    discord: "",
+    github: "https://github.com/kovipu"
+  }
+]
 
 const LandingPage = () => (
   <>
-    <section className="flex flex-row mb-12">
+    <section className="flex flex-row mb-14">
       <div className="w-1/2">
         <h1 className="text-[42px] font-medium mb-8">
           A trustless loan platform focusing on single-token lending pools.
@@ -14,7 +31,7 @@ const LandingPage = () => (
         <img src={CardsImage.src} alt="" />
       </div>
     </section>
-    <section className="border-t-4 flex flex-row">
+    <section className="border-t-4 flex flex-row my-14">
       <div className="w-1/2 pt-14 pr-14 border-r-4">
         <p className="text-2xl leading-relaxed mb-14">Laina is currently in the early development stage and is only operating on the Stellar Testnet.</p>
         <p className="text-2xl leading-relaxed mb-14">Now that you're here, take a peek.</p>
@@ -27,7 +44,35 @@ const LandingPage = () => (
         </p>
       </div>
     </section>
+    <section className="flex flex-row my-14">
+      <div className="w-1/2">
+        <h3 className="text-[42px] font-bold mb-14">The Team</h3>
+        <div className="flex flex-row">
+          {team.map((member) => (
+            <TeamMember {...member} />
+          ))}
+        </div>
+      </div>
+      <div className="w-1/2 p-14 my-auto">
+        <p className="text-xl mb-14">Got a question? Ask us in the Stellar Dev Discord!</p>
+        <NativeLinkButton to="https://discord.com/invite/stellardev">Join Stellar Disord</NativeLinkButton>
+      </div>
+    </section>
   </>
 );
+
+interface TeamMemberProps {
+  image: string;
+  name: string;
+  discord: string;
+  github: string;
+}
+
+const TeamMember = ({ image, name }: TeamMemberProps) => (
+  <div className="mr-14">
+    <img src={image} className="aspect-square rounded grayscale mb-8" />
+    <p className="text-xl font-semibold">{name}</p>
+  </div>
+)
 
 export default LandingPage;

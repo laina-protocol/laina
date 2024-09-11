@@ -25,8 +25,11 @@ export interface LinkButtonProps {
 
 export const LinkButton = ({ to, className = '', children }: PropsWithChildren<LinkButtonProps>) => (
   <Link to={to} className={`${buttonStyle} ${className}`}>{children}</Link>
+);
 
-)
+export const NativeLinkButton = ({ to, className = '', children }: PropsWithChildren<LinkButtonProps>) => (
+  <a href={to} className={`${buttonStyle} ${className}`}>{children}</a>
+);
 
 export const SelectButtonWrapper = ({ children }: PropsWithChildren) => (
   <div className="flex bg-grey p-1 gap-2 rounded-full">{children}</div>
