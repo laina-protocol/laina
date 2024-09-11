@@ -1,5 +1,3 @@
-import logo from '/public/laina_v3_shrinked.png';
-
 export default function Footer() {
   return (
     <footer className="bg-black h-40 flex flex-col items-center justify-center">
