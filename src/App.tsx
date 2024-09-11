@@ -1,6 +1,7 @@
 import React from 'react';
-import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { Outlet, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
 
+import Footer from '@components/Footer';
 import Nav from '@components/Nav';
 import BorrowPage from '@pages/_borrow/BorrowPage';
 import LandingPage from '@pages/_landing/LandingPage';
@@ -8,14 +9,21 @@ import LendPage from '@pages/_lend/LendPage';
 import LiquidatePage from '@pages/_liquidate/LiquidatePage';
 import { WalletProvider } from './stellar-wallet';
 
-const PageWrapper = () => (
-  <>
-    <Nav />
-    <main className="max-w-screen w-256">
-      <Outlet />
-    </main>
-  </>
-);
+const PageWrapper = () => {
+  const { pathname } = useLocation();
+
+  const isIndex = pathname === '/';
+
+  return (
+    <body className={`font-sans flex flex-col min-h-screen ${isIndex ? 'bg-white' : 'bg-grey-light'}`}>
+      <Nav />
+      <main className={`max-w-screen flex-1 ${isIndex ? 'w-[74rem]' : 'w-256'}`}>
+        <Outlet />
+      </main>
+      <Footer />
+    </body>
+  );
+};
 
 const router = createBrowserRouter([
   {
