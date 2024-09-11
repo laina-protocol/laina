@@ -1,6 +1,8 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
 import loanManager from '@contracts/loan_manager';
+import type { xdr } from '@stellar/stellar-base';
+import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
 import type { Currency } from 'src/currencies';
 import { useWallet } from 'src/stellar-wallet';
@@ -20,12 +22,16 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     if (!loanPoolContract) return;
 
     try {
-      const supplied = await loanPoolContract.get_contract_balance();
-      const supplied_hi = BigInt(supplied.simulation.result.retval._value._attributes.hi);
-      const supplied_lo = BigInt(supplied.simulation.result.retval._value._attributes.lo);
-      const supplied_combined = (supplied_hi << BigInt(64)) + supplied_lo;
+      const { simulation } = await loanPoolContract.get_contract_balance();
 
-      setTotalSupplied(supplied_combined);
+      if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
+        throw 'get_contract_balance simulation was unsuccessful.';
+      }
+
+      const value: xdr.Int128Parts = simulation.result?.retval.value();
+      const supplied = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
+      setTotalSupplied(supplied);
+
       // const apy = await loanPoolContract.getSupplyAPY();
       // setSupplyAPY(formatAPY(apy));
     } catch (error) {
@@ -53,12 +59,15 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     if (!loanManager) return;
 
     try {
-      const currentPrice = await loanManager.get_price({ token: currency.symbol });
-      const price_hi = BigInt(currentPrice.simulation.result.retval._value._attributes.hi);
-      const price_lo = BigInt(currentPrice.simulation.result.retval._value._attributes.lo);
-      const price_combined = (price_hi << BigInt(64)) + price_lo;
+      const { simulation } = await loanManager.get_price({ token: currency.symbol });
 
-      setTotalSuppliedPrice(price_combined);
+      if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
+        throw 'get_price simulation was unsuccessful.';
+      }
+      const value: xdr.Int128Parts = simulation.result?.retval.value();
+      const price = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
+
+      setTotalSuppliedPrice(price);
     } catch (error) {
       console.error('Error fetchin price data:', error);
     }
