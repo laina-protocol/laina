@@ -1,8 +1,8 @@
+import type { PropsWithChildren } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useWallet } from 'src/stellar-wallet';
 import logo from '/public/laina_v3_shrinked.png';
 import { Button, SelectButtonWrapper, SelectLinkButton } from './Button';
-import type { PropsWithChildren } from 'react';
 
 export default function Nav() {
   const { pathname } = useLocation();
@@ -11,10 +11,13 @@ export default function Nav() {
   const isIndex = pathname === '/';
 
   return (
-    <nav className="relative max-w-screen-lg mx-auto mb-12 flex justify-between items-center pt-12 pb-6">
+    <nav
+      className={`relative mx-auto mb-12 flex justify-between items-center pt-12 pb-6 px-4 ${isIndex ? 'max-w-[70rem]' : 'max-w-screen-lg'}`}
+    >
       <div>
         <Link to="/">
-          <img src={logo.src} alt="logo" width={200} /></Link>
+          <img src={logo.src} alt="logo" width={200} />
+        </Link>
       </div>
 
       {isIndex ? <LinkCluster /> : <SelectButtonCluster pathname={pathname} />}
@@ -32,7 +35,7 @@ export default function Nav() {
 }
 
 const LinkCluster = () => (
-  <div className='flex flex-row'>
+  <div className="flex flex-row ml-auto mr-12">
     <LinkItem to="/lend">Lend</LinkItem>
     <LinkItem to="/borrow">Borrow</LinkItem>
     <LinkItem to="/liquidate">Liquidate</LinkItem>
@@ -40,10 +43,10 @@ const LinkCluster = () => (
 );
 
 const LinkItem = ({ to, children }: PropsWithChildren<{ to: string }>) => (
-  <Link to={to} className="font-semibold p-4 hover:underline">
+  <Link to={to} className="font-semibold p-7 hover:underline">
     {children}
   </Link>
-)
+);
 
 const SelectButtonCluster = ({ pathname }: { pathname: string }) => (
   <SelectButtonWrapper>
