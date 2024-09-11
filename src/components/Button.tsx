@@ -6,15 +6,27 @@ export interface ButtonProps {
   className?: string;
 }
 
+const buttonStyle = "bg-black font-semibold text-white rounded-full px-8 py-2 hover:bg-grey-dark transition"
+
 export const Button = ({ onClick, className = '', children }: PropsWithChildren<ButtonProps>) => (
   <button
     type="button"
     onClick={onClick}
-    className={`bg-black font-semibold text-white rounded-full px-8 py-2 hover:bg-grey-dark transition ${className}`}
+    className={`${buttonStyle} ${className}`}
   >
     {children}
   </button>
 );
+
+export interface LinkButtonProps {
+  to: string;
+  className?: string;
+}
+
+export const LinkButton = ({ to, className = '', children }: PropsWithChildren<LinkButtonProps>) => (
+  <Link to={to} className={`${buttonStyle} ${className}`}>{children}</Link>
+
+)
 
 export const SelectButtonWrapper = ({ children }: PropsWithChildren) => (
   <div className="flex bg-grey p-1 gap-2 rounded-full">{children}</div>
