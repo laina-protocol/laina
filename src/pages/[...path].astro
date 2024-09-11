@@ -11,9 +11,11 @@ export function getStaticPaths() {
   ];
 }
 
+const description = 'A trustless loan platform focusing on single-token lending pools. DeFi made simple.';
+
 const { title } = Astro.props;
 ---
 
-<Layout title={title}>
+<Layout title={title} description={description}>
   <App client:only />
 </Layout>
