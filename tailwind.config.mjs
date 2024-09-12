@@ -13,6 +13,7 @@ export default {
         light: '#efefef',
       },
       black: '#000',
+      primary: '#000',
     },
     fontSize: {
       sm: ['14px', '20px'],
@@ -28,7 +29,7 @@ export default {
       full: '9999px',
     },
     dropShadow: {
-      DEFAULT: '0 4px 4px rgba(0, 0, 0, 0.25)',
+      DEFAULT: '0 12px 12px rgba(0, 0, 0, 0.25)',
     },
     extend: {
       spacing: {
@@ -37,5 +38,18 @@ export default {
       },
     },
   },
-  plugins: [],
+  daisyui: {
+    themes: [
+      {
+        light: {
+          ...require('daisyui/src/theming/themes')['light'],
+          neutral: '#000',
+          '.btn-neutral:hover': {
+            'background-color': '#555',
+          },
+        },
+      },
+    ],
+  },
+  plugins: [require('daisyui')],
 };

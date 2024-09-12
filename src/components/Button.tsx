@@ -2,14 +2,15 @@ import type { PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
 
 export interface ButtonProps {
-  onClick: () => void;
+  onClick?: () => void;
   className?: string;
+  disabled?: boolean;
 }
 
-const buttonStyle = 'bg-black font-semibold text-white rounded-full px-8 py-2 hover:bg-grey-dark transition';
+const buttonStyle = 'btn btn-neutral font-semibold text-base rounded-full px-8 py-2';
 
-export const Button = ({ onClick, className = '', children }: PropsWithChildren<ButtonProps>) => (
-  <button type="button" onClick={onClick} className={`${buttonStyle} ${className}`}>
+export const Button = ({ onClick, disabled = false, className = '', children }: PropsWithChildren<ButtonProps>) => (
+  <button type="button" onClick={onClick} disabled={disabled} className={`${buttonStyle} ${className}`}>
     {children}
   </button>
 );

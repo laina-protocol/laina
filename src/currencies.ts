@@ -2,10 +2,11 @@ import XLMPoolContract from '@contracts/loan_pool';
 import USDCPoolContract from '@contracts/usdc_pool';
 import StellarIcon from '@images/Stellar_Symbol.png';
 import USDCIcon from '@images/usdc.svg';
+import type { SupportedCurrency } from './stellar-wallet';
 
 export type Currency = {
   name: string;
-  symbol: string; // could be a type union of currency symbols.
+  symbol: SupportedCurrency;
   icon: string;
   loanPoolContract: typeof XLMPoolContract;
 };
@@ -23,4 +24,4 @@ export const CURRENCIES: Currency[] = [
     icon: USDCIcon.src,
     loanPoolContract: USDCPoolContract,
   },
-];
+] as const;

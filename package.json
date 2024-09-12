@@ -20,7 +20,9 @@
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
     "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "daisyui": "^4.12.10",
     "dotenv": "^16.4.5",
+    "postcss": "^8.4.45",
     "prettier": "^3.3.3",
     "prettier-plugin-astro": "^0.14.1"
   },

@@ -5,18 +5,25 @@ import type { xdr } from '@stellar/stellar-base';
 import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
 import type { Currency } from 'src/currencies';
-import { useWallet } from 'src/stellar-wallet';
+import { type Balance, useWallet } from 'src/stellar-wallet';
+import { DepositModal } from './DepositModal';
 
 export interface LendableAssetCardProps {
   currency: Currency;
 }
 
+const DEPOSIT_MODAL_ID = 'modal-id';
+
 export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const { icon, name, symbol, loanPoolContract } = currency;
-  const { wallet, signTransaction } = useWallet();
+  const { wallet, balances } = useWallet();
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
+
+  const balance: Balance | undefined = balances[symbol];
+
+  const isPoor = !balance?.balance || balance.balance === '0';
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!loanPoolContract) return;
@@ -103,23 +110,24 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     return () => clearInterval(intervalId);
   }, [fetchAvailableContractBalance, fetchPriceData]); // Now dependent on the memoized function
 
-  const handleDepositClick = async () => {
+  const buttonLabel = (): string => {
     if (!wallet) {
-      alert('Please connect your wallet first!');
-      return;
+      return 'Connect a wallet first.';
     }
-
-    loanPoolContract.options.publicKey = wallet.address;
-
-    const amount = BigInt(2000000);
-    const tx = await loanPoolContract.deposit({ user: wallet.address, amount });
-
-    try {
-      const { result } = await tx.signAndSend({ signTransaction });
-      alert(`Deposit successful, result: ${result}`);
-    } catch (err) {
-      alert(`Error depositing: ${JSON.stringify(err)}`);
+    if (isPoor) {
+      return 'Not enough funds in the wallet.';
     }
+    return '';
+  };
+
+  const openModal = () => {
+    const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
+    modalEl.showModal();
+  };
+
+  const closeModal = () => {
+    const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
+    modalEl.close();
     fetchAvailableContractBalance();
   };
 
@@ -143,7 +151,16 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
         <p className="text-xl font-semibold leading-6">1.23%</p>
       </div>
 
-      {wallet && <Button onClick={handleDepositClick}>Deposit</Button>}
+      {isPoor ? (
+        <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
+          <Button disabled={true} onClick={() => {}}>
+            Deposit
+          </Button>
+        </div>
+      ) : (
+        <Button onClick={openModal}>Deposit</Button>
+      )}
+      <DepositModal modalId={DEPOSIT_MODAL_ID} onClose={closeModal} currency={currency} />
     </Card>
   );
 };
