@@ -1,12 +1,7 @@
-name: Build and Deploy
+name: Verify Build
 on:
   push:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    branches: '**'
 
 jobs:
   build:
@@ -39,6 +34,9 @@ jobs:
       - name: Build contracts
         run: make build
 
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
       - name: Setup env
         run: cp .env.example .env
 
@@ -49,14 +47,3 @@ jobs:
 
       - name: Install, build, and upload your site output
         uses: withastro/action@v2
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{  steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

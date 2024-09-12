@@ -35,7 +35,7 @@ export default function Nav() {
 }
 
 const LinkCluster = () => (
-  <div className="flex flex-row ml-auto mr-12">
+  <div className="flex flex-row ml-auto mr-14">
     <LinkItem to="/lend">Lend</LinkItem>
     <LinkItem to="/borrow">Borrow</LinkItem>
     <LinkItem to="/liquidate">Liquidate</LinkItem>
@@ -43,7 +43,7 @@ const LinkCluster = () => (
 );
 
 const LinkItem = ({ to, children }: PropsWithChildren<{ to: string }>) => (
-  <Link to={to} className="font-semibold p-7 hover:underline">
+  <Link to={to} className="text-base font-semibold p-4 hover:underline">
     {children}
   </Link>
 );

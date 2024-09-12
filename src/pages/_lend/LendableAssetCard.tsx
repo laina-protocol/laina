@@ -110,16 +110,6 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     return () => clearInterval(intervalId);
   }, [fetchAvailableContractBalance, fetchPriceData]); // Now dependent on the memoized function
 
-  const buttonLabel = (): string => {
-    if (!wallet) {
-      return 'Connect a wallet first.';
-    }
-    if (isPoor) {
-      return 'Not enough funds in the wallet.';
-    }
-    return '';
-  };
-
   const openModal = () => {
     const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
     modalEl.showModal();
@@ -136,7 +126,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
       <img src={icon} alt="" className="w-12" />
 
       <div className="ml-6 w-64">
-        <h2 className="font-semibold text-2xl">{name}</h2>
+        <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
         <span>{symbol}</span>
       </div>
 

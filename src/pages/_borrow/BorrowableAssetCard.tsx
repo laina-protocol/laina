@@ -45,7 +45,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
       <img src={icon} alt="" className="w-12" />
 
       <div className="ml-6 w-64">
-        <h2 className="font-semibold text-2xl leading-6 mt-3">{name}</h2>
+        <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
         <span>{symbol}</span>
       </div>
 
