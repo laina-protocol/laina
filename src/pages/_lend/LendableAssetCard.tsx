@@ -143,7 +143,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       {isPoor ? (
         <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
-          <Button disabled={true} onClick={() => { }}>
+          <Button disabled={true} onClick={() => {}}>
             Deposit
           </Button>
         </div>
