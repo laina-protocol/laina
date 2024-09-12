@@ -23,10 +23,10 @@ const LandingPage = () => (
   <>
     <section className="flex flex-row mb-14">
       <div className="w-1/2">
-        <h1 className="text-[42px] font-medium mb-8">
+        <h1 className="text-[42px] font-medium mb-8 tracking-tight">
           A trustless loan platform focusing on single-token lending pools.
         </h1>
-        <h2 className="text-[42px] font-bold">DeFi made simple.</h2>
+        <h2 className="text-[42px] font-bold tracking-tight">DeFi made simple.</h2>
       </div>
       <div className="w-1/2">
         <img src={CardsImage.src} alt="" />
@@ -34,10 +34,10 @@ const LandingPage = () => (
     </section>
     <section className="border-t-4 flex flex-row my-14">
       <div className="w-1/2 pt-14 pr-14 border-r-4">
-        <p className="text-2xl leading-relaxed mb-8">
+        <p className="text-2xl leading-relaxed mb-8 tracking-tight">
           Laina is currently in the early development stage and is only operating on the Stellar Testnet.
         </p>
-        <p className="text-2xl leading-relaxed mb-8">Now that you're here, take a peek.</p>
+        <p className="text-2xl leading-relaxed mb-8 tracking-tight">Now that you're here, take a peek.</p>
         <LinkButton to="/lend" className="text-lg">
           Open the app
         </LinkButton>
@@ -56,7 +56,7 @@ const LandingPage = () => (
     </section>
     <section className="flex flex-row my-20">
       <div className="w-1/2">
-        <h3 className="text-[42px] font-bold mb-14">The Team</h3>
+        <h3 className="text-[42px] font-bold mb-14 tracking-tight">The Team</h3>
         <div className="flex flex-row">
           {team.map((member) => (
             <TeamMember key={member.name} {...member} />
@@ -64,7 +64,7 @@ const LandingPage = () => (
         </div>
       </div>
       <div className="w-1/2 p-14 my-auto">
-        <p className="text-xl mb-8 leading-relaxed">Got a question? Ask us in the Stellar Dev Discord!</p>
+        <p className="text-xl mb-8 leading-relaxed tracking-tight">Got a question? Ask us in the Stellar Dev Discord!</p>
         <NativeLinkButton to="https://discord.com/invite/stellardev" className="text-lg">
           Join Stellar Discord
         </NativeLinkButton>
