@@ -111,3 +111,34 @@ sequenceDiagram
     LoanManager-->>LendingPool: borrow()
     LoanManager-->>UI: OK/Error
 ```
+
+## Liquidate flow
+
+```mermaid
+sequenceDiagram
+    box Front-end
+    participant UI
+    end
+    box Laina Contracts
+    participant LendingPool
+    participant LoanManager
+    end
+    box Oracle Contracts
+    participant PriceOracle
+    end
+
+    UI->>LoanManager: get_undercol_loans()
+    loop calculate_health_factor()
+        LoanManager->>PriceOracle: last_price(token_borrow)
+        PriceOracle-->>LoanManager: PriceData
+        LoanManager->>PriceOracle: last_price(token_collat)
+        PriceOracle-->>LoanManager: PriceData
+        LoanManager->>LoanManager: Check that health-factor is under minimum threshold
+    end
+    LoanManager-->>UI: Available Loans
+
+    UI->>LoanManager: liquidate_loan(token_borrow, amount)
+    LoanManager-->>UI: OK/Error
+    LoanManager-->>UI: if OK: transfer(token_collat, amount+liquidation_bonus)
+
+```
