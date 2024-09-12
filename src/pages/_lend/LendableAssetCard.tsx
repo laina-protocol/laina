@@ -110,16 +110,6 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     return () => clearInterval(intervalId);
   }, [fetchAvailableContractBalance, fetchPriceData]); // Now dependent on the memoized function
 
-  const buttonLabel = (): string => {
-    if (!wallet) {
-      return 'Connect a wallet first.';
-    }
-    if (isPoor) {
-      return 'Not enough funds in the wallet.';
-    }
-    return '';
-  };
-
   const openModal = () => {
     const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
     modalEl.showModal();
@@ -153,7 +143,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       {isPoor ? (
         <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
-          <Button disabled={true} onClick={() => {}}>
+          <Button disabled={true} onClick={() => { }}>
             Deposit
           </Button>
         </div>
