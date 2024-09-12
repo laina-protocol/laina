@@ -1,5 +1,10 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
 import { type PropsWithChildren, createContext, useContext, useState } from 'react';
+import * as StellarSdk from '@stellar/stellar-sdk';
+
+const HorizonServer = new StellarSdk.Horizon.Server("https://horizon-testnet.stellar.org/");
+
+export type Balance = StellarSdk.Horizon.HorizonApi.BalanceLine
 
 export type Wallet = {
   address: string;
@@ -8,6 +13,7 @@ export type Wallet = {
 
 export type WalletContext = {
   wallet: Wallet | null;
+  balances: Balance[];
   openConnectWalletModal: () => void;
   signTransaction: SignTransaction;
 };
@@ -24,8 +30,9 @@ type SignTransaction = (
 type XDR_BASE64 = string;
 
 const Context = createContext<WalletContext>({
-  openConnectWalletModal: () => {},
   wallet: null,
+  balances: [],
+  openConnectWalletModal: () => { },
   signTransaction: () => Promise.reject(),
 });
 
@@ -42,6 +49,7 @@ const createWalletObj = (address: string): Wallet => ({
 
 export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [address, setAddress] = useState<string | null>(null);
+  const [balances, setBalances] = useState<Balance[]>([]);
 
   const signTransaction: SignTransaction = async (tx, opts) => {
     const { signedTxXdr } = await kit.signTransaction(tx, opts);
@@ -54,7 +62,9 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         kit.setWallet(option.id);
         try {
           const { address } = await kit.getAddress();
+          const { balances } = await HorizonServer.loadAccount(address)
           setAddress(address);
+          setBalances(balances);
         } catch (err) {
           console.error('Error connecting wallet: ', err);
         }
@@ -68,6 +78,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     <Context.Provider
       value={{
         wallet,
+        balances,
         openConnectWalletModal,
         signTransaction,
       }}
