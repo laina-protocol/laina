@@ -15,13 +15,13 @@ const PageWrapper = () => {
   const isIndex = pathname === '/';
 
   return (
-    <body className={`font-sans flex flex-col min-h-screen ${isIndex ? 'bg-white' : 'bg-grey-light'}`}>
+    <div className="min-h-screen flex flex-col">
       <Nav />
       <main className={`max-w-screen flex-1 ${isIndex ? 'w-[74rem]' : 'w-256'}`}>
         <Outlet />
       </main>
       <Footer />
-    </body>
+    </div>
   );
 };
 

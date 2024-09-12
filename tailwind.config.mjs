@@ -29,7 +29,7 @@ export default {
       full: '9999px',
     },
     dropShadow: {
-      DEFAULT: '0 4px 4px rgba(0, 0, 0, 0.25)',
+      DEFAULT: '0 12px 12px rgba(0, 0, 0, 0.25)',
     },
     extend: {
       spacing: {
