@@ -13,6 +13,7 @@ export default {
         light: '#efefef',
       },
       black: '#000',
+      primary: '#000',
     },
     fontSize: {
       sm: ['14px', '20px'],
@@ -37,5 +38,18 @@ export default {
       },
     },
   },
-  plugins: [],
+  daisyui: {
+    themes: [
+      {
+        light: {
+          ...require('daisyui/src/theming/themes')['light'],
+          neutral: '#000',
+          '.btn-neutral:hover': {
+            'background-color': '#555',
+          },
+        },
+      },
+    ],
+  },
+  plugins: [require('daisyui')],
 };

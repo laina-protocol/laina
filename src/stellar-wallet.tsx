@@ -1,19 +1,25 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
-import { type PropsWithChildren, createContext, useContext, useState } from 'react';
 import * as StellarSdk from '@stellar/stellar-sdk';
+import { type PropsWithChildren, createContext, useContext, useState } from 'react';
 
-const HorizonServer = new StellarSdk.Horizon.Server("https://horizon-testnet.stellar.org/");
-
-export type Balance = StellarSdk.Horizon.HorizonApi.BalanceLine
+const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
 
 export type Wallet = {
   address: string;
   displayName: string;
 };
 
+export type SupportedCurrency = 'XLM' | 'USDC';
+
+export type Balance = StellarSdk.Horizon.HorizonApi.BalanceLine;
+
+export type BalanceRecord = {
+  [K in SupportedCurrency]?: Balance;
+};
+
 export type WalletContext = {
   wallet: Wallet | null;
-  balances: Balance[];
+  balances: BalanceRecord;
   openConnectWalletModal: () => void;
   signTransaction: SignTransaction;
 };
@@ -31,8 +37,8 @@ type XDR_BASE64 = string;
 
 const Context = createContext<WalletContext>({
   wallet: null,
-  balances: [],
-  openConnectWalletModal: () => { },
+  balances: {},
+  openConnectWalletModal: () => {},
   signTransaction: () => Promise.reject(),
 });
 
@@ -47,9 +53,19 @@ const createWalletObj = (address: string): Wallet => ({
   displayName: `${address.slice(0, 4)}...${address.slice(-4)}`,
 });
 
+const createBalanceRecord = (balances: Balance[]): BalanceRecord =>
+  balances.reduce((acc, balance) => {
+    if (balance.asset_type === 'native') {
+      acc.XLM = balance;
+    } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'USDC') {
+      acc.USDC = balance;
+    }
+    return acc;
+  }, {} as BalanceRecord);
+
 export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [balances, setBalances] = useState<Balance[]>([]);
+  const [balances, setBalances] = useState<BalanceRecord>({});
 
   const signTransaction: SignTransaction = async (tx, opts) => {
     const { signedTxXdr } = await kit.signTransaction(tx, opts);
@@ -62,9 +78,9 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         kit.setWallet(option.id);
         try {
           const { address } = await kit.getAddress();
-          const { balances } = await HorizonServer.loadAccount(address)
+          const { balances } = await HorizonServer.loadAccount(address);
           setAddress(address);
-          setBalances(balances);
+          setBalances(createBalanceRecord(balances));
         } catch (err) {
           console.error('Error connecting wallet: ', err);
         }
@@ -78,7 +94,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     <Context.Provider
       value={{
         wallet,
-        balances,
+        balances: balances,
         openConnectWalletModal,
         signTransaction,
       }}
