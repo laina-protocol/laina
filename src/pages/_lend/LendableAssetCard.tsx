@@ -1,6 +1,7 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
-import loanManager from '@contracts/loan_manager';
+import { Loading } from '@components/Loading';
+import { contractClient } from '@contracts/loan_manager';
 import type { xdr } from '@stellar/stellar-base';
 import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
@@ -12,14 +13,14 @@ export interface LendableAssetCardProps {
   currency: Currency;
 }
 
-const DEPOSIT_MODAL_ID = 'modal-id';
-
 export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const { icon, name, symbol, loanPoolContract } = currency;
   const { wallet, balances } = useWallet();
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
+
+  const modalId = `deposit-modal-${symbol}`;
 
   const balance: Balance | undefined = balances[symbol];
 
@@ -48,7 +49,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
   const formatSuppliedAmount = useCallback((amount: bigint | null) => {
     if (amount === BigInt(0)) return '0';
-    if (!amount) return 'Loading';
+    if (!amount) return <Loading size="xs" />;
 
     const ten_k = BigInt(10_000 * 10_000_000);
     const one_m = BigInt(1_000_000 * 10_000_000);
@@ -63,10 +64,10 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   }, []);
 
   const fetchPriceData = useCallback(async () => {
-    if (!loanManager) return;
+    if (!contractClient) return;
 
     try {
-      const { simulation } = await loanManager.get_price({ token: currency.symbol });
+      const { simulation } = await contractClient.get_price({ token: currency.symbol });
 
       if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
         throw 'get_price simulation was unsuccessful.';
@@ -83,7 +84,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const formatSuppliedAmountPrice = useCallback(
     (price: bigint | null) => {
       if (totalSupplied === BigInt(0)) return '$0';
-      if (!totalSupplied || !price) return 'Loading';
+      if (!totalSupplied || !price) return <Loading size="sm" />;
 
       const ten_k = BigInt(10_000 * 10_000_000);
       const one_m = BigInt(1_000_000 * 10_000_000);
@@ -111,12 +112,12 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   }, [fetchAvailableContractBalance, fetchPriceData]); // Now dependent on the memoized function
 
   const openModal = () => {
-    const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
+    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.showModal();
   };
 
   const closeModal = () => {
-    const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
+    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.close();
     fetchAvailableContractBalance();
   };
@@ -150,7 +151,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
       ) : (
         <Button onClick={openModal}>Deposit</Button>
       )}
-      <DepositModal modalId={DEPOSIT_MODAL_ID} onClose={closeModal} currency={currency} />
+      <DepositModal modalId={modalId} onClose={closeModal} currency={currency} />
     </Card>
   );
 };

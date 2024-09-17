@@ -1,6 +1,8 @@
 import { Button } from '@components/Button';
+import { Loading } from '@components/Loading';
 import { type ChangeEvent, useState } from 'react';
 import type { Currency } from 'src/currencies';
+import { to7decimals } from 'src/lib/converters';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface DepositModalProps {
@@ -12,13 +14,19 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { loanPoolContract, name, symbol } = currency;
 
-  const { wallet, balances, signTransaction } = useWallet();
+  const { wallet, balances, signTransaction, refetchBalances } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
   const balance = balances[symbol];
 
   if (!balance) return null;
+
+  const closeModal = () => {
+    refetchBalances();
+    setAmount('0');
+    onClose();
+  };
 
   const handleDepositClick = async () => {
     if (!wallet) {
@@ -30,20 +38,18 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
     loanPoolContract.options.publicKey = wallet.address;
 
-    // Multiply by ten million by adding zeroes.
-    const stroops = BigInt(amount) * BigInt(10_000_000);
-
     const tx = await loanPoolContract.deposit({
       user: wallet.address,
-      amount: stroops,
+      amount: to7decimals(amount),
     });
 
     try {
       const { result } = await tx.signAndSend({ signTransaction });
       alert(`Deposit successful, result: ${result}`);
-      onClose();
+      closeModal();
     } catch (err) {
-      alert(`Error depositing: ${JSON.stringify(err)}`);
+      console.error('Error depositing', err);
+      alert('Error depositing');
     }
     setIsDepositing(false);
   };
@@ -83,7 +89,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
         </p>
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={onClose} className="btn-ghost mr-4">
+          <Button onClick={closeModal} className="btn-ghost mr-4">
             Cancel
           </Button>
           {!isDepositing ? (
@@ -92,7 +98,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
             </Button>
           ) : (
             <Button disabled>
-              <span className="loading loading-spinner" />
+              <Loading />
               Depositing
             </Button>
           )}
@@ -100,7 +106,9 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
       </div>
       {/* Invisible backdrop that closes the modal on click */}
       <form method="dialog" className="modal-backdrop">
-        <button type="button">close</button>
+        <button onClick={closeModal} type="button">
+          close
+        </button>
       </form>
     </dialog>
   );

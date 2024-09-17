@@ -1,11 +1,8 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
-import loanManagerContract from '@contracts/loan_manager';
-import type { Currency } from 'src/currencies';
+import { CURRENCY_USDC, CURRENCY_XLM, type Currency } from 'src/currencies';
 import { useWallet } from 'src/stellar-wallet';
-
-// Temporary hack to use XLM pool for all loans and collaterals.
-const XLM_LOAN_POOL_ID = 'CCRWVENKGBUX7EP273GOUMY542VWRFEEIHUICTTDDG5ESLSDNENCH6AT';
+import { BorrowModal } from './BorrowModal';
 
 interface BorrowableAssetCardProps {
   currency: Currency;
@@ -14,30 +11,25 @@ interface BorrowableAssetCardProps {
 export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   const { icon, name, symbol } = currency;
 
-  const { wallet, signTransaction } = useWallet();
+  const modalId = `borrow-modal-${symbol}`;
 
-  const handleBorrowClick = async () => {
-    if (!wallet) {
-      alert('Please connect your wallet first!');
-      return;
-    }
+  const { wallet, balances } = useWallet();
 
-    try {
-      loanManagerContract.options.publicKey = wallet.address;
+  // Collateral is the other supported currency for now.
+  const collateral = symbol === 'XLM' ? CURRENCY_USDC : CURRENCY_XLM;
 
-      const tx = await loanManagerContract.initialize({
-        user: wallet.address,
-        borrowed: BigInt(10),
-        borrowed_from: XLM_LOAN_POOL_ID,
-        collateral: BigInt(1000),
-        collateral_from: XLM_LOAN_POOL_ID,
-      });
-      await tx.signAndSend({ signTransaction });
-      alert('Loan created succesfully!');
-    } catch (err) {
-      console.error('Error borrowing', err);
-      alert('Error borrowing');
-    }
+  const collateralBalance = balances[collateral.symbol];
+
+  const borrowDisabled = !wallet || !collateralBalance;
+
+  const openModal = () => {
+    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
+    modalEl.showModal();
+  };
+
+  const closeModal = () => {
+    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
+    modalEl.close();
   };
 
   return (
@@ -60,7 +52,16 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
         <p className="text-xl font-semibold leading-6">1.61%</p>
       </div>
 
-      {wallet && <Button onClick={handleBorrowClick}>Borrow</Button>}
+      {borrowDisabled ? (
+        <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds for collateral'}>
+          <Button disabled={true} onClick={() => {}}>
+            Borrow
+          </Button>
+        </div>
+      ) : (
+        <Button onClick={openModal}>Borrow</Button>
+      )}
+      <BorrowModal modalId={modalId} onClose={closeModal} currency={currency} collateral={collateral} />
     </Card>
   );
 };
