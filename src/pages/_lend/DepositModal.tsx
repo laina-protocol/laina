@@ -1,6 +1,8 @@
 import { Button } from '@components/Button';
+import { Loading } from '@components/Loading';
 import { type ChangeEvent, useState } from 'react';
 import type { Currency } from 'src/currencies';
+import { to7decimals } from 'src/lib/converters';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface DepositModalProps {
@@ -30,12 +32,9 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
     loanPoolContract.options.publicKey = wallet.address;
 
-    // Multiply by ten million by adding zeroes.
-    const stroops = BigInt(amount) * BigInt(10_000_000);
-
     const tx = await loanPoolContract.deposit({
       user: wallet.address,
-      amount: stroops,
+      amount: to7decimals(amount),
     });
 
     try {
@@ -43,7 +42,8 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
       alert(`Deposit successful, result: ${result}`);
       onClose();
     } catch (err) {
-      alert(`Error depositing: ${JSON.stringify(err)}`);
+      console.error("Error depositing", err);
+      alert('Error depositing');
     }
     setIsDepositing(false);
   };
@@ -92,7 +92,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
             </Button>
           ) : (
             <Button disabled>
-              <span className="loading loading-spinner" />
+              <Loading />
               Depositing
             </Button>
           )}
@@ -100,7 +100,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
       </div>
       {/* Invisible backdrop that closes the modal on click */}
       <form method="dialog" className="modal-backdrop">
-        <button type="button">close</button>
+        <button onClick={onClose} type="button">close</button>
       </form>
     </dialog>
   );

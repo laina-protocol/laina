@@ -38,7 +38,7 @@ type XDR_BASE64 = string;
 const Context = createContext<WalletContext>({
   wallet: null,
   balances: {},
-  openConnectWalletModal: () => {},
+  openConnectWalletModal: () => { },
   signTransaction: () => Promise.reject(),
 });
 
@@ -94,7 +94,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     <Context.Provider
       value={{
         wallet,
-        balances: balances,
+        balances,
         openConnectWalletModal,
         signTransaction,
       }}

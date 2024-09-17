@@ -7,12 +7,11 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Currency } from 'src/currencies';
 import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
+import { Loading } from '@components/Loading';
 
 export interface LendableAssetCardProps {
   currency: Currency;
 }
-
-const DEPOSIT_MODAL_ID = 'modal-id';
 
 export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const { icon, name, symbol, loanPoolContract } = currency;
@@ -20,6 +19,8 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
+
+  const modalId = `deposit-modal-${symbol}`
 
   const balance: Balance | undefined = balances[symbol];
 
@@ -48,7 +49,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
   const formatSuppliedAmount = useCallback((amount: bigint | null) => {
     if (amount === BigInt(0)) return '0';
-    if (!amount) return 'Loading';
+    if (!amount) return <Loading size="xs" />;
 
     const ten_k = BigInt(10_000 * 10_000_000);
     const one_m = BigInt(1_000_000 * 10_000_000);
@@ -83,7 +84,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const formatSuppliedAmountPrice = useCallback(
     (price: bigint | null) => {
       if (totalSupplied === BigInt(0)) return '$0';
-      if (!totalSupplied || !price) return 'Loading';
+      if (!totalSupplied || !price) return <Loading size="sm" />;
 
       const ten_k = BigInt(10_000 * 10_000_000);
       const one_m = BigInt(1_000_000 * 10_000_000);
@@ -111,12 +112,12 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   }, [fetchAvailableContractBalance, fetchPriceData]); // Now dependent on the memoized function
 
   const openModal = () => {
-    const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
+    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.showModal();
   };
 
   const closeModal = () => {
-    const modalEl = document.getElementById(DEPOSIT_MODAL_ID) as HTMLDialogElement;
+    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.close();
     fetchAvailableContractBalance();
   };
@@ -143,14 +144,14 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       {isPoor ? (
         <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
-          <Button disabled={true} onClick={() => {}}>
+          <Button disabled={true} onClick={() => { }}>
             Deposit
           </Button>
         </div>
       ) : (
         <Button onClick={openModal}>Deposit</Button>
       )}
-      <DepositModal modalId={DEPOSIT_MODAL_ID} onClose={closeModal} currency={currency} />
+      <DepositModal modalId={modalId} onClose={closeModal} currency={currency} />
     </Card>
   );
 };

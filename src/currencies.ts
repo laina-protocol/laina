@@ -12,7 +12,7 @@ export type Currency = {
   contractId: string;
 };
 
-export const CURRENCIES: Currency[] = [
+export const CURRENCIES: [Currency, Currency] = [
   {
     name: 'Stellar Lumen',
     symbol: 'XLM',
