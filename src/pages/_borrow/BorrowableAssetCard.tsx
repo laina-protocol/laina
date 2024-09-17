@@ -11,14 +11,15 @@ interface BorrowableAssetCardProps {
 export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   const { icon, name, symbol } = currency;
 
-  const modalId = `borrow-modal-${symbol}`
+  const modalId = `borrow-modal-${symbol}`;
 
   const { wallet, balances } = useWallet();
 
   // Collateral is the other supported currency for now.
-  const collateral = symbol === 'XLM'
-    ? CURRENCIES[1] // USDC
-    : CURRENCIES[0]; // XLM
+  const collateral =
+    symbol === 'XLM'
+      ? CURRENCIES[1] // USDC
+      : CURRENCIES[0]; // XLM
 
   const collateralBalance = balances[collateral.symbol];
 
@@ -56,7 +57,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
 
       {borrowDisabled ? (
         <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds for collateral'}>
-          <Button disabled={true} onClick={() => { }}>
+          <Button disabled={true} onClick={() => {}}>
             Borrow
           </Button>
         </div>

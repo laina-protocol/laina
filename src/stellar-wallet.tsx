@@ -21,6 +21,7 @@ export type WalletContext = {
   wallet: Wallet | null;
   balances: BalanceRecord;
   openConnectWalletModal: () => void;
+  refetchBalances: () => void;
   signTransaction: SignTransaction;
 };
 
@@ -38,7 +39,8 @@ type XDR_BASE64 = string;
 const Context = createContext<WalletContext>({
   wallet: null,
   balances: {},
-  openConnectWalletModal: () => { },
+  openConnectWalletModal: () => {},
+  refetchBalances: () => {},
   signTransaction: () => Promise.reject(),
 });
 
@@ -88,6 +90,13 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     });
   };
 
+  const refetchBalances = async () => {
+    if (!address) return;
+
+    const { balances } = await HorizonServer.loadAccount(address);
+    setBalances(createBalanceRecord(balances));
+  };
+
   const wallet: Wallet | null = address ? createWalletObj(address) : null;
 
   return (
@@ -96,6 +105,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         wallet,
         balances,
         openConnectWalletModal,
+        refetchBalances,
         signTransaction,
       }}
     >

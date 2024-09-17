@@ -1,5 +1,6 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
+import { Loading } from '@components/Loading';
 import { contractClient } from '@contracts/loan_manager';
 import type { xdr } from '@stellar/stellar-base';
 import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
@@ -7,7 +8,6 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Currency } from 'src/currencies';
 import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
-import { Loading } from '@components/Loading';
 
 export interface LendableAssetCardProps {
   currency: Currency;
@@ -20,7 +20,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
-  const modalId = `deposit-modal-${symbol}`
+  const modalId = `deposit-modal-${symbol}`;
 
   const balance: Balance | undefined = balances[symbol];
 
@@ -144,7 +144,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       {isPoor ? (
         <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
-          <Button disabled={true} onClick={() => { }}>
+          <Button disabled={true} onClick={() => {}}>
             Deposit
           </Button>
         </div>

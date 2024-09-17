@@ -14,13 +14,19 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { loanPoolContract, name, symbol } = currency;
 
-  const { wallet, balances, signTransaction } = useWallet();
+  const { wallet, balances, signTransaction, refetchBalances } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
   const balance = balances[symbol];
 
   if (!balance) return null;
+
+  const closeModal = () => {
+    refetchBalances();
+    setAmount('0');
+    onClose();
+  };
 
   const handleDepositClick = async () => {
     if (!wallet) {
@@ -40,9 +46,9 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
     try {
       const { result } = await tx.signAndSend({ signTransaction });
       alert(`Deposit successful, result: ${result}`);
-      onClose();
+      closeModal();
     } catch (err) {
-      console.error("Error depositing", err);
+      console.error('Error depositing', err);
       alert('Error depositing');
     }
     setIsDepositing(false);
@@ -83,7 +89,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
         </p>
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={onClose} className="btn-ghost mr-4">
+          <Button onClick={closeModal} className="btn-ghost mr-4">
             Cancel
           </Button>
           {!isDepositing ? (
@@ -100,7 +106,9 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
       </div>
       {/* Invisible backdrop that closes the modal on click */}
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose} type="button">close</button>
+        <button onClick={closeModal} type="button">
+          close
+        </button>
       </form>
     </dialog>
   );

@@ -1,10 +1,10 @@
-import { CURRENCIES, type Currency } from "src/currencies";
-import { useWallet } from "src/stellar-wallet";
+import { Button } from '@components/Button';
+import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { useState, type ChangeEvent } from "react";
-import { Button } from "@components/Button";
-import { to7decimals } from "src/lib/converters";
-import { Loading } from "@components/Loading";
+import { type ChangeEvent, useState } from 'react';
+import type { Currency } from 'src/currencies';
+import { to7decimals } from 'src/lib/converters';
+import { useWallet } from 'src/stellar-wallet';
 
 export interface BorrowModalProps {
   modalId: string;
@@ -18,16 +18,23 @@ const MAX_LOAN = 10000;
 
 export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowModalProps) => {
   const { name, symbol, contractId: loanCurrencyId } = currency;
-  const { wallet, balances, signTransaction } = useWallet();
+  const { wallet, balances, signTransaction, refetchBalances } = useWallet();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
-  const [loanAmount, setLoanAmount] = useState("0");
-  const [collateralAmount, setCollateralAmount] = useState("0");
+  const [loanAmount, setLoanAmount] = useState('0');
+  const [collateralAmount, setCollateralAmount] = useState('0');
 
   const collateralBalance = balances[collateral.symbol];
 
   // The modal is impossible to open without collateral balance.
   if (!collateralBalance) return null;
+
+  const closeModal = () => {
+    refetchBalances();
+    setLoanAmount('0');
+    setCollateralAmount('0');
+    onClose();
+  };
 
   const handleBorrowClick = async () => {
     if (!wallet) {
@@ -49,7 +56,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
       });
       await tx.signAndSend({ signTransaction });
       alert('Loan created succesfully!');
-      onClose();
+      closeModal();
     } catch (err) {
       console.error('Error borrowing', err);
       alert('Error borrowing');
@@ -60,13 +67,13 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
 
   const handleLoanAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setLoanAmount(ev.target.value);
-  }
+  };
 
   const handleCollateralAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setCollateralAmount(ev.target.value);
-  }
+  };
 
-  const isBorrowDisabled = loanAmount === "0" || collateralAmount === "0";
+  const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0';
 
   return (
     <dialog id={modalId} className="modal">
@@ -114,7 +121,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
         </p>
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={onClose} className="btn-ghost mr-4">
+          <Button onClick={closeModal} className="btn-ghost mr-4">
             Cancel
           </Button>
           {!isBorrowing ? (
@@ -131,8 +138,10 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
       </div>
       {/* Invisible backdrop that closes the modal on click */}
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose} type="button">close</button>
+        <button onClick={closeModal} type="button">
+          close
+        </button>
       </form>
     </dialog>
-  )
-}
+  );
+};
