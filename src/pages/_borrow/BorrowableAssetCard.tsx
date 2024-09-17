@@ -1,6 +1,6 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
-import { CURRENCIES, type Currency } from 'src/currencies';
+import { CURRENCY_USDC, CURRENCY_XLM, type Currency } from 'src/currencies';
 import { useWallet } from 'src/stellar-wallet';
 import { BorrowModal } from './BorrowModal';
 
@@ -16,10 +16,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   const { wallet, balances } = useWallet();
 
   // Collateral is the other supported currency for now.
-  const collateral =
-    symbol === 'XLM'
-      ? CURRENCIES[1] // USDC
-      : CURRENCIES[0]; // XLM
+  const collateral = symbol === 'XLM' ? CURRENCY_USDC : CURRENCY_XLM;
 
   const collateralBalance = balances[collateral.symbol];
 
