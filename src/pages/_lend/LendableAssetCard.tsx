@@ -1,6 +1,6 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
-import loanManager from '@contracts/loan_manager';
+import { contractClient } from '@contracts/loan_manager';
 import type { xdr } from '@stellar/stellar-base';
 import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
@@ -63,10 +63,10 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   }, []);
 
   const fetchPriceData = useCallback(async () => {
-    if (!loanManager) return;
+    if (!contractClient) return;
 
     try {
-      const { simulation } = await loanManager.get_price({ token: currency.symbol });
+      const { simulation } = await contractClient.get_price({ token: currency.symbol });
 
       if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
         throw 'get_price simulation was unsuccessful.';
