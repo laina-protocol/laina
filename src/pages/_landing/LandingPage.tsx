@@ -26,7 +26,10 @@ const LandingPage = () => (
         <h1 className="text-[42px] font-medium mb-8 tracking-tight">
           A trustless loan platform focusing on single-token lending pools.
         </h1>
-        <h2 className="text-[42px] font-bold tracking-tight">DeFi made simple.</h2>
+        <h2 className="text-[42px] font-bold mb-8">DeFi made simple.</h2>
+        <LinkButton to="/lend" className="text-lg mb-16">
+          Open the app
+        </LinkButton>
       </div>
       <div className="w-1/2">
         <img src={CardsImage.src} alt="" />
@@ -37,10 +40,10 @@ const LandingPage = () => (
         <p className="text-2xl leading-relaxed mb-8 tracking-tight">
           Laina is currently in the early development stage and is only operating on the Stellar Testnet.
         </p>
-        <p className="text-2xl leading-relaxed mb-8 tracking-tight">Now that you're here, take a peek.</p>
-        <LinkButton to="/lend" className="text-lg">
-          Open the app
-        </LinkButton>
+        <p className="text-2xl leading-relaxed mb-8">We are source-available, check it out!</p>
+        <NativeLinkButton to="https://github.com/Laina-Protocol" className="text-lg">
+          View the source
+        </NativeLinkButton>
       </div>
       <div className="w-1/2 pt-14 pl-14">
         <p className="text-lg mb-8 leading-relaxed">
