@@ -18,10 +18,10 @@ mod loan_pool {
 const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
 #[contract]
-struct LoansContract;
+struct LoanManager;
 
 #[contractimpl]
-impl LoansContract {
+impl LoanManager {
     /// Deploy a loan_pool contract, and initialize it.
     pub fn deploy_pool(
         env: Env,
@@ -236,6 +236,36 @@ mod tests {
     };
 
     #[test]
+    fn deploy_pool() {
+        // ARRANGE
+        let e = Env::default();
+
+        // Setup test token
+        let admin = Address::generate(&e);
+        let token_address = e.register_stellar_asset_contract(admin.clone());
+        let ticker = Symbol::new(&e, "XLM");
+
+        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
+
+        let wasm_hash = e.deployer().upload_contract_wasm(loan_pool::WASM);
+        let salt = BytesN::from_array(&e, &[0; 32]);
+
+        // ACT
+        // Deploy contract using loan_manager as factory
+        let loan_pool_addr =
+            deployer_client.deploy_pool(&wasm_hash, &salt, &token_address, &ticker, &800_000);
+
+        // ASSERT
+        // No authorizations needed - the contract acts as a factory.
+        assert_eq!(e.auths(), &[]);
+
+        // Invoke contract to check that it is initialized.
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_addr);
+        let pool_balance = loan_pool_client.get_contract_balance();
+        assert_eq!(pool_balance, 0);
+    }
+
+    #[test]
     fn create_loan() {
         // ARRANGE
         let e = Env::default();
@@ -279,8 +309,8 @@ mod tests {
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoansContract);
-        let contract_client = LoansContractClient::new(&e, &contract_id);
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
@@ -346,8 +376,8 @@ mod tests {
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoansContract);
-        let contract_client = LoansContractClient::new(&e, &contract_id);
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
