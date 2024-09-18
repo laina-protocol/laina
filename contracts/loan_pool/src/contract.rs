@@ -14,7 +14,7 @@ contractmeta!(
 );
 
 // TODO: get this dynamically when creating the contract.
-const LOAN_MANAGER_ADDRESS: &str = "CBCAJ6EHX4NEDXLLIZEVOTNMXOBMOGJMMX6X7ARVNTUGJX5DTXAGZM3R";
+const LOAN_MANAGER_ADDRESS: &str = "CAKFZLUL2TJEVVWXAAL2ATAAYXIEZRDJ6FXPEWLHY6UIK5LDXPNFE77G";
 
 #[allow(dead_code)]
 pub trait LoanPoolTrait {
