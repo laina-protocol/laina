@@ -7,6 +7,18 @@ pub struct Currency {
     pub ticker: Symbol,
 }
 
+pub fn write_loan_manager_addr(e: &Env, loan_manager_addr: Address) {
+    let key = PoolDataKey::LoanManagerAddress;
+
+    e.storage().persistent().set(&key, &loan_manager_addr);
+}
+
+pub fn read_loan_manager_addr(e: &Env) -> Address {
+    let key = PoolDataKey::LoanManagerAddress;
+
+    e.storage().persistent().get(&key).unwrap()
+}
+
 pub fn write_currency(e: &Env, currency: Currency) {
     let key = PoolDataKey::Currency;
 

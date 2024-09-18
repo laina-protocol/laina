@@ -42,7 +42,11 @@ impl LoanManager {
             token_address,
             ticker,
         };
-        pool_client.initialize(&currency, &liquidation_threshold);
+        pool_client.initialize(
+            &env.current_contract_address(),
+            &currency,
+            &liquidation_threshold,
+        );
 
         // Return the contract ID of the deployed contract
         deployed_address
@@ -315,10 +319,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
         loan_pool_client.deposit(&admin, &1000);
 
-        collateral_pool_client.initialize(&collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
         contract_client.initialize(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
@@ -382,10 +386,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
         loan_pool_client.deposit(&admin, &1_000_000);
 
-        collateral_pool_client.initialize(&collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
         contract_client.initialize(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);

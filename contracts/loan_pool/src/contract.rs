@@ -4,7 +4,7 @@ use crate::positions;
 use crate::storage_types::extend_instance;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, Env, Map, String, Symbol, TryFromVal, Val,
+    contract, contractimpl, contractmeta, token, Address, Env, Map, Symbol, TryFromVal, Val,
 };
 
 // Metadata that is added on to the WASM custom section
@@ -13,9 +13,6 @@ contractmeta!(
     val = "Lending pool with variable interest rate."
 );
 
-// TODO: get this dynamically when creating the contract.
-const LOAN_MANAGER_ADDRESS: &str = "CAKFZLUL2TJEVVWXAAL2ATAAYXIEZRDJ6FXPEWLHY6UIK5LDXPNFE77G";
-
 #[contract]
 struct LoanPoolContract;
 
@@ -23,7 +20,13 @@ struct LoanPoolContract;
 #[contractimpl]
 impl LoanPoolContract {
     /// Sets the currency of the pool and initializes its balance.
-    pub fn initialize(e: Env, currency: Currency, liquidation_threshold: i128) {
+    pub fn initialize(
+        e: Env,
+        loan_manager_addr: Address,
+        currency: Currency,
+        liquidation_threshold: i128,
+    ) {
+        pool::write_loan_manager_addr(&e, loan_manager_addr);
         pool::write_currency(&e, currency);
         pool::write_liquidation_threshold(&e, liquidation_threshold);
         pool::write_total_shares(&e, 0);
@@ -99,7 +102,7 @@ impl LoanPoolContract {
         include the logic and checks that the borrowing can be actually done. Therefore we need to
         include a check that the caller is the loans contract.
         */
-        let loan_manager_addr = Address::from_string(&String::from_str(&e, LOAN_MANAGER_ADDRESS));
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
         user.require_auth();
 
@@ -159,7 +162,6 @@ impl LoanPoolContract {
 
 #[cfg(test)]
 mod test {
-
     use super::*; // This imports LoanPoolContract and everything else from the parent module
     use soroban_sdk::{
         testutils::Address as _,
@@ -190,7 +192,11 @@ mod test {
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
 
-        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
     }
 
     #[test]
@@ -215,7 +221,11 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
-        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
 
         let result: i128 = contract_client.deposit(&user, &amount);
 
@@ -240,7 +250,11 @@ mod test {
 
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
-        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
 
         // Deposit funds for the borrower to loan.
         let depositer = Address::generate(&e);
@@ -278,7 +292,11 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
-        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
 
         let result: i128 = contract_client.deposit(&user, &amount);
 
@@ -312,7 +330,11 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 2000;
 
-        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
 
         contract_client.deposit(&user, &amount);
     }
@@ -340,7 +362,11 @@ mod test {
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
-        contract_client.initialize(&currency, &TEST_LIQUIDATION_THRESHOLD);
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
 
         let result: i128 = contract_client.deposit(&user, &amount);
 
