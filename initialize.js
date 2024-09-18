@@ -59,57 +59,50 @@ function deploy(wasm) {
   );
 }
 
-function deployFactory() {
+/** Deploy loan_manager contract as there will only be one for all the pools.
+ * Loan_manager is used as a factory for the loan_pools.
+ */
+function deployLoanManager() {
   const contractsDir = `${dirname}/.soroban/contract-ids`;
   mkdirSync(contractsDir, { recursive: true });
 
-  // try to deploy only factory contract that will be used to generate others. Maybe later it has to be some sort of admin contract?
-  deploy(`${dirname}/target/wasm32-unknown-unknown/release/factory.wasm`);
-  // Deploy loan_manager contract as there will only be one for all
   deploy(`${dirname}/target/wasm32-unknown-unknown/release/loan_manager.wasm`);
-
-  // const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter(file => file.endsWith('.wasm'));
-
-  // wasmFiles.forEach(wasmFile => {
-  // deploy(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
-  // });
 }
 
+/* Install a contract */
 function install(wasm) {
-  // Contract installer
   exe(
     `(${soroban} contract install --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
   );
 }
 
+/** Install all contracts and save their wasm hashes to .soroban */
 function installAll() {
-  // Install all contracts except factory and save the wasm hash to .soroban
   const contractsDir = `${dirname}/.soroban/contract-wasm-hash`;
   mkdirSync(contractsDir, { recursive: true });
 
-  const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`)
-    .filter((file) => file.endsWith('.wasm'))
-    .filter((file) => file !== 'factory.wasm');
+  const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter((file) =>
+    file.endsWith('.wasm'),
+  );
 
   wasmFiles.forEach((wasmFile) => {
     install(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
   });
 }
 
-function deployLpWithFactory() {
-  // Deploy liquidity pools with the factory contract
-
+/** Deploy liquidity pools using the loan-manager as a factory contract */
+function deployLoanPools() {
   // Read values of parameters
-  const contractId = execSync(`cat ${dirname}/.soroban/contract-ids/factory.txt`).toString().trim();
+  const loanManagerId = execSync(`cat ${dirname}/.soroban/contract-ids/loan_manager.txt`).toString().trim();
   const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
 
   const initializePool = (tokenAddress, ticker, salt, poolName) => {
     exe(
       `${soroban} contract invoke \
---id ${contractId} \
+--id ${loanManagerId} \
 --source-account alice \
 --network testnet \
--- deploy \
+-- deploy_pool \
 --wasm_hash ${wasmHash} \
 --salt ${salt} \
 --token_address ${tokenAddress} \
@@ -191,8 +184,8 @@ function importAll() {
 // Calling the functions (equivalent to the last part of your bash script)
 fundAll();
 buildAll();
-deployFactory();
+deployLoanManager();
 installAll();
-deployLpWithFactory();
+deployLoanPools();
 bindAll();
 importAll();

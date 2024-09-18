@@ -5,7 +5,7 @@ use crate::storage_types::{
     Loan, LoansDataKey, DAY_IN_LEDGERS, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
 };
 
-use soroban_sdk::{contract, contractimpl, vec, Address, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, vec, Address, BytesN, Env, String, Symbol, Vec};
 
 mod loan_pool {
     soroban_sdk::contractimport!(
@@ -17,35 +17,43 @@ mod loan_pool {
 // We use the same adress to mock it for testing.
 const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
-#[allow(dead_code)]
-pub trait LoansTrait {
-    fn initialize(
-        e: Env,
-        user: Address,
-        borrowed: i128,
-        borrowed_from: Address,
-        collateral: i128,
-        collateral_from: Address,
-    );
-    fn add_interest(e: Env);
-    fn calculate_health_factor(
-        e: &Env,
-        token_ticker: Symbol,
-        token_amount: i128,
-        token_collateral_ticker: Symbol,
-        token_collateral_amount: i128,
-    ) -> i128;
-    fn get_loan(e: &Env, addr: Address) -> Loan;
-    fn get_price(e: &Env, token: Symbol) -> i128;
-}
-
-#[allow(dead_code)]
 #[contract]
-struct LoansContract;
+struct LoanManager;
 
+#[allow(dead_code)]
 #[contractimpl]
-impl LoansTrait for LoansContract {
-    fn initialize(
+impl LoanManager {
+    /// Deploy a loan_pool contract, and initialize it.
+    pub fn deploy_pool(
+        env: Env,
+        wasm_hash: BytesN<32>,
+        salt: BytesN<32>,
+        token_address: Address,
+        ticker: Symbol,
+        liquidation_threshold: i128,
+    ) -> Address {
+        // Deploy the contract using the uploaded Wasm with given hash.
+        let deployed_address: Address =
+            env.deployer().with_current_contract(salt).deploy(wasm_hash);
+
+        let pool_client = loan_pool::Client::new(&env, &deployed_address);
+
+        let currency = loan_pool::Currency {
+            token_address,
+            ticker,
+        };
+        pool_client.initialize(
+            &env.current_contract_address(),
+            &currency,
+            &liquidation_threshold,
+        );
+
+        // Return the contract ID of the deployed contract
+        deployed_address
+    }
+
+    /// Initialize a new loan
+    pub fn initialize(
         e: Env,
         user: Address,
         borrowed: i128,
@@ -111,7 +119,7 @@ impl LoansTrait for LoansContract {
         );
     }
 
-    fn add_interest(e: Env) {
+    pub fn add_interest(e: Env) {
         const DECIMAL: i128 = 1000000;
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
@@ -179,7 +187,7 @@ impl LoansTrait for LoansContract {
         );
     }
 
-    fn calculate_health_factor(
+    pub fn calculate_health_factor(
         e: &Env,
         token_ticker: Symbol,
         token_amount: i128,
@@ -204,7 +212,7 @@ impl LoansTrait for LoansContract {
         collateral_value * DECIMAL_TO_INT_MULTIPLIER / borrowed_value
     }
 
-    fn get_loan(e: &Env, addr: Address) -> Loan {
+    pub fn get_loan(e: &Env, addr: Address) -> Loan {
         if let Some(loan) = positions::read_positions(e, addr) {
             loan
         } else {
@@ -212,7 +220,7 @@ impl LoansTrait for LoansContract {
         }
     }
 
-    fn get_price(e: &Env, token: Symbol) -> i128 {
+    pub fn get_price(e: &Env, token: Symbol) -> i128 {
         let reflector_address = Address::from_string(&String::from_str(e, REFLECTOR_ADDRESS));
         let reflector_contract = oracle::Client::new(e, &reflector_address);
 
@@ -224,7 +232,6 @@ impl LoansTrait for LoansContract {
 }
 
 #[cfg(test)]
-#[allow(dead_code, unused_imports)]
 mod tests {
     use super::*;
     use soroban_sdk::{
@@ -232,6 +239,36 @@ mod tests {
         token::{Client as TokenClient, StellarAssetClient},
         Env,
     };
+
+    #[test]
+    fn deploy_pool() {
+        // ARRANGE
+        let e = Env::default();
+
+        // Setup test token
+        let admin = Address::generate(&e);
+        let token_address = e.register_stellar_asset_contract(admin.clone());
+        let ticker = Symbol::new(&e, "XLM");
+
+        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
+
+        let wasm_hash = e.deployer().upload_contract_wasm(loan_pool::WASM);
+        let salt = BytesN::from_array(&e, &[0; 32]);
+
+        // ACT
+        // Deploy contract using loan_manager as factory
+        let loan_pool_addr =
+            deployer_client.deploy_pool(&wasm_hash, &salt, &token_address, &ticker, &800_000);
+
+        // ASSERT
+        // No authorizations needed - the contract acts as a factory.
+        assert_eq!(e.auths(), &[]);
+
+        // Invoke contract to check that it is initialized.
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_addr);
+        let pool_balance = loan_pool_client.get_contract_balance();
+        assert_eq!(pool_balance, 0);
+    }
 
     #[test]
     fn create_loan() {
@@ -277,15 +314,15 @@ mod tests {
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoansContract);
-        let contract_client = LoansContractClient::new(&e, &contract_id);
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
         loan_pool_client.deposit(&admin, &1000);
 
-        collateral_pool_client.initialize(&collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
         contract_client.initialize(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
@@ -344,15 +381,15 @@ mod tests {
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoansContract);
-        let contract_client = LoansContractClient::new(&e, &contract_id);
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
         loan_pool_client.deposit(&admin, &1_000_000);
 
-        collateral_pool_client.initialize(&collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
         contract_client.initialize(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
