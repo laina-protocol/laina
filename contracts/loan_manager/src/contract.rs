@@ -17,35 +17,13 @@ mod loan_pool {
 // We use the same adress to mock it for testing.
 const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
-#[allow(dead_code)]
-pub trait LoansTrait {
-    fn initialize(
-        e: Env,
-        user: Address,
-        borrowed: i128,
-        borrowed_from: Address,
-        collateral: i128,
-        collateral_from: Address,
-    );
-    fn add_interest(e: Env);
-    fn calculate_health_factor(
-        e: &Env,
-        token_ticker: Symbol,
-        token_amount: i128,
-        token_collateral_ticker: Symbol,
-        token_collateral_amount: i128,
-    ) -> i128;
-    fn get_loan(e: &Env, addr: Address) -> Loan;
-    fn get_price(e: &Env, token: Symbol) -> i128;
-}
-
-#[allow(dead_code)]
 #[contract]
 struct LoansContract;
 
 #[contractimpl]
-impl LoansTrait for LoansContract {
-    fn initialize(
+impl LoansContract {
+    /// Initialize a new loan
+    pub fn initialize(
         e: Env,
         user: Address,
         borrowed: i128,
@@ -111,7 +89,7 @@ impl LoansTrait for LoansContract {
         );
     }
 
-    fn add_interest(e: Env) {
+    pub fn add_interest(e: Env) {
         const DECIMAL: i128 = 1000000;
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
@@ -179,7 +157,7 @@ impl LoansTrait for LoansContract {
         );
     }
 
-    fn calculate_health_factor(
+    pub fn calculate_health_factor(
         e: &Env,
         token_ticker: Symbol,
         token_amount: i128,
@@ -204,7 +182,7 @@ impl LoansTrait for LoansContract {
         collateral_value * DECIMAL_TO_INT_MULTIPLIER / borrowed_value
     }
 
-    fn get_loan(e: &Env, addr: Address) -> Loan {
+    pub fn get_loan(e: &Env, addr: Address) -> Loan {
         if let Some(loan) = positions::read_positions(e, addr) {
             loan
         } else {
@@ -212,7 +190,7 @@ impl LoansTrait for LoansContract {
         }
     }
 
-    fn get_price(e: &Env, token: Symbol) -> i128 {
+    pub fn get_price(e: &Env, token: Symbol) -> i128 {
         let reflector_address = Address::from_string(&String::from_str(e, REFLECTOR_ADDRESS));
         let reflector_contract = oracle::Client::new(e, &reflector_address);
 
@@ -224,7 +202,6 @@ impl LoansTrait for LoansContract {
 }
 
 #[cfg(test)]
-#[allow(dead_code, unused_imports)]
 mod tests {
     use super::*;
     use soroban_sdk::{
