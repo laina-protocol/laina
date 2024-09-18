@@ -20,6 +20,7 @@ const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5O
 #[contract]
 struct LoanManager;
 
+#[allow(dead_code)]
 #[contractimpl]
 impl LoanManager {
     /// Deploy a loan_pool contract, and initialize it.

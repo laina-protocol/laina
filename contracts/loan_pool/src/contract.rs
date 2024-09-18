@@ -16,34 +16,14 @@ contractmeta!(
 // TODO: get this dynamically when creating the contract.
 const LOAN_MANAGER_ADDRESS: &str = "CAKFZLUL2TJEVVWXAAL2ATAAYXIEZRDJ6FXPEWLHY6UIK5LDXPNFE77G";
 
-#[allow(dead_code)]
-pub trait LoanPoolTrait {
-    // Sets the token contract address for the pool
-    fn initialize(e: Env, currency: Currency, liquidation_threshold: i128);
-
-    // Deposits token. Also, mints pool shares for the "user" Identifier.
-    fn deposit(e: Env, user: Address, amount: i128) -> i128;
-
-    // Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
-    fn withdraw(e: Env, user: Address, share_amount: i128) -> (i128, i128);
-
-    // Borrow tokens from the pool
-    fn borrow(e: Env, user: Address, amount: i128) -> i128;
-
-    // Deposit tokens to the pool to be used as collateral
-    fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128;
-
-    // Get contract data entries
-    fn get_contract_balance(e: Env) -> i128;
-}
-
-#[allow(dead_code)]
 #[contract]
 struct LoanPoolContract;
 
+#[allow(dead_code)]
 #[contractimpl]
-impl LoanPoolTrait for LoanPoolContract {
-    fn initialize(e: Env, currency: Currency, liquidation_threshold: i128) {
+impl LoanPoolContract {
+    /// Sets the currency of the pool and initializes its balance.
+    pub fn initialize(e: Env, currency: Currency, liquidation_threshold: i128) {
         pool::write_currency(&e, currency);
         pool::write_liquidation_threshold(&e, liquidation_threshold);
         pool::write_total_shares(&e, 0);
@@ -51,7 +31,8 @@ impl LoanPoolTrait for LoanPoolContract {
         pool::write_available_balance(&e, 0);
     }
 
-    fn deposit(e: Env, user: Address, amount: i128) -> i128 {
+    /// Deposits token. Also, mints pool shares for the "user" Identifier.
+    pub fn deposit(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth(); // Depositor needs to authorize the deposit
         assert!(amount > 0, "Amount must be positive!");
 
@@ -76,7 +57,8 @@ impl LoanPoolTrait for LoanPoolContract {
         amount
     }
 
-    fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
+    /// Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
+    pub fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
 
         // Extend instance storage rent
@@ -110,7 +92,8 @@ impl LoanPoolTrait for LoanPoolContract {
         (amount, amount)
     }
 
-    fn borrow(e: Env, user: Address, amount: i128) -> i128 {
+    /// Borrow tokens from the pool
+    pub fn borrow(e: Env, user: Address, amount: i128) -> i128 {
         /*
         Borrow should only be callable from the loans contract. This is as the loans contract will
         include the logic and checks that the borrowing can be actually done. Therefore we need to
@@ -143,7 +126,8 @@ impl LoanPoolTrait for LoanPoolContract {
         amount
     }
 
-    fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128 {
+    /// Deposit tokens to the pool to be used as collateral
+    pub fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
@@ -164,7 +148,8 @@ impl LoanPoolTrait for LoanPoolContract {
         amount
     }
 
-    fn get_contract_balance(e: Env) -> i128 {
+    /// Get contract data entries
+    pub fn get_contract_balance(e: Env) -> i128 {
         // Extend instance storage rent
         extend_instance(e.clone());
 
