@@ -1,42 +1,43 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
-import { contractClient } from '@contracts/loan_manager';
+import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import type { xdr } from '@stellar/stellar-base';
 import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
-import type { Currency } from 'src/currencies';
+import type { CurrencyBinding } from 'src/currency-bindings';
 import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 
 export interface LendableAssetCardProps {
-  currency: Currency;
+  currency: CurrencyBinding;
 }
 
 export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
-  const { icon, name, symbol, loanPoolContract } = currency;
+  const { icon, name, ticker, contractClient } = currency;
   const { wallet, balances } = useWallet();
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
-  const modalId = `deposit-modal-${symbol}`;
+  const modalId = `deposit-modal-${ticker}`;
 
-  const balance: Balance | undefined = balances[symbol];
+  const balance: Balance | undefined = balances[ticker];
 
   const isPoor = !balance?.balance || balance.balance === '0';
 
   const fetchAvailableContractBalance = useCallback(async () => {
-    if (!loanPoolContract) return;
+    if (!contractClient) return;
 
     try {
-      const { simulation } = await loanPoolContract.get_contract_balance();
+      const { simulation } = await contractClient.get_contract_balance();
 
       if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
         throw 'get_contract_balance simulation was unsuccessful.';
       }
 
-      const value: xdr.Int128Parts = simulation.result?.retval.value();
+      // TODO: why do we need to cast here? The type should infer properly.
+      const value = simulation.result?.retval.value() as xdr.Int128Parts;
       const supplied = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
       setTotalSupplied(supplied);
 
@@ -45,7 +46,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     } catch (error) {
       console.error('Error fetching contract data:', error);
     }
-  }, [loanPoolContract]); // Dependency on loanPoolContract
+  }, [contractClient]); // Dependency on loanPoolContract
 
   const formatSuppliedAmount = useCallback((amount: bigint | null) => {
     if (amount === BigInt(0)) return '0';
@@ -64,22 +65,24 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   }, []);
 
   const fetchPriceData = useCallback(async () => {
-    if (!contractClient) return;
+    if (!loanManagerClient) return;
 
     try {
-      const { simulation } = await contractClient.get_price({ token: currency.symbol });
+      const { simulation } = await loanManagerClient.get_price({ token: currency.ticker });
 
       if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
         throw 'get_price simulation was unsuccessful.';
       }
-      const value: xdr.Int128Parts = simulation.result?.retval.value();
+
+      // TODO: why do we need to cast here? The type should infer properly.
+      const value = simulation.result?.retval.value() as xdr.Int128Parts;
       const price = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
 
       setTotalSuppliedPrice(price);
     } catch (error) {
       console.error('Error fetchin price data:', error);
     }
-  }, [currency.symbol]);
+  }, [currency.ticker]);
 
   const formatSuppliedAmountPrice = useCallback(
     (price: bigint | null) => {
@@ -128,7 +131,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       <div className="ml-6 w-64">
         <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
-        <span>{symbol}</span>
+        <span>{ticker}</span>
       </div>
 
       <div className="w-64">
