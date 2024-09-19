@@ -48,9 +48,9 @@ pub enum PoolDataKey {
     AvailableBalance,
 }
 
-/* Instance rent bumper */
-pub fn extend_instance(e: Env) {
+/* Persistent ttl bumper */
+pub fn extend_persistent(e: Env, key: &PoolDataKey) {
     e.storage()
-        .instance()
-        .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        .persistent()
+        .extend_ttl(key, POSITIONS_LIFETIME_THRESHOLD, POSITIONS_BUMP_AMOUNT);
 }
