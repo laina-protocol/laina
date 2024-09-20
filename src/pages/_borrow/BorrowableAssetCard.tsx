@@ -33,7 +33,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   };
 
   return (
-    <Card className="mb-6 p-6 flex flex-row items-center">
+    <Card className="mb-9 p-6 min-h-36 flex flex-row items-center">
       <div className="min-w-12">
         <img src={icon} alt="" className="mx-auto max-h-12" />
       </div>

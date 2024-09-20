@@ -87,7 +87,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const formatSuppliedAmountPrice = useCallback(
     (price: bigint | null) => {
       if (totalSupplied === BigInt(0)) return '$0';
-      if (!totalSupplied || !price) return <Loading size="sm" />;
+      if (!totalSupplied || !price) return null;
 
       const ten_k = BigInt(10_000 * 10_000_000);
       const one_m = BigInt(1_000_000 * 10_000_000);
@@ -126,7 +126,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   };
 
   return (
-    <Card className="mb-6 p-6 flex flex-row items-center">
+    <Card className="mb-9 p-6 min-h-36 flex flex-row items-center">
       <div className="min-w-12">
         <img src={icon} alt="" className="mx-auto max-h-12" />
       </div>
