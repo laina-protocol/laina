@@ -127,9 +127,11 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
   return (
     <Card className="mb-6 p-6 flex flex-row items-center">
-      <img src={icon} alt="" className="w-12" />
+      <div className="min-w-12">
+        <img src={icon} alt="" className="mx-auto max-h-12" />
+      </div>
 
-      <div className="ml-6 w-64">
+      <div className="ml-6 w-96">
         <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
         <span>{ticker}</span>
       </div>
