@@ -1,6 +1,6 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { type PropsWithChildren, createContext, useContext, useState } from 'react';
+import { type PropsWithChildren, createContext, useContext, useEffect, useState } from 'react';
 
 const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
 
@@ -20,7 +20,7 @@ export type BalanceRecord = {
 export type WalletContext = {
   wallet: Wallet | null;
   balances: BalanceRecord;
-  openConnectWalletModal: () => void;
+  createConnectWalletButton: (container: HTMLElement) => void;
   refetchBalances: () => void;
   signTransaction: SignTransaction;
 };
@@ -39,7 +39,8 @@ type XDR_BASE64 = string;
 const Context = createContext<WalletContext>({
   wallet: null,
   balances: {},
-  openConnectWalletModal: () => {},
+  // openConnectWalletModal: () => { },
+  createConnectWalletButton: () => {},
   refetchBalances: () => {},
   signTransaction: () => Promise.reject(),
 });
@@ -69,23 +70,37 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [address, setAddress] = useState<string | null>(null);
   const [balances, setBalances] = useState<BalanceRecord>({});
 
+  const setWallet = async (address: string) => {
+    setAddress(address);
+    try {
+      const { balances } = await HorizonServer.loadAccount(address);
+      setBalances(createBalanceRecord(balances));
+    } catch (err) {
+      console.error('Error fetching balances:', err);
+    }
+  };
+
+  // Set initial wallet on load.
+  // biome-ignore lint: useEffect is ass
+  useEffect(() => {
+    kit
+      .getAddress()
+      .then(({ address }) => setWallet(address))
+      .catch((err) => console.log('No initial wallet.', err));
+  }, []);
+
   const signTransaction: SignTransaction = async (tx, opts) => {
     const { signedTxXdr } = await kit.signTransaction(tx, opts);
     return signedTxXdr;
   };
 
-  const openConnectWalletModal = () => {
-    kit.openModal({
-      onWalletSelected: async (option) => {
-        kit.setWallet(option.id);
-        try {
-          const { address } = await kit.getAddress();
-          const { balances } = await HorizonServer.loadAccount(address);
-          setAddress(address);
-          setBalances(createBalanceRecord(balances));
-        } catch (err) {
-          console.error('Error connecting wallet: ', err);
-        }
+  const createConnectWalletButton = (container: HTMLElement) => {
+    kit.createButton({
+      container,
+      onConnect: ({ address }) => setWallet(address),
+      onDisconnect: () => {
+        setAddress(null);
+        setBalances({});
       },
     });
   };
@@ -104,7 +119,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       value={{
         wallet,
         balances,
-        openConnectWalletModal,
+        createConnectWalletButton,
         refetchBalances,
         signTransaction,
       }}
