@@ -18,14 +18,14 @@ export const CURRENCY_XLM: Currency = {
 } as const;
 
 export const CURRENCY_WBTC: Currency = {
-  name: 'Wrapped Bitcoin',
+  name: 'Bitcoin',
   ticker: 'wBTC',
   tokenContractAddress: 'CAP5AMC2OHNVREO66DFIN6DHJMPOBAJ2KCDDIMFBR7WWJH5RZBFM3UEI',
   loanPoolName: 'pool_wbtc',
 } as const;
 
 export const CURRENCY_WETH: Currency = {
-  name: 'Wrapped Ethereum',
+  name: 'Ethereum',
   ticker: 'wETH',
   tokenContractAddress: 'CAZAQB3D7KSLSNOSQKYD2V4JP5V2Y3B4RDJZRLBFCCIXDCTE3WHSY3UE',
   loanPoolName: 'pool_weth',
