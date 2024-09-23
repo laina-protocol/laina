@@ -1,12 +1,18 @@
-import type { PropsWithChildren } from 'react';
+import { type PropsWithChildren, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useWallet } from 'src/stellar-wallet';
 import logo from '/public/laina_v3_shrinked.png';
-import { Button, SelectButtonWrapper, SelectLinkButton } from './Button';
+import { SelectButtonWrapper, SelectLinkButton } from './Button';
 
 export default function Nav() {
   const { pathname } = useLocation();
-  const { wallet, openConnectWalletModal } = useWallet();
+  const { createConnectWalletButton } = useWallet();
+
+  const buttonWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    buttonWrapperRef.current && createConnectWalletButton(buttonWrapperRef.current);
+  }, [createConnectWalletButton]);
 
   const isIndex = pathname === '/';
 
@@ -22,14 +28,7 @@ export default function Nav() {
 
       {isIndex ? <LinkCluster /> : <SelectButtonCluster pathname={pathname} />}
 
-      {wallet ? (
-        <div>
-          <p className="text-sm">Signed in as</p>
-          <p className="font-bold">{wallet.displayName}</p>
-        </div>
-      ) : (
-        <Button onClick={openConnectWalletModal}>Connect Wallet</Button>
-      )}
+      <div ref={buttonWrapperRef} />
     </nav>
   );
 }
