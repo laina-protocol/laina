@@ -1,11 +1,10 @@
-use crate::pool;
-use crate::pool::Currency;
-use crate::positions;
-use crate::storage_types::extend_instance;
-
-use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, Env, Map, Symbol, TryFromVal, Val,
+use crate::{
+    loan_pool_env_extensions::LoanPoolEnvExtensions,
+    positions,
+    storage_types::{Currency, Positions, PositionsInput},
 };
+
+use soroban_sdk::{contract, contractimpl, contractmeta, token, Address, Env};
 
 // Metadata that is added on to the WASM custom section
 contractmeta!(
@@ -26,137 +25,128 @@ impl LoanPoolContract {
         currency: Currency,
         liquidation_threshold: i128,
     ) {
-        pool::write_loan_manager_addr(&e, loan_manager_addr);
-        pool::write_currency(&e, currency);
-        pool::write_liquidation_threshold(&e, liquidation_threshold);
-        pool::write_total_shares(&e, 0);
-        pool::write_total_balance(&e, 0);
-        pool::write_available_balance(&e, 0);
+        e.set_loan_manager_address(&loan_manager_addr);
+        e.set_currency(currency);
+        e.set_liquidation_threshold(liquidation_threshold);
+        e.set_total_shares(0);
+        e.set_total_balance(0);
+        e.set_available_balance(0);
     }
 
     /// Deposits token. Also, mints pool shares for the "user" Identifier.
-    pub fn deposit(e: Env, user: Address, amount: i128) -> i128 {
+    pub fn deposit(e: Env, user: Address, amount: i128) -> Positions {
         user.require_auth(); // Depositor needs to authorize the deposit
         assert!(amount > 0, "Amount must be positive!");
 
-        // Extend instance storage rent
-        extend_instance(e.clone());
+        e.extend_instance_rent();
 
-        let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
+        let client = token::Client::new(&e, &e.get_currency().token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
-        pool::write_available_balance(&e, amount);
-        pool::write_total_shares(&e, amount);
-        pool::increase_total_balance(&e, amount);
+        e.set_total_balance(amount);
+        e.set_total_shares(amount);
+        e.increase_total_balance(amount);
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
         // liabilities & collateral stays intact
-        let liabilities: i128 = 0; // temp test param
-        let collateral: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), amount, liabilities, collateral);
+        let input = PositionsInput {
+            receivables: Some(amount),
+            liabilities: None,
+            collateral: None,
+        };
 
-        amount
+        positions::update_positions(&e, &user, input)
     }
 
     /// Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
-    pub fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
+    pub fn withdraw(e: Env, user: Address, amount: i128) -> Positions {
         user.require_auth();
 
         // Extend instance storage rent
-        extend_instance(e.clone());
-
-        // Get users receivables
-        let receivables_val: Val = positions::read_positions(&e, user.clone());
-        let receivables_map: Map<Symbol, i128> = Map::try_from_val(&e, &receivables_val).unwrap();
-        let receivables: i128 = receivables_map.get_unchecked(Symbol::new(&e, "receivables"));
-
-        // Check that user is not trying to move more than receivables (TODO: also include collateral?)
-        assert!(
-            amount <= receivables,
-            "Amount can not be greater than receivables!"
-        );
+        e.extend_instance_rent();
 
         // TODO: Decrease AvailableBalance
         // TODO: Decrease TotalShares
         // TODO: Decrease TotalBalance
 
         // Decrease users position in pool as they withdraw
-        let liabilities: i128 = 0;
-        let collateral: i128 = 0;
-        positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral);
+        let input = PositionsInput {
+            receivables: Some(-amount),
+            liabilities: None,
+            collateral: None,
+        };
 
         // Transfer tokens from pool to user
-        let token_address = &pool::read_currency(&e).token_address;
-        let client = token::Client::new(&e, token_address);
+        let client = token::Client::new(&e, &e.get_currency().token_address);
         client.transfer(&e.current_contract_address(), &user, &amount);
 
-        (amount, amount)
+        positions::update_positions(&e, &user, input)
     }
 
     /// Borrow tokens from the pool
-    pub fn borrow(e: Env, user: Address, amount: i128) -> i128 {
+    pub fn borrow(e: Env, user: Address, amount: i128) -> Positions {
         /*
         Borrow should only be callable from the loans contract. This is as the loans contract will
         include the logic and checks that the borrowing can be actually done. Therefore we need to
         include a check that the caller is the loans contract.
         */
-        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        let loan_manager_addr = e.get_loan_manager_address();
         loan_manager_addr.require_auth();
         user.require_auth();
 
         // Extend instance storage rent
-        extend_instance(e.clone());
+        e.extend_instance_rent();
 
-        let balance = pool::read_available_balance(&e);
         assert!(
-            amount < balance,
+            amount < e.get_available_balance(),
             "Borrowed amount has to be less than available balance!"
-        ); // Check that there is enough available balance
+        );
 
         // Increase users position in pool as they deposit
         // as this is debt amount is added to liabilities and
         // collateral & receivables stays intact
-        let collateral: i128 = 0; // temp test param
-        let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, amount, collateral);
+        let input = PositionsInput {
+            receivables: None,
+            liabilities: Some(amount),
+            collateral: None,
+        };
 
-        let token_address = &pool::read_currency(&e).token_address;
-        let client = token::Client::new(&e, token_address);
+        let client = token::Client::new(&e, &e.get_currency().token_address);
         client.transfer(&e.current_contract_address(), &user, &amount);
 
-        amount
+        positions::update_positions(&e, &user, input)
     }
 
     /// Deposit tokens to the pool to be used as collateral
-    pub fn deposit_collateral(e: Env, user: Address, amount: i128) -> i128 {
+    pub fn deposit_collateral(e: Env, user: Address, amount: i128) -> Positions {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
         // Extend instance storage rent
-        extend_instance(e.clone());
+        e.extend_instance_rent();
 
-        let token_address = &pool::read_currency(&e).token_address;
-        let client = token::Client::new(&e, token_address);
+        let token_address = e.get_currency().token_address;
+        let client = token::Client::new(&e, &token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
         // Increase users position in pool as they deposit
         // as this is collateral amount is added to collateral and
         // liabilities & receivables stays intact
-        let liabilities: i128 = 0; // temp test param
-        let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount);
-
-        amount
+        let input = PositionsInput {
+            receivables: None,
+            liabilities: None,
+            collateral: Some(amount),
+        };
+        positions::update_positions(&e, &user, input)
     }
 
     /// Get contract data entries
     pub fn get_contract_balance(e: Env) -> i128 {
         // Extend instance storage rent
-        extend_instance(e.clone());
-
-        pool::read_total_balance(&e)
+        e.extend_instance_rent();
+        e.get_total_balance()
     }
 }
 
@@ -166,7 +156,7 @@ mod test {
     use soroban_sdk::{
         testutils::Address as _,
         token::{Client as TokenClient, StellarAssetClient},
-        Env,
+        Env, Symbol,
     };
 
     const TEST_LIQUIDATION_THRESHOLD: i128 = 800_000;
@@ -227,9 +217,9 @@ mod test {
             &TEST_LIQUIDATION_THRESHOLD,
         );
 
-        let result: i128 = contract_client.deposit(&user, &amount);
+        let positions = contract_client.deposit(&user, &amount);
 
-        assert_eq!(result, amount);
+        assert_eq!(positions.receivables, amount);
     }
 
     #[test]
@@ -298,13 +288,13 @@ mod test {
             &TEST_LIQUIDATION_THRESHOLD,
         );
 
-        let result: i128 = contract_client.deposit(&user, &amount);
+        let positions = contract_client.deposit(&user, &amount);
 
-        assert_eq!(result, amount);
+        assert_eq!(positions.receivables, amount);
 
-        let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
+        let withdraw_result = contract_client.withdraw(&user, &amount);
 
-        assert_eq!(withdraw_result, (amount, amount));
+        assert_eq!(withdraw_result.receivables, 0);
     }
 
     #[test]
@@ -368,9 +358,9 @@ mod test {
             &TEST_LIQUIDATION_THRESHOLD,
         );
 
-        let result: i128 = contract_client.deposit(&user, &amount);
+        let positions = contract_client.deposit(&user, &amount);
 
-        assert_eq!(result, amount);
+        assert_eq!(positions.receivables, amount);
 
         contract_client.withdraw(&user, &(amount * 2));
     }
