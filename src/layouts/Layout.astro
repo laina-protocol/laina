@@ -16,7 +16,7 @@ const { title, description } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
@@ -34,7 +34,7 @@ const { title, description } = Astro.props;
       margin: auto;
       padding: 1rem;
       width: 800px;
-      max-width: calc(100% - 2rem);
+      max-width: 100vw;
       color: rgb(0, 0, 0);
       font-size: 18px;
       line-height: 1.6;

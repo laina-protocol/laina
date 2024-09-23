@@ -18,11 +18,11 @@ export default function Nav() {
 
   return (
     <nav
-      className={`relative mx-auto mb-12 flex justify-between items-center pt-12 pb-6 px-4 max-w-screen ${isIndex ? 'w-[74rem]' : 'w-[64rem]'}`}
+      className={`relative mx-auto flex justify-between items-center pt-12 pb-6 px-4 max-w-full ${isIndex ? 'w-[74rem]' : 'w-[64rem]'}`}
     >
       <div>
         <Link to="/">
-          <img src={logo.src} alt="logo" width={200} />
+          <img src={logo.src} alt="logo" className="w-32" />
         </Link>
       </div>
 
@@ -34,7 +34,7 @@ export default function Nav() {
 }
 
 const LinkCluster = () => (
-  <div className="flex flex-row ml-auto mr-14">
+  <div className="hidden md:flex flex-row ml-auto mr-14">
     <LinkItem to="/lend">Lend</LinkItem>
     <LinkItem to="/borrow">Borrow</LinkItem>
     <LinkItem to="/liquidate">Liquidate</LinkItem>
@@ -48,7 +48,7 @@ const LinkItem = ({ to, children }: PropsWithChildren<{ to: string }>) => (
 );
 
 const SelectButtonCluster = ({ pathname }: { pathname: string }) => (
-  <SelectButtonWrapper>
+  <SelectButtonWrapper className="hidden md:flex">
     <SelectLinkButton to="/lend" selected={pathname === '/lend'}>
       Lend
     </SelectLinkButton>

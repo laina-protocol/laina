@@ -32,8 +32,8 @@ export const NativeLinkButton = ({ to, className = '', children }: PropsWithChil
   </a>
 );
 
-export const SelectButtonWrapper = ({ children }: PropsWithChildren) => (
-  <div className="flex bg-grey p-1 gap-2 rounded-full">{children}</div>
+export const SelectButtonWrapper = ({ className = '', children }: PropsWithChildren<{ className?: string }>) => (
+  <div className={`flex bg-grey p-1 gap-2 rounded-full ${className}`}>{children}</div>
 );
 
 export interface SelectLinkButtonProps {
