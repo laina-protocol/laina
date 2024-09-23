@@ -4,6 +4,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { CURRENCIES, type Currency } from './currencies';
 
 // Load environment variables starting with PUBLIC_ into the environment,
 // so we don't need to specify duplicate variables in .env
@@ -23,6 +24,9 @@ const GENESIS_ACCOUNTS = {
   standalone: 'GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPV6LY4UV2GL6VJGIQRXFDNMADI',
 };
 
+// @ts-ignore
+const GENESIS_ACCOUNT = GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK] ?? GENESIS_ACCOUNTS.testnet;
+
 console.log('###################### Initializing ########################');
 
 // Get dirname (equivalent to the Bash version)
@@ -33,7 +37,7 @@ const dirname = path.dirname(__filename);
 const soroban = 'soroban';
 
 // Function to execute and log shell commands
-function exe(command) {
+function exe(command: string) {
   console.log(command);
   execSync(command, { stdio: 'inherit' });
 }
@@ -49,11 +53,11 @@ function buildAll() {
   exe(`make build`);
 }
 
-function filenameNoExtension(filename) {
+function filenameNoExtension(filename: string) {
   return path.basename(filename, path.extname(filename));
 }
 
-function deploy(wasm) {
+function deploy(wasm: string) {
   exe(
     `(${soroban} contract deploy --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-ids/${filenameNoExtension(wasm)}.txt`,
   );
@@ -70,7 +74,7 @@ function deployLoanManager() {
 }
 
 /* Install a contract */
-function install(wasm) {
+function install(wasm: string) {
   exe(
     `(${soroban} contract install --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
   );
@@ -96,7 +100,8 @@ function deployLoanPools() {
   const loanManagerId = execSync(`cat ${dirname}/.soroban/contract-ids/loan_manager.txt`).toString().trim();
   const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
 
-  const initializePool = (tokenAddress, ticker, salt, poolName) => {
+  CURRENCIES.forEach(({ tokenContractAddress, ticker, loanPoolName }: Currency) => {
+    const salt = crypto.randomBytes(32).toString('hex');
     exe(
       `${soroban} contract invoke \
 --id ${loanManagerId} \
@@ -105,25 +110,15 @@ function deployLoanPools() {
 -- deploy_pool \
 --wasm_hash ${wasmHash} \
 --salt ${salt} \
---token_address ${tokenAddress} \
+--token_address ${tokenContractAddress} \
 --ticker ${ticker} \
 --liquidation_threshold 800000 \
-| tr -d '"' > ${dirname}/.soroban/contract-ids/${poolName}.txt`,
+| tr -d '"' > ${dirname}/.soroban/contract-ids/${loanPoolName}.txt`,
     );
-  };
-
-  // XLM Pool
-  const xlmTokenAddress = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
-  const salt1 = crypto.randomBytes(32).toString('hex');
-  initializePool(xlmTokenAddress, 'XLM', salt1, 'loan_pool');
-
-  // USDC Pool
-  const usdcTokenAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
-  const salt2 = crypto.randomBytes(32).toString('hex');
-  initializePool(usdcTokenAddress, 'USDC', salt2, 'usdc_pool');
+  });
 }
 
-function bind(contract) {
+function bind(contract: string) {
   const filenameNoExt = filenameNoExtension(contract);
   exe(
     `${soroban} contract bindings typescript --contract-id $(cat ${contract}) --output-dir ${dirname}/packages/${filenameNoExt} --overwrite`,
@@ -143,7 +138,7 @@ function bindAll() {
   });
 }
 
-function importContract(contract) {
+function importContract(contract: string) {
   const filenameNoExt = filenameNoExtension(contract);
   const outputDir = `${dirname}/src/contracts/`;
   mkdirSync(outputDir, { recursive: true });
@@ -158,8 +153,8 @@ function importContract(contract) {
     `  ...Client.networks.${process.env.SOROBAN_NETWORK},\n` +
     `  rpcUrl,\n` +
     `${process.env.SOROBAN_NETWORK === 'local' || 'standalone' ? `  allowHttp: true,\n` : null}` +
-    `  publicKey: '${GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK]}',\n` +
-    `});\n`;
+    `  publicKey: '${GENESIS_ACCOUNT}', \n` +
+    `}); \n`;
   /* eslint-disable no-constant-condition */
   /* eslint-enable quotes */
 

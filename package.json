@@ -19,19 +19,21 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
+    "@types/node": "^22.5.5",
     "@vitejs/plugin-basic-ssl": "^1.1.0",
     "daisyui": "^4.12.10",
     "dotenv": "^16.4.5",
     "postcss": "^8.4.45",
     "prettier": "^3.3.3",
-    "prettier-plugin-astro": "^0.14.1"
+    "prettier-plugin-astro": "^0.14.1",
+    "tsx": "^4.19.1"
   },
   "name": "sorobanathon",
   "scripts": {
     "astro": "astro",
     "build": "astro check && astro build",
     "dev": "astro dev",
-    "init": "node initialize.js",
+    "init": "node --import tsx initialize.ts",
     "preview": "astro preview",
     "start": "npm run init && astro dev",
     "continue": "astro dev",

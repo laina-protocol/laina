@@ -1,24 +1,24 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
 import { type ChangeEvent, useState } from 'react';
-import type { Currency } from 'src/currencies';
+import type { CurrencyBinding } from 'src/currency-bindings';
 import { to7decimals } from 'src/lib/converters';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface DepositModalProps {
   modalId: string;
   onClose: () => void;
-  currency: Currency;
+  currency: CurrencyBinding;
 }
 
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
-  const { loanPoolContract, name, symbol } = currency;
+  const { contractClient, name, ticker } = currency;
 
   const { wallet, balances, signTransaction, refetchBalances } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
-  const balance = balances[symbol];
+  const balance = balances[ticker];
 
   if (!balance) return null;
 
@@ -36,9 +36,9 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
     setIsDepositing(true);
 
-    loanPoolContract.options.publicKey = wallet.address;
+    contractClient.options.publicKey = wallet.address;
 
-    const tx = await loanPoolContract.deposit({
+    const tx = await contractClient.deposit({
       user: wallet.address,
       amount: to7decimals(amount),
     });
@@ -85,7 +85,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
         </div>
 
         <p>
-          {amount} {symbol} out of {balance.balance} {symbol}
+          {amount} {ticker} out of {balance.balance} {ticker}
         </p>
 
         <div className="flex flex-row justify-end mt-8">

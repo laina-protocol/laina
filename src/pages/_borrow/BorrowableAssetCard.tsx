@@ -1,24 +1,24 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
-import { CURRENCY_USDC, CURRENCY_XLM, type Currency } from 'src/currencies';
+import { BINDING_USDC, BINDING_XLM, type CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 import { BorrowModal } from './BorrowModal';
 
 interface BorrowableAssetCardProps {
-  currency: Currency;
+  currency: CurrencyBinding;
 }
 
 export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
-  const { icon, name, symbol } = currency;
+  const { icon, name, ticker } = currency;
 
-  const modalId = `borrow-modal-${symbol}`;
+  const modalId = `borrow-modal-${ticker}`;
 
   const { wallet, balances } = useWallet();
 
   // Collateral is the other supported currency for now.
-  const collateral = symbol === 'XLM' ? CURRENCY_USDC : CURRENCY_XLM;
+  const collateral = ticker === 'XLM' ? BINDING_USDC : BINDING_XLM;
 
-  const collateralBalance = balances[collateral.symbol];
+  const collateralBalance = balances[collateral.ticker];
 
   const borrowDisabled = !wallet || !collateralBalance;
 
@@ -33,12 +33,14 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   };
 
   return (
-    <Card className="mb-6 p-6 flex flex-row items-center">
-      <img src={icon} alt="" className="w-12" />
+    <Card className="mb-9 p-6 min-h-36 flex flex-row items-center">
+      <div className="min-w-12">
+        <img src={icon} alt="" className="mx-auto max-h-12" />
+      </div>
 
       <div className="ml-6 w-64">
         <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
-        <span>{symbol}</span>
+        <span>{ticker}</span>
       </div>
 
       <div className="w-64">

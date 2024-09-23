@@ -1,5 +1,6 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
 import * as StellarSdk from '@stellar/stellar-sdk';
+import type { SupportedCurrency } from 'currencies';
 import { type PropsWithChildren, createContext, useContext, useEffect, useState } from 'react';
 
 const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
@@ -8,8 +9,6 @@ export type Wallet = {
   address: string;
   displayName: string;
 };
-
-export type SupportedCurrency = 'XLM' | 'USDC';
 
 export type Balance = StellarSdk.Horizon.HorizonApi.BalanceLine;
 
