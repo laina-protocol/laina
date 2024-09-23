@@ -1,5 +1,5 @@
 const LiquidatePage = () => (
-  <div>
+  <div className="mt-14">
     <h1 className="text-3xl font-semibold mb-8 tracking-tight">Available for Liquidation</h1>
     <p>Coming soon!</p>
   </div>

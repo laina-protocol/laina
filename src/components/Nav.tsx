@@ -18,7 +18,7 @@ export default function Nav() {
 
   return (
     <nav
-      className={`relative mx-auto mb-12 flex justify-between items-center pt-12 pb-6 px-4 max-w-full ${isIndex ? 'w-[74rem]' : 'w-[64rem]'}`}
+      className={`relative mx-auto flex justify-between items-center pt-12 pb-6 px-4 max-w-full ${isIndex ? 'w-[74rem]' : 'w-[64rem]'}`}
     >
       <div>
         <Link to="/">
