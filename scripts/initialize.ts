@@ -2,9 +2,8 @@ import 'dotenv/config';
 import { mkdirSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import { CURRENCIES, type Currency } from './currencies';
+import { CURRENCIES, type Currency } from '../currencies';
 
 // Load environment variables starting with PUBLIC_ into the environment,
 // so we don't need to specify duplicate variables in .env
@@ -27,11 +26,7 @@ const GENESIS_ACCOUNTS = {
 // @ts-ignore
 const GENESIS_ACCOUNT = GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK] ?? GENESIS_ACCOUNTS.testnet;
 
-console.log('###################### Initializing ########################');
-
-// Get dirname (equivalent to the Bash version)
-const __filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(__filename);
+console.log('######################Initializing ########################');
 
 // variable for later setting pinned version of soroban in "$(dirname/target/bin/soroban)"
 const soroban = 'soroban';
@@ -48,8 +43,8 @@ function fundAll() {
 }
 
 function buildAll() {
-  exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.wasm`);
-  exe(`rm -f ${dirname}/target/wasm32-unknown-unknown/release/*.d`);
+  exe(`rm -f ./target/wasm32-unknown-unknown/release/*.wasm`);
+  exe(`rm -f ./target/wasm32-unknown-unknown/release/*.d`);
   exe(`make build`);
 }
 
@@ -59,7 +54,7 @@ function filenameNoExtension(filename: string) {
 
 function deploy(wasm: string) {
   exe(
-    `(${soroban} contract deploy --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-ids/${filenameNoExtension(wasm)}.txt`,
+    `(${soroban} contract deploy --wasm ${wasm} --ignore-checks) > ./.soroban/contract-ids/${filenameNoExtension(wasm)}.txt`,
   );
 }
 
@@ -67,38 +62,36 @@ function deploy(wasm: string) {
  * Loan_manager is used as a factory for the loan_pools.
  */
 function deployLoanManager() {
-  const contractsDir = `${dirname}/.soroban/contract-ids`;
+  const contractsDir = `.soroban/contract-ids`;
   mkdirSync(contractsDir, { recursive: true });
 
-  deploy(`${dirname}/target/wasm32-unknown-unknown/release/loan_manager.wasm`);
+  deploy(`./target/wasm32-unknown-unknown/release/loan_manager.wasm`);
 }
 
 /* Install a contract */
 function install(wasm: string) {
   exe(
-    `(${soroban} contract install --wasm ${wasm} --ignore-checks) > ${dirname}/.soroban/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
+    `(${soroban} contract install --wasm ${wasm} --ignore-checks) > ./.soroban/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
   );
 }
 
 /** Install all contracts and save their wasm hashes to .soroban */
 function installAll() {
-  const contractsDir = `${dirname}/.soroban/contract-wasm-hash`;
+  const contractsDir = `./.soroban/contract-wasm-hash`;
   mkdirSync(contractsDir, { recursive: true });
 
-  const wasmFiles = readdirSync(`${dirname}/target/wasm32-unknown-unknown/release`).filter((file) =>
-    file.endsWith('.wasm'),
-  );
+  const wasmFiles = readdirSync(`./target/wasm32-unknown-unknown/release`).filter((file) => file.endsWith('.wasm'));
 
   wasmFiles.forEach((wasmFile) => {
-    install(`${dirname}/target/wasm32-unknown-unknown/release/${wasmFile}`);
+    install(`./target/wasm32-unknown-unknown/release/${wasmFile}`);
   });
 }
 
 /** Deploy liquidity pools using the loan-manager as a factory contract */
 function deployLoanPools() {
   // Read values of parameters
-  const loanManagerId = execSync(`cat ${dirname}/.soroban/contract-ids/loan_manager.txt`).toString().trim();
-  const wasmHash = execSync(`cat ${dirname}/.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
+  const loanManagerId = execSync(`cat ./.soroban/contract-ids/loan_manager.txt`).toString().trim();
+  const wasmHash = execSync(`cat ./.soroban/contract-wasm-hash/loan_pool.txt`).toString().trim();
 
   CURRENCIES.forEach(({ tokenContractAddress, ticker, loanPoolName }: Currency) => {
     const salt = crypto.randomBytes(32).toString('hex');
@@ -113,7 +106,7 @@ function deployLoanPools() {
 --token_address ${tokenContractAddress} \
 --ticker ${ticker} \
 --liquidation_threshold 800000 \
-| tr -d '"' > ${dirname}/.soroban/contract-ids/${loanPoolName}.txt`,
+| tr -d '"' > ./.soroban/contract-ids/${loanPoolName}.txt`,
     );
   });
 }
@@ -121,12 +114,12 @@ function deployLoanPools() {
 function bind(contract: string) {
   const filenameNoExt = filenameNoExtension(contract);
   exe(
-    `${soroban} contract bindings typescript --contract-id $(cat ${contract}) --output-dir ${dirname}/packages/${filenameNoExt} --overwrite`,
+    `${soroban} contract bindings typescript --contract-id $(cat ${contract}) --output-dir ./packages/${filenameNoExt} --overwrite`,
   );
 }
 
 function bindAll() {
-  const contractIdsDir = `${dirname}/.soroban/contract-ids`;
+  const contractIdsDir = `./.soroban/contract-ids`;
   const contractFiles = readdirSync(contractIdsDir);
 
   contractFiles.forEach((contractFile) => {
@@ -140,7 +133,7 @@ function bindAll() {
 
 function importContract(contract: string) {
   const filenameNoExt = filenameNoExtension(contract);
-  const outputDir = `${dirname}/src/contracts/`;
+  const outputDir = `./src/contracts/`;
   mkdirSync(outputDir, { recursive: true });
 
   /* eslint-disable quotes */
@@ -164,7 +157,7 @@ function importContract(contract: string) {
 }
 
 function importAll() {
-  const contractIdsDir = `${dirname}/.soroban/contract-ids`;
+  const contractIdsDir = `./.soroban/contract-ids`;
   const contractFiles = readdirSync(contractIdsDir);
 
   contractFiles.forEach((contractFile) => {
