@@ -32,12 +32,13 @@ struct LoanManager;
 #[allow(dead_code)]
 #[contractimpl]
 impl LoanManager {
+    /// Set the admin that's allowed to upgrade the wasm.
     pub fn initialize(e: Env, admin: Address) -> Result<(), Error> {
-        if e.storage().instance().has(&LoansDataKey::Admin) {
+        if e.storage().persistent().has(&LoansDataKey::Admin) {
             return Err(Error::AlreadyInitialized);
         }
 
-        e.storage().instance().set(&LoansDataKey::Admin, &admin);
+        e.storage().persistent().set(&LoansDataKey::Admin, &admin);
         Ok(())
     }
 
@@ -82,7 +83,7 @@ impl LoanManager {
 
     /// Upgrade deployed loan pools and the loan manager WASM.
     pub fn upgrade(e: Env, new_manager_wasm_hash: BytesN<32>, new_pool_wasm_hash: BytesN<32>) {
-        let admin: Address = e.storage().instance().get(&LoansDataKey::Admin).unwrap();
+        let admin: Address = e.storage().persistent().get(&LoansDataKey::Admin).unwrap();
         admin.require_auth();
 
         // Upgrade the loan pools.

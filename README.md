@@ -21,6 +21,19 @@ This repository uses the recommended structure for a Soroban project:
 ## Getting Started
 
 - `cp .env.example .env`
+
+Create a stellar account and store it in .env
+
+- `stellar keys generate <name>`
+- Change SOROBAN_ACCOUNT in .env to the output of `stellar keys address <name>`
+- Change SOROBAN_SECRET_KEY in .env to the output of `stellar keys show <name>`
+
+Initialize contracts
+
+- `npm run init`
+
+Install frontend dependencies and start the dev-server
+
 - `npm install`
 - `npm run dev`
 
@@ -29,7 +42,13 @@ This repository uses the recommended structure for a Soroban project:
 Lint web code
 
 ```bash
-npm run check
+npm run lint
+```
+
+Format web code
+
+```bash
+npm run format
 ```
 
 Format Rust code
