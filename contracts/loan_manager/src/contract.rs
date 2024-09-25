@@ -5,7 +5,9 @@ use crate::storage_types::{
     Loan, LoansDataKey, DAY_IN_LEDGERS, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
 };
 
-use soroban_sdk::{contract, contractimpl, vec, Address, BytesN, Env, String, Symbol, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, vec, Address, BytesN, Env, String, Symbol, Vec,
+};
 
 mod loan_pool {
     soroban_sdk::contractimport!(
@@ -17,15 +19,31 @@ mod loan_pool {
 // We use the same adress to mock it for testing.
 const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum Error {
+    AlreadyInitialized = 1,
+}
+
 #[contract]
 struct LoanManager;
 
 #[allow(dead_code)]
 #[contractimpl]
 impl LoanManager {
+    pub fn initialize(e: Env, admin: Address) -> Result<(), Error> {
+        if e.storage().instance().has(&LoansDataKey::Admin) {
+            return Err(Error::AlreadyInitialized);
+        }
+
+        e.storage().instance().set(&LoansDataKey::Admin, &admin);
+        Ok(())
+    }
+
     /// Deploy a loan_pool contract, and initialize it.
     pub fn deploy_pool(
-        env: Env,
+        e: Env,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         token_address: Address,
@@ -33,17 +51,27 @@ impl LoanManager {
         liquidation_threshold: i128,
     ) -> Address {
         // Deploy the contract using the uploaded Wasm with given hash.
-        let deployed_address: Address =
-            env.deployer().with_current_contract(salt).deploy(wasm_hash);
+        let deployed_address: Address = e.deployer().with_current_contract(salt).deploy(wasm_hash);
 
-        let pool_client = loan_pool::Client::new(&env, &deployed_address);
+        // Add the new address to storage
+        let mut pool_addresses = e
+            .storage()
+            .persistent()
+            .get(&LoansDataKey::PoolAddresses)
+            .unwrap_or(vec![&e]);
+        pool_addresses.push_back(deployed_address.clone());
+        e.storage()
+            .persistent()
+            .set(&LoansDataKey::PoolAddresses, &pool_addresses);
+
+        let pool_client = loan_pool::Client::new(&e, &deployed_address);
 
         let currency = loan_pool::Currency {
             token_address,
             ticker,
         };
         pool_client.initialize(
-            &env.current_contract_address(),
+            &e.current_contract_address(),
             &currency,
             &liquidation_threshold,
         );
@@ -52,8 +80,29 @@ impl LoanManager {
         deployed_address
     }
 
+    /// Upgrade deployed loan pools and the loan manager WASM.
+    pub fn upgrade(e: Env, new_manager_wasm_hash: BytesN<32>, new_pool_wasm_hash: BytesN<32>) {
+        let admin: Address = e.storage().instance().get(&LoansDataKey::Admin).unwrap();
+        admin.require_auth();
+
+        // Upgrade the loan pools.
+        e.storage()
+            .persistent()
+            .get(&LoansDataKey::PoolAddresses)
+            .unwrap_or(vec![&e])
+            .iter()
+            .for_each(|pool| {
+                let pool_client = loan_pool::Client::new(&e, &pool);
+                pool_client.upgrade(&new_pool_wasm_hash);
+            });
+
+        // Upgrade the loan manager.
+        e.deployer()
+            .update_current_contract_wasm(new_manager_wasm_hash);
+    }
+
     /// Initialize a new loan
-    pub fn initialize(
+    pub fn create_loan(
         e: Env,
         user: Address,
         borrowed: i128,
@@ -103,17 +152,14 @@ impl LoanManager {
 
         positions::init_loan(&e, user.clone(), loan);
 
+        let key = LoansDataKey::Addresses;
+
         // Update the list of addresses with loans
-        let mut addresses: Vec<Address> = e
-            .storage()
-            .persistent()
-            .get(&Symbol::new(&e, "Addresses"))
-            .unwrap_or(vec![&e]);
+        let mut addresses: Vec<Address> = e.storage().persistent().get(&key).unwrap_or(vec![&e]);
 
         if !addresses.contains(&user) {
             addresses.push_back(user);
         }
-        let key = Symbol::new(&e, "Addresses");
         e.storage().persistent().set(&key, &addresses);
         e.storage().persistent().extend_ttl(
             &key,
@@ -146,8 +192,9 @@ impl LoanManager {
         let addresses: Vec<Address> = e
             .storage()
             .persistent()
-            .get(&Symbol::new(&e, "Addresses"))
+            .get(&LoansDataKey::Addresses)
             .unwrap();
+
         for user in addresses.iter() {
             let key = (Symbol::new(&e, "Loan"), user.clone());
 
@@ -293,18 +340,48 @@ mod tests {
         token::{Client as TokenClient, StellarAssetClient},
         Env,
     };
+    mod loan_manager {
+        soroban_sdk::contractimport!(
+            file = "../../target/wasm32-unknown-unknown/release/loan_manager.wasm"
+        );
+    }
+
+    #[test]
+    fn initialize() {
+        let e = Env::default();
+        let admin = Address::generate(&e);
+
+        let contract_id = e.register_contract(None, LoanManager);
+        let client = LoanManagerClient::new(&e, &contract_id);
+
+        assert!(client.try_initialize(&admin).is_ok());
+    }
+
+    #[test]
+    fn cannot_re_initialize() {
+        let e = Env::default();
+        let admin = Address::generate(&e);
+
+        let contract_id = e.register_contract(None, LoanManager);
+        let client = LoanManagerClient::new(&e, &contract_id);
+
+        client.initialize(&admin);
+
+        assert!(client.try_initialize(&admin).is_err())
+    }
 
     #[test]
     fn deploy_pool() {
         // ARRANGE
         let e = Env::default();
 
-        // Setup test token
         let admin = Address::generate(&e);
+        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
+        deployer_client.initialize(&admin);
+
+        // Setup test token
         let token_address = e.register_stellar_asset_contract(admin.clone());
         let ticker = Symbol::new(&e, "XLM");
-
-        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
 
         let wasm_hash = e.deployer().upload_contract_wasm(loan_pool::WASM);
         let salt = BytesN::from_array(&e, &[0; 32]);
@@ -322,6 +399,30 @@ mod tests {
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_addr);
         let pool_balance = loan_pool_client.get_contract_balance();
         assert_eq!(pool_balance, 0);
+    }
+
+    #[test]
+    fn upgrade_manager_and_pool() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths();
+
+        let admin = Address::generate(&e);
+
+        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
+        deployer_client.initialize(&admin);
+
+        // Setup test token
+        let token_address = e.register_stellar_asset_contract(admin.clone());
+        let ticker = Symbol::new(&e, "XLM");
+
+        let manager_wasm_hash = e.deployer().upload_contract_wasm(loan_manager::WASM);
+        let pool_wasm_hash = e.deployer().upload_contract_wasm(loan_pool::WASM);
+        let salt = BytesN::from_array(&e, &[0; 32]);
+
+        // ACT
+        deployer_client.deploy_pool(&pool_wasm_hash, &salt, &token_address, &ticker, &800_000);
+        deployer_client.upgrade(&manager_wasm_hash, &pool_wasm_hash);
     }
 
     #[test]
@@ -378,8 +479,7 @@ mod tests {
 
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
-        // Create a loan.
-        contract_client.initialize(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
+        contract_client.create_loan(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
 
         // ASSERT
         assert_eq!(loan_token.balance(&user), 10);
@@ -446,7 +546,7 @@ mod tests {
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
-        contract_client.initialize(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
+        contract_client.create_loan(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
         let user_loan = contract_client.get_loan(&user);
 
@@ -533,7 +633,7 @@ mod tests {
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
-        contract_client.initialize(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
+        contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
         // ASSERT
         assert_eq!(loan_token.balance(&user), 1_000);
@@ -606,7 +706,7 @@ mod tests {
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
-        contract_client.initialize(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
+        contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
         contract_client.repay(&user, &2_000);
     }

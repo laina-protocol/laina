@@ -22,6 +22,8 @@ pub struct Loan {
 #[derive(Clone)]
 #[contracttype]
 pub enum LoansDataKey {
+    Admin,
+    PoolAddresses,
     // Users positions in the pool
     Loan(Address),
     Addresses,
