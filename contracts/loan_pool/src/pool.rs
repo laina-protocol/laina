@@ -1,6 +1,4 @@
-use core::clone;
-
-use crate::storage_types::{PoolDataKey, extend_persistent};
+use crate::storage_types::{extend_persistent, PoolDataKey};
 use soroban_sdk::{contracttype, Address, Env, Symbol};
 
 #[contracttype]

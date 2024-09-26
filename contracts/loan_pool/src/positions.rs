@@ -1,6 +1,4 @@
-use crate::storage_types::{
-    PoolDataKey, Positions, extend_persistent,
-};
+use crate::storage_types::{extend_persistent, PoolDataKey, Positions};
 use soroban_sdk::{Address, Env, IntoVal, TryFromVal, Val};
 
 pub fn read_positions(e: &Env, addr: Address) -> Val {

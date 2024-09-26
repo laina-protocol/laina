@@ -1,7 +1,6 @@
 use crate::pool;
 use crate::pool::Currency;
 use crate::positions;
-use crate::storage_types::extend_persistent;
 
 use soroban_sdk::{
     contract, contractimpl, contractmeta, token, Address, Env, Map, Symbol, TryFromVal, Val,
@@ -34,15 +33,13 @@ impl LoanPoolContract {
         pool::write_available_balance(&e, 0);
     }
 
-    /// Deposits token. Also, mints pool shares for the "user" Identifier.
     pub fn deposit(e: Env, user: Address, amount: i128) -> i128 {
-        user.require_auth(); // Depositor needs to authorize the deposit
+        user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
         pool::change_available_balance(&e, amount);
         pool::change_total_shares(&e, amount);
         pool::change_total_balance(&e, amount);
@@ -145,8 +142,14 @@ impl LoanPoolContract {
 
     /// Get contract data entries
     pub fn get_contract_balance(e: Env) -> i128 {
-
         pool::read_total_balance(&e)
+    }
+
+    pub fn increase_liabilities(e: Env, user: Address, amount: i128) {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+
+        positions::increase_positions(&e, user, 0, amount, 0);
     }
 }
 

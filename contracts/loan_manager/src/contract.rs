@@ -120,7 +120,7 @@ impl LoanManager {
     }
 
     pub fn add_interest(e: Env) {
-        const DECIMAL: i128 = 1000000;
+        const DECIMAL: i128 = 10000000;
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
         and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
@@ -152,9 +152,8 @@ impl LoanManager {
 
             let borrowed: i128 = loan.borrowed_amount;
 
-            // FIXME: the calculation doesn't work, perhaps because of the change in types. OR it could be that the value is not retrieved properly
             let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
-            let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL; // TODO: this is 10x what it should be currently
+            let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
             let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
             let new_borrowed: i128 = borrowed + interest_since_update;
             // Insert the new value to the loan_map
@@ -177,6 +176,9 @@ impl LoanManager {
                 POSITIONS_BUMP_AMOUNT,
             );
             // TODO: this should also invoke the pools and update the amounts lended to liabilities.
+            let borrowed_from = loan.borrowed_from;
+            let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
+            borrow_pool_client.increase_liabilities(&user, &interest_since_update);
         }
 
         e.storage().persistent().set(&key, &current_ledger);
@@ -408,7 +410,7 @@ mod tests {
 
         // Move time
         e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000 + 10_000;
+            li.sequence_number = 100_000 + 100_000;
         });
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
