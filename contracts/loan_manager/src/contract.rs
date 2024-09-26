@@ -89,6 +89,8 @@ impl LoanManager {
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
         let borrowed_funds = borrow_pool_client.borrow(&user, &borrowed);
 
+        let unpaid_interest = 0;
+
         // FIXME: Currently one can call initialize multiple times to change same addresses loan
         positions::init_loan(
             &e,
@@ -98,6 +100,7 @@ impl LoanManager {
             deposited_collateral,
             collateral_from,
             health_factor,
+            unpaid_interest,
         );
 
         // Update the list of addresses with loans
@@ -169,6 +172,7 @@ impl LoanManager {
                 loan.collateral_amount,
             ); // It now calls reflector for each address. This is safe but might end up being costly
                // Set it to storage
+            loan.unpaid_interest = interest_since_update;
             e.storage().persistent().set(&key, &loan);
             e.storage().persistent().extend_ttl(
                 &key,
@@ -241,6 +245,7 @@ impl LoanManager {
             collateral_amount,
             collateral_from,
             health_factor,
+            unpaid_interest,
         } = Self::get_loan(e, user.clone());
 
         assert!(
@@ -249,7 +254,7 @@ impl LoanManager {
         );
 
         let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
-        borrow_pool_client.repay(&user, &amount);
+        borrow_pool_client.repay(&user, &amount, &unpaid_interest);
 
         let new_borrowed_amount = borrowed_amount - amount;
         //TODO: calculate new health-factor. No need to check it relative to threshold.
@@ -259,6 +264,7 @@ impl LoanManager {
             collateral_amount,
             collateral_from,
             health_factor,
+            unpaid_interest,
         };
 
         let key = (Symbol::new(e, "Loan"), user.clone());
@@ -549,7 +555,6 @@ mod tests {
         let admin = Address::generate(&e);
         let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
         let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
-        let loan_token = TokenClient::new(&e, &loan_token_contract_id);
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
             token_address: loan_token_contract_id.clone(),

@@ -152,12 +152,12 @@ impl LoanPoolContract {
         positions::increase_positions(&e, user, 0, amount, 0);
     }
 
-    pub fn repay(e: Env, user: Address, amount: i128) {
+    pub fn repay(e: Env, user: Address, amount: i128, unpaid_interest: i128) {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
 
-        let amount_to_pool = ((amount) / 1000) * 9; //TODO: perhaps move the calculations to somewhere else
-        let amount_to_admin = amount - amount_to_pool; //TODO: One idea that came from this: could loan_manager be used as sort of profit pool and there would be an admin only withdraw profits?
+        let amount_to_admin = unpaid_interest / 10;
+        let amount_to_pool = amount - unpaid_interest;
 
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount_to_pool);

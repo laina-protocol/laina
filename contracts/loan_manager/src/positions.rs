@@ -3,6 +3,7 @@ use crate::storage_types::{
 };
 use soroban_sdk::{Address, Env, IntoVal, Val};
 
+#[allow(clippy::too_many_arguments)]
 pub fn init_loan(
     e: &Env,
     addr: Address,
@@ -11,6 +12,7 @@ pub fn init_loan(
     collateral_amount: i128,
     collateral_from: Address,
     health_factor: i128,
+    unpaid_interest: i128,
 ) {
     write_positions(
         e,
@@ -20,9 +22,11 @@ pub fn init_loan(
         collateral_amount,
         collateral_from,
         health_factor,
+        unpaid_interest,
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_positions(
     e: &Env,
     addr: Address,
@@ -31,6 +35,7 @@ fn write_positions(
     collateral_amount: i128,
     collateral_from: Address,
     health_factor: i128,
+    unpaid_interest: i128,
 ) {
     let key = LoansDataKey::Loan(addr);
 
@@ -40,6 +45,7 @@ fn write_positions(
         collateral_amount,
         collateral_from,
         health_factor,
+        unpaid_interest,
     };
 
     let val: Val = loan.into_val(e);
