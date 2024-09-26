@@ -1,7 +1,6 @@
 use crate::pool;
 use crate::pool::Currency;
 use crate::positions;
-use crate::storage_types::extend_instance;
 
 use soroban_sdk::{
     contract, contractimpl, contractmeta, token, Address, Env, Map, Symbol, TryFromVal, Val,
@@ -34,21 +33,16 @@ impl LoanPoolContract {
         pool::write_available_balance(&e, 0);
     }
 
-    /// Deposits token. Also, mints pool shares for the "user" Identifier.
     pub fn deposit(e: Env, user: Address, amount: i128) -> i128 {
-        user.require_auth(); // Depositor needs to authorize the deposit
+        user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
-
-        // Extend instance storage rent
-        extend_instance(e.clone());
 
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        // TODO: these need to be replaced with increase rather than write so that it wont overwrite the values.
-        pool::write_available_balance(&e, amount);
-        pool::write_total_shares(&e, amount);
-        pool::increase_total_balance(&e, amount);
+        pool::change_available_balance(&e, amount);
+        pool::change_total_shares(&e, amount);
+        pool::change_total_balance(&e, amount);
 
         // Increase users position in pool as they deposit
         // as this is deposit amount is added to receivables and
@@ -64,9 +58,6 @@ impl LoanPoolContract {
     pub fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
 
-        // Extend instance storage rent
-        extend_instance(e.clone());
-
         // Get users receivables
         let receivables_val: Val = positions::read_positions(&e, user.clone());
         let receivables_map: Map<Symbol, i128> = Map::try_from_val(&e, &receivables_val).unwrap();
@@ -79,8 +70,10 @@ impl LoanPoolContract {
         );
 
         // TODO: Decrease AvailableBalance
-        // TODO: Decrease TotalShares
+        pool::change_available_balance(&e, -amount);
+        // TODO: Decrease TotalShares - Positions should have shares if we use them
         // TODO: Decrease TotalBalance
+        pool::change_total_balance(&e, -amount);
 
         // Decrease users position in pool as they withdraw
         let liabilities: i128 = 0;
@@ -106,14 +99,13 @@ impl LoanPoolContract {
         loan_manager_addr.require_auth();
         user.require_auth();
 
-        // Extend instance storage rent
-        extend_instance(e.clone());
-
         let balance = pool::read_available_balance(&e);
         assert!(
             amount < balance,
             "Borrowed amount has to be less than available balance!"
         ); // Check that there is enough available balance
+
+        pool::change_available_balance(&e, -amount);
 
         // Increase users position in pool as they deposit
         // as this is debt amount is added to liabilities and
@@ -134,9 +126,6 @@ impl LoanPoolContract {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
-        // Extend instance storage rent
-        extend_instance(e.clone());
-
         let token_address = &pool::read_currency(&e).token_address;
         let client = token::Client::new(&e, token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
@@ -153,10 +142,14 @@ impl LoanPoolContract {
 
     /// Get contract data entries
     pub fn get_contract_balance(e: Env) -> i128 {
-        // Extend instance storage rent
-        extend_instance(e.clone());
-
         pool::read_total_balance(&e)
+    }
+
+    pub fn increase_liabilities(e: Env, user: Address, amount: i128) {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+
+        positions::increase_positions(&e, user, 0, amount, 0);
     }
 }
 

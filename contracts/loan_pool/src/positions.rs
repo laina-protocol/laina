@@ -1,17 +1,11 @@
-use crate::storage_types::{
-    PoolDataKey, Positions, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
-};
+use crate::storage_types::{extend_persistent, PoolDataKey, Positions};
 use soroban_sdk::{Address, Env, IntoVal, TryFromVal, Val};
 
 pub fn read_positions(e: &Env, addr: Address) -> Val {
     let key = PoolDataKey::Positions(addr);
     // If positions exist, read them and return them as Val
     if let Some(positions) = e.storage().persistent().get::<PoolDataKey, Val>(&key) {
-        e.storage().persistent().extend_ttl(
-            &key,
-            POSITIONS_LIFETIME_THRESHOLD,
-            POSITIONS_BUMP_AMOUNT,
-        );
+        extend_persistent(e.clone(), &key);
         positions
     } else {
         let positions: Positions = Positions {
@@ -37,9 +31,7 @@ fn write_positions(e: &Env, addr: Address, receivables: i128, liabilities: i128,
 
     e.storage().persistent().set(&key, &val);
 
-    e.storage()
-        .persistent()
-        .extend_ttl(&key, POSITIONS_LIFETIME_THRESHOLD, POSITIONS_BUMP_AMOUNT);
+    extend_persistent(e.clone(), &key);
 }
 
 pub fn increase_positions(
