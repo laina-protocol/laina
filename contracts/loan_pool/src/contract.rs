@@ -156,7 +156,12 @@ impl LoanPoolContract {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
 
-        let amount_to_admin = unpaid_interest / 10;
+        let amount_to_admin = if amount < unpaid_interest {
+            amount / 10
+        } else {
+            unpaid_interest / 10
+        };
+
         let amount_to_pool = amount - unpaid_interest;
 
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);

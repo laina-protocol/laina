@@ -256,6 +256,12 @@ impl LoanManager {
         let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
         borrow_pool_client.repay(&user, &amount, &unpaid_interest);
 
+        let new_unpaid_interest = if amount < unpaid_interest {
+            unpaid_interest - amount
+        } else {
+            0
+        };
+
         let new_borrowed_amount = borrowed_amount - amount;
         //TODO: calculate new health-factor. No need to check it relative to threshold.
         let loan = Loan {
@@ -264,7 +270,7 @@ impl LoanManager {
             collateral_amount,
             collateral_from,
             health_factor,
-            unpaid_interest,
+            unpaid_interest: new_unpaid_interest,
         };
 
         let key = (Symbol::new(e, "Loan"), user.clone());
