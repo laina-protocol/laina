@@ -172,7 +172,7 @@ impl LoanManager {
                 loan.collateral_amount,
             ); // It now calls reflector for each address. This is safe but might end up being costly
                // Set it to storage
-            loan.unpaid_interest = interest_since_update;
+            loan.unpaid_interest += interest_since_update;
             e.storage().persistent().set(&key, &loan);
             e.storage().persistent().extend_ttl(
                 &key,
