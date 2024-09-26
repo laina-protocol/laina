@@ -162,7 +162,7 @@ impl LoanPoolContract {
             unpaid_interest / 10
         };
 
-        let amount_to_pool = amount - unpaid_interest;
+        let amount_to_pool = amount - amount_to_admin;
 
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount_to_pool);

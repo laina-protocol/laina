@@ -92,16 +92,16 @@ impl LoanManager {
         let unpaid_interest = 0;
 
         // FIXME: Currently one can call initialize multiple times to change same addresses loan
-        positions::init_loan(
-            &e,
-            user.clone(),
-            borrowed_funds,
+        let loan = Loan {
+            borrowed_amount: borrowed_funds,
             borrowed_from,
-            deposited_collateral,
+            collateral_amount: deposited_collateral,
             collateral_from,
             health_factor,
             unpaid_interest,
-        );
+        };
+
+        positions::init_loan(&e, user.clone(), loan);
 
         // Update the list of addresses with loans
         let mut addresses: Vec<Address> = e
