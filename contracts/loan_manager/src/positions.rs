@@ -10,16 +10,7 @@ pub fn init_loan(e: &Env, addr: Address, loan: Loan) {
 fn write_positions(e: &Env, addr: Address, loan: Loan) {
     let key = LoansDataKey::Loan(addr);
 
-    let writeable_loan: Loan = Loan {
-        borrowed_amount: loan.borrowed_amount,
-        borrowed_from: loan.borrowed_from,
-        collateral_amount: loan.collateral_amount,
-        collateral_from: loan.collateral_from,
-        health_factor: loan.health_factor,
-        unpaid_interest: loan.unpaid_interest,
-    };
-
-    e.storage().persistent().set(&key, &writeable_loan);
+    e.storage().persistent().set(&key, &loan);
 
     e.storage()
         .persistent()

@@ -83,19 +83,19 @@ impl LoanManager {
 
         // Deposit collateral
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
-        let deposited_collateral = collateral_pool_client.deposit_collateral(&user, &collateral);
+        let collateral_amount = collateral_pool_client.deposit_collateral(&user, &collateral);
 
         // Borrow the funds
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
-        let borrowed_funds = borrow_pool_client.borrow(&user, &borrowed);
+        let borrowed_amount = borrow_pool_client.borrow(&user, &borrowed);
 
         let unpaid_interest = 0;
 
         // FIXME: Currently one can call initialize multiple times to change same addresses loan
         let loan = Loan {
-            borrowed_amount: borrowed_funds,
+            borrowed_amount,
             borrowed_from,
-            collateral_amount: deposited_collateral,
+            collateral_amount,
             collateral_from,
             health_factor,
             unpaid_interest,
