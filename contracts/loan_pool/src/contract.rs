@@ -145,6 +145,10 @@ impl LoanPoolContract {
         pool::read_total_balance(&e)
     }
 
+    pub fn get_available_balance(e: Env) -> i128 {
+        pool::read_available_balance(&e)
+    }
+
     pub fn increase_liabilities(e: Env, user: Address, amount: i128) {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
