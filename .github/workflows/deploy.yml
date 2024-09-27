@@ -41,8 +41,6 @@ jobs:
 
       - name: Install and build
         env:
-          PUBLIC_SOROBAN_NETWORK_PASSPHRASE: Test SDF Network ; September 2015
-          PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org/
           SOROBAN_NETWORK: testnet
           SOROBAN_ACCOUNT: ${{ secrets.SOROBAN_ACCOUNT }}
           SOROBAN_SECRET_KEY: ${{ secrets.SOROBAN_SECRET_KEY }}
@@ -57,6 +55,9 @@ jobs:
           npm run upgrade
 
       - name: Install, build, and upload your site output
+        env:
+          PUBLIC_SOROBAN_NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org/
         uses: withastro/action@v2
 
   deploy:
