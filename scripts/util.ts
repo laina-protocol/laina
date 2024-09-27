@@ -66,26 +66,22 @@ export const filenameNoExtension = (filename: string) => {
 export const readTextFile = (path: string): string => readFileSync(path, { encoding: 'utf8' }).trim();
 
 export const loanManagerAddress = (): string =>
-  process.env.LOAN_MANAGER_ADDRESS ?? readTextFile('./.soroban/contract-ids/loan_manager.txt');
-
-const bind = (contract: string) => {
-  const filenameNoExt = filenameNoExtension(contract);
-  exe(
-    `stellar contract bindings typescript --contract-id $(cat ${contract}) --output-dir ./packages/${filenameNoExt} --overwrite`,
-  );
-};
+  process.env.CONTRACT_ID_LOAN_MANAGER ?? readTextFile('./.soroban/contract-ids/loan_manager.txt');
 
 export const createContractBindings = () => {
-  const contractIdsDir = `./.soroban/contract-ids`;
-  const contractFiles = readdirSync(contractIdsDir);
+  bind('loan_manager', process.env.CONTRACT_ID_LOAN_MANAGER);
+  bind('pool_xlm', process.env.CONTRACT_ID_POOL_XLM);
+  bind('pool_wbtc', process.env.CONTRACT_ID_POOL_WBTC);
+  bind('pool_weth', process.env.CONTRACT_ID_POOL_WETH);
+  bind('pool_usdc', process.env.CONTRACT_ID_POOL_USDC);
+  bind('pool_eurc', process.env.CONTRACT_ID_POOL_EURC);
+};
 
-  contractFiles.forEach((contractFile) => {
-    const contractPath = path.join(contractIdsDir, contractFile);
-    if (statSync(contractPath).size > 0) {
-      // Check if file is not empty
-      bind(contractPath);
-    }
-  });
+const bind = (contractName: string, address: string | undefined) => {
+  const address_ = address ?? readTextFile(`./.soroban/contract-ids/${contractName}.txt`);
+  exe(
+    `stellar contract bindings typescript --contract-id ${address_} --output-dir ./packages/${contractName} --overwrite`,
+  );
 };
 
 const importContract = (contract: string) => {

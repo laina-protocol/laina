@@ -39,13 +39,22 @@ jobs:
       - name: Build contracts
         run: make build
 
-      - name: Setup env
-        run: cp .env.example .env
-
       - name: Install and build
+        env:
+          PUBLIC_SOROBAN_NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org/
+          SOROBAN_NETWORK: testnet
+          SOROBAN_ACCOUNT: ${{ secrets.SOROBAN_ACCOUNT }}
+          SOROBAN_SECRET_KEY: ${{ secrets.SOROBAN_SECRET_KEY }}
+          CONTRACT_ID_LOAN_MANAGER: ${{ secrets.CONTRACT_ID_LOAN_MANAGER }}
+          CONTRACT_ID_POOL_XLM: ${{ secrets.CONTRACT_ID_POOL_XLM }}
+          CONTRACT_ID_POOL_WBTC: ${{ secrets.CONTRACT_ID_POOL_WBTC }}
+          CONTRACT_ID_POOL_WETH: ${{ secrets.CONTRACT_ID_POOL_WETH }}
+          CONTRACT_ID_POOL_USDC: ${{ secrets.CONTRACT_ID_POOL_USDC }}
+          CONTRACT_ID_POOL_EURC: ${{ secrets.CONTRACT_ID_POOL_EURC }}
         run: |
-          npm install
-          npm run init
+          npm ci
+          npm run upgrade
 
       - name: Install, build, and upload your site output
         uses: withastro/action@v2
