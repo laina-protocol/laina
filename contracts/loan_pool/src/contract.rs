@@ -3,7 +3,7 @@ use crate::pool::Currency;
 use crate::positions;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, Env, Map, Symbol, TryFromVal, Val,
+    contract, contractimpl, contractmeta, token, Address, BytesN, Env, Map, Symbol, TryFromVal, Val,
 };
 
 // Metadata that is added on to the WASM custom section
@@ -33,6 +33,14 @@ impl LoanPoolContract {
         pool::write_available_balance(&e, 0);
     }
 
+    pub fn upgrade(e: Env, new_wasm_hash: BytesN<32>) {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+
+        e.deployer().update_current_contract_wasm(new_wasm_hash);
+    }
+
+    /// Deposits token. Also, mints pool shares for the "user" Identifier.
     pub fn deposit(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");

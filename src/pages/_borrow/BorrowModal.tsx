@@ -47,7 +47,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
     try {
       loanManagerClient.options.publicKey = wallet.address;
 
-      const tx = await loanManagerClient.initialize({
+      const tx = await loanManagerClient.create_loan({
         user: wallet.address,
         borrowed: to7decimals(loanAmount),
         borrowed_from: loanCurrencyId,
