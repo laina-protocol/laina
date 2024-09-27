@@ -151,6 +151,27 @@ impl LoanPoolContract {
 
         positions::increase_positions(&e, user, 0, amount, 0);
     }
+
+    pub fn repay(e: Env, user: Address, amount: i128, unpaid_interest: i128) {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+
+        let amount_to_admin = if amount < unpaid_interest {
+            amount / 10
+        } else {
+            unpaid_interest / 10
+        };
+
+        let amount_to_pool = amount - amount_to_admin;
+
+        let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
+        client.transfer(&user, &e.current_contract_address(), &amount_to_pool);
+        client.transfer(&user, &loan_manager_addr, &amount_to_admin);
+
+        positions::decrease_positions(&e, user, 0, amount, 0);
+        pool::change_available_balance(&e, amount);
+        pool::change_total_balance(&e, amount);
+    }
 }
 
 #[cfg(test)]

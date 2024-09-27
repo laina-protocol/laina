@@ -83,22 +83,25 @@ impl LoanManager {
 
         // Deposit collateral
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
-        let deposited_collateral = collateral_pool_client.deposit_collateral(&user, &collateral);
+        let collateral_amount = collateral_pool_client.deposit_collateral(&user, &collateral);
 
         // Borrow the funds
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
-        let borrowed_funds = borrow_pool_client.borrow(&user, &borrowed);
+        let borrowed_amount = borrow_pool_client.borrow(&user, &borrowed);
+
+        let unpaid_interest = 0;
 
         // FIXME: Currently one can call initialize multiple times to change same addresses loan
-        positions::init_loan(
-            &e,
-            user.clone(),
-            borrowed_funds,
+        let loan = Loan {
+            borrowed_amount,
             borrowed_from,
-            deposited_collateral,
+            collateral_amount,
             collateral_from,
             health_factor,
-        );
+            unpaid_interest,
+        };
+
+        positions::init_loan(&e, user.clone(), loan);
 
         // Update the list of addresses with loans
         let mut addresses: Vec<Address> = e
@@ -169,6 +172,7 @@ impl LoanManager {
                 loan.collateral_amount,
             ); // It now calls reflector for each address. This is safe but might end up being costly
                // Set it to storage
+            loan.unpaid_interest += interest_since_update;
             e.storage().persistent().set(&key, &loan);
             e.storage().persistent().extend_ttl(
                 &key,
@@ -230,6 +234,54 @@ impl LoanManager {
 
         let asset_pricedata = reflector_contract.lastprice(&asset).unwrap();
         asset_pricedata.price
+    }
+
+    pub fn repay(e: &Env, user: Address, amount: i128) -> (i128, i128) {
+        user.require_auth();
+
+        let Loan {
+            borrowed_amount,
+            borrowed_from,
+            collateral_amount,
+            collateral_from,
+            health_factor,
+            unpaid_interest,
+        } = Self::get_loan(e, user.clone());
+
+        assert!(
+            amount <= borrowed_amount,
+            "Amount can not be greater than borrowed amount!"
+        );
+
+        let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
+        borrow_pool_client.repay(&user, &amount, &unpaid_interest);
+
+        let new_unpaid_interest = if amount < unpaid_interest {
+            unpaid_interest - amount
+        } else {
+            0
+        };
+
+        let new_borrowed_amount = borrowed_amount - amount;
+        //TODO: calculate new health-factor. No need to check it relative to threshold.
+        let loan = Loan {
+            borrowed_amount: new_borrowed_amount,
+            borrowed_from,
+            collateral_amount,
+            collateral_from,
+            health_factor,
+            unpaid_interest: new_unpaid_interest,
+        };
+
+        let key = (Symbol::new(e, "Loan"), user.clone());
+        e.storage().persistent().set(&key, &loan);
+        e.storage().persistent().extend_ttl(
+            &key,
+            POSITIONS_LIFETIME_THRESHOLD,
+            POSITIONS_BUMP_AMOUNT,
+        );
+
+        (borrowed_amount, new_borrowed_amount)
     }
 }
 
@@ -424,5 +476,138 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 10_003);
         assert_eq!(user_loan.health_factor, 99_970_008);
         assert_eq!(user_loan.collateral_amount, 100_000);
+    }
+
+    #[test]
+    fn repay() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+
+        let admin = Address::generate(&e);
+        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        let loan_token = TokenClient::new(&e, &loan_token_contract_id);
+        loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let admin2 = Address::generate(&e);
+        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
+
+        // Register mock Reflector contract.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        // Mint the user some coins
+        let user = Address::generate(&e);
+        collateral_asset.mint(&user, &1_000_000);
+
+        assert_eq!(collateral_token.balance(&user), 1_000_000);
+
+        // Set up a loan pool with funds for borrowing.
+        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
+
+        // Set up a loan_pool for the collaterals.
+        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
+
+        // Register loan manager contract.
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
+
+        // ACT
+        // Initialize the loan pool and deposit some of the admin's funds.
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.deposit(&admin, &1_000_000);
+
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+
+        // Create a loan.
+        contract_client.initialize(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
+
+        // ASSERT
+        assert_eq!(loan_token.balance(&user), 1_000);
+        assert_eq!(collateral_token.balance(&user), 900_000);
+
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 1_000);
+        assert_eq!(user_loan.collateral_amount, 100_000);
+
+        contract_client.repay(&user, &100);
+        let user_loan = contract_client.get_loan(&user);
+        assert_eq!(user_loan.borrowed_amount, 900);
+
+        assert_eq!((900, 800), contract_client.repay(&user, &100));
+    }
+
+    #[test]
+    #[should_panic(expected = "Amount can not be greater than borrowed amount!")]
+    fn repay_more_than_borrowed() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+
+        let admin = Address::generate(&e);
+        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let admin2 = Address::generate(&e);
+        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
+
+        // Register mock Reflector contract.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        // Mint the user some coins
+        let user = Address::generate(&e);
+        collateral_asset.mint(&user, &1_000_000);
+
+        assert_eq!(collateral_token.balance(&user), 1_000_000);
+
+        // Set up a loan pool with funds for borrowing.
+        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
+
+        // Set up a loan_pool for the collaterals.
+        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
+
+        // Register loan manager contract.
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
+
+        // ACT
+        // Initialize the loan pool and deposit some of the admin's funds.
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.deposit(&admin, &1_000_000);
+
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+
+        // Create a loan.
+        contract_client.initialize(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
+
+        contract_client.repay(&user, &2_000);
     }
 }
