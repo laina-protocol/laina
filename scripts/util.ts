@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
 // Load environment variables starting with PUBLIC_ into the environment,
@@ -65,6 +65,7 @@ export const filenameNoExtension = (filename: string) => {
 
 export const readTextFile = (path: string): string => readFileSync(path, { encoding: 'utf8' }).trim();
 
+// This is a function so its value can update during init.
 export const loanManagerAddress = (): string =>
   process.env.CONTRACT_ID_LOAN_MANAGER ?? readTextFile('./.soroban/contract-ids/loan_manager.txt');
 
@@ -84,15 +85,19 @@ const bind = (contractName: string, address: string | undefined) => {
   );
 };
 
-const importContract = (contract: string) => {
-  const filenameNoExt = filenameNoExtension(contract);
+export const createContractImports = () => {
+  const CONTRACTS = ['loan_manager', 'pool_xlm', 'pool_usdc', 'pool_wbtc', 'pool_weth', 'pool_usdc', 'pool_eurc'];
+  CONTRACTS.forEach(importContract);
+};
+
+const importContract = (contractName: string) => {
   const outputDir = `./src/contracts/`;
   mkdirSync(outputDir, { recursive: true });
 
   /* eslint-disable quotes */
   /* eslint-disable no-constant-condition */
   const importContent =
-    `import * as Client from '${filenameNoExt}'; \n` +
+    `import * as Client from '${contractName}'; \n` +
     `import { rpcUrl } from './util'; \n\n` +
     `export const contractId = Client.networks.${process.env.SOROBAN_NETWORK}.contractId; \n\n` +
     `export const contractClient = new Client.Client({ \n` +
@@ -102,20 +107,7 @@ const importContract = (contract: string) => {
     `  publicKey: '${GENESIS_ACCOUNT}', \n` +
     `}); \n`;
 
-  const outputPath = `${outputDir}/${filenameNoExt}.ts`;
+  const outputPath = `${outputDir}/${contractName}.ts`;
   writeFileSync(outputPath, importContent);
-  console.log(`Created import for ${filenameNoExt}`);
-};
-
-export const createContractImports = () => {
-  const contractIdsDir = `./.soroban/contract-ids`;
-  const contractFiles = readdirSync(contractIdsDir);
-
-  contractFiles.forEach((contractFile) => {
-    const contractPath = path.join(contractIdsDir, contractFile);
-    if (statSync(contractPath).size > 0) {
-      // Check if file is not empty
-      importContract(contractPath);
-    }
-  });
+  console.log(`Created import for ${contractName}`);
 };
