@@ -18,13 +18,13 @@ const MAX_LOAN = 10000;
 
 export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowModalProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
-  const { wallet, balances, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [loanAmount, setLoanAmount] = useState('0');
   const [collateralAmount, setCollateralAmount] = useState('0');
 
-  const collateralBalance = balances[collateral.ticker];
+  const collateralBalance = walletBalances[collateral.ticker];
 
   // The modal is impossible to open without collateral balance.
   if (!collateralBalance) return null;

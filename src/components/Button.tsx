@@ -3,31 +3,45 @@ import { Link } from 'react-router-dom';
 
 export interface ButtonProps {
   onClick?: () => void;
-  className?: string;
+  color?: 'black' | 'white';
   disabled?: boolean;
+  className?: string;
 }
 
-const buttonStyle = 'btn btn-neutral font-semibold text-base rounded-full px-8 py-2';
+const buttonStyle = (color: 'black' | 'white') =>
+  `btn ${color === 'white' ? 'btn-primary' : 'btn-neutral'} font-semibold text-base rounded-full px-8 py-2`;
 
-export const Button = ({ onClick, disabled = false, className = '', children }: PropsWithChildren<ButtonProps>) => (
-  <button type="button" onClick={onClick} disabled={disabled} className={`${buttonStyle} ${className}`}>
+export const Button = ({
+  onClick,
+  color = 'black',
+  disabled = false,
+  className = '',
+  children,
+}: PropsWithChildren<ButtonProps>) => (
+  <button type="button" onClick={onClick} disabled={disabled} className={`${buttonStyle(color)} ${className}`}>
     {children}
   </button>
 );
 
 export interface LinkButtonProps {
   to: string;
+  color?: 'black' | 'white';
   className?: string;
 }
 
-export const LinkButton = ({ to, className = '', children }: PropsWithChildren<LinkButtonProps>) => (
-  <Link to={to} className={`${buttonStyle} ${className}`}>
+export const LinkButton = ({ to, color = 'black', className = '', children }: PropsWithChildren<LinkButtonProps>) => (
+  <Link to={to} className={`${buttonStyle(color)} ${className}`}>
     {children}
   </Link>
 );
 
-export const NativeLinkButton = ({ to, className = '', children }: PropsWithChildren<LinkButtonProps>) => (
-  <a href={to} target="_blank" className={`${buttonStyle} ${className}`} rel="noreferrer">
+export const NativeLinkButton = ({
+  to,
+  color = 'black',
+  className = '',
+  children,
+}: PropsWithChildren<LinkButtonProps>) => (
+  <a href={to} target="_blank" className={`${buttonStyle(color)} ${className}`} rel="noreferrer">
     {children}
   </a>
 );

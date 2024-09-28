@@ -18,7 +18,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
 
   const modalId = `borrow-modal-${ticker}`;
 
-  const { wallet, balances } = useWallet();
+  const { wallet, walletBalances } = useWallet();
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
@@ -26,7 +26,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   // Collateral is the other supported currency for now.
   const collateral = ticker === 'XLM' ? BINDING_USDC : BINDING_XLM;
 
-  const collateralBalance = balances[collateral.ticker];
+  const collateralBalance = walletBalances[collateral.ticker];
 
   const borrowDisabled = !wallet || !collateralBalance;
 

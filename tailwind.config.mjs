@@ -47,6 +47,10 @@ export default {
           '.btn-neutral:hover': {
             'background-color': '#555',
           },
+          primary: '#fff',
+          '.btn-primary:hover': {
+            'background-color': '#aaa',
+          },
         },
       },
     ],

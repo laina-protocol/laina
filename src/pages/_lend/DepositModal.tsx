@@ -14,11 +14,11 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { contractClient, name, ticker } = currency;
 
-  const { wallet, balances, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
-  const balance = balances[ticker];
+  const balance = walletBalances[ticker];
 
   if (!balance) return null;
 

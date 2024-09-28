@@ -6,7 +6,7 @@ import type { xdr } from '@stellar/stellar-base';
 import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { type Balance, useWallet } from 'src/stellar-wallet';
+import { type Balance, parsei128, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 
 export interface LendableAssetCardProps {
@@ -15,14 +15,14 @@ export interface LendableAssetCardProps {
 
 export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   const { icon, name, ticker, contractClient } = currency;
-  const { wallet, balances } = useWallet();
+  const { wallet, walletBalances } = useWallet();
 
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
   const modalId = `deposit-modal-${ticker}`;
 
-  const balance: Balance | undefined = balances[ticker];
+  const balance: Balance | undefined = walletBalances[ticker];
 
   const isPoor = !balance?.balance || balance.balance === '0';
 
@@ -38,8 +38,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       // TODO: why do we need to cast here? The type should infer properly.
       const value = simulation.result?.retval.value() as xdr.Int128Parts;
-      const supplied = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
-      setTotalSupplied(supplied);
+      setTotalSupplied(parsei128(value));
 
       // const apy = await loanPoolContract.getSupplyAPY();
       // setSupplyAPY(formatAPY(apy));
@@ -76,9 +75,8 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
       // TODO: why do we need to cast here? The type should infer properly.
       const value = simulation.result?.retval.value() as xdr.Int128Parts;
-      const price = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
 
-      setTotalSuppliedPrice(price);
+      setTotalSuppliedPrice(parsei128(value));
     } catch (error) {
       console.error('Error fetchin price data:', error);
     }
