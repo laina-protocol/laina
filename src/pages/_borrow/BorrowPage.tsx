@@ -1,6 +1,6 @@
+import WalletCard from '@components/WalletCard';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 import { BorrowableAssetCard } from './BorrowableAssetCard';
-import WalletCard from '@components/WalletCard';
 
 const BorrowPage = () => (
   <div className="mt-14">

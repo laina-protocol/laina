@@ -1,10 +1,11 @@
-import { useWallet, type Positions } from 'src/stellar-wallet';
+import type { SupportedCurrency } from 'currencies';
+import { isNil } from 'ramda';
+import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
+import { type Positions, useWallet } from 'src/stellar-wallet';
+import { formatAmount, formatDollarPrice } from 'src/util/formatting';
 import { Button } from './Button';
 import { Card } from './Card';
 import Identicon from './Identicon';
-import { formatAmount } from 'src/util/formatting';
-import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
-import type { SupportedCurrency } from 'currencies';
 
 const ASSET_MODAL_ID = 'assets-modal';
 const LOANS_MODAL_ID = 'loans-modal';
@@ -77,13 +78,18 @@ const AssetsModal = ({ onClose }: AssetModalProps) => {
         <table className="table">
           <thead className="text-base text-grey">
             <tr>
-              <th className="w-20"></th>
+              <th className="w-20" />
               <th>Asset</th>
               <th>Amount</th>
-              <th></th>
+              <th>Value</th>
+              <th />
             </tr>
           </thead>
-          {Object.entries(positions).map(renderTableRow).filter(Boolean)}
+          <tbody>
+            {Object.entries(positions).map(([ticker, { receivables }]) => (
+              <TableRow key={ticker} ticker={ticker as SupportedCurrency} receivables={receivables} />
+            ))}
+          </tbody>
         </table>
         <div className="modal-action">
           <Button className="btn-ghost ml-auto" onClick={onClose}>
@@ -92,23 +98,32 @@ const AssetsModal = ({ onClose }: AssetModalProps) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose}>close</button>
+        <button type="button" onClick={onClose}>
+          close
+        </button>
       </form>
     </dialog>
   );
 };
 
-// ticker is really type SupportedCurrency, but Object.entries doesn't know that.
-const renderTableRow = ([ticker, { receivables }]: [string, Positions]) => {
+interface TableRowProps {
+  receivables: bigint;
+  ticker: SupportedCurrency;
+}
+
+const TableRow = ({ receivables, ticker }: TableRowProps) => {
+  const { prices } = useWallet();
+
   if (receivables === 0n) return null;
 
   const { icon, name } = CURRENCY_BINDINGS.find((b) => b.ticker === ticker) as CurrencyBinding;
+  const price = prices?.[ticker];
 
   return (
-    <tr>
+    <tr key={ticker}>
       <td>
         <div className="h-12 w-12">
-          <img src={icon} />
+          <img src={icon} alt="" />
         </div>
       </td>
       <td>
@@ -118,6 +133,7 @@ const renderTableRow = ([ticker, { receivables }]: [string, Positions]) => {
         </div>
       </td>
       <td className="text-lg font-semibold">{formatAmount(receivables)}</td>
+      <td className="text-lg font-semibold">{!isNil(price) && formatDollarPrice(price, receivables)}</td>
       <td>
         <Button>Withdraw</Button>
       </td>

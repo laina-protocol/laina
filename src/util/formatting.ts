@@ -9,7 +9,8 @@ export const formatAmount = (amount: bigint): string => {
 
   if (amount > ONE_M) {
     return `${(Number(amount) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
-  } else if (amount > TEN_K) {
+  }
+  if (amount > TEN_K) {
     return `${(Number(amount) / (1_000 * 10_000_000)).toFixed(1)}K`;
   }
   return `${(Number(amount) / 10_000_000).toFixed(1)}`;
@@ -22,7 +23,8 @@ export const formatDollarPrice = (price: bigint, amount: bigint) => {
 
   if (total_price > ONE_M) {
     return `$${(Number(total_price) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
-  } else if (total_price > TEN_K) {
+  }
+  if (total_price > TEN_K) {
     return `$${(Number(total_price) / (1_000 * 10_000_000)).toFixed(1)}K`;
   }
   return `$${(Number(total_price) / 10_000_000).toFixed(1)}`;
