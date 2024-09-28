@@ -1,20 +1,18 @@
 use crate::storage_types::{extend_persistent, PoolDataKey, Positions};
-use soroban_sdk::{Address, Env, IntoVal, TryFromVal, Val};
+use soroban_sdk::{Address, Env, IntoVal, Val};
 
-pub fn read_positions(e: &Env, addr: Address) -> Val {
-    let key = PoolDataKey::Positions(addr);
+pub fn read_positions(e: &Env, addr: &Address) -> Positions {
+    let key = PoolDataKey::Positions(addr.clone());
     // If positions exist, read them and return them as Val
-    if let Some(positions) = e.storage().persistent().get::<PoolDataKey, Val>(&key) {
+    if let Some(positions) = e.storage().persistent().get(&key) {
         extend_persistent(e.clone(), &key);
         positions
     } else {
-        let positions: Positions = Positions {
+        Positions {
             receivables: 0,
             liabilities: 0,
             collateral: 0,
-        };
-
-        positions.into_val(e)
+        }
     }
 }
 
@@ -41,9 +39,7 @@ pub fn increase_positions(
     liabilities: i128,
     collateral: i128,
 ) {
-    let positions_val: Val = read_positions(e, addr.clone());
-
-    let positions: Positions = Positions::try_from_val(e, &positions_val).unwrap();
+    let positions = read_positions(e, &addr);
 
     let receivables_now: i128 = positions.receivables;
     let liabilities_now: i128 = positions.liabilities;
@@ -64,9 +60,8 @@ pub fn decrease_positions(
     liabilities: i128,
     collateral: i128,
 ) {
-    let positions_val = read_positions(e, addr.clone());
+    let positions = read_positions(e, &addr);
 
-    let positions: Positions = Positions::try_from_val(e, &positions_val).unwrap();
     // TODO: Might need to use get rather than get_unchecked and convert from Option<V> to V
     let receivables_now = positions.receivables;
     let liabilities_now = positions.liabilities;

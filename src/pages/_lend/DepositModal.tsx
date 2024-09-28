@@ -14,11 +14,11 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { contractClient, name, ticker } = currency;
 
-  const { wallet, balances, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
-  const balance = balances[ticker];
+  const balance = walletBalances[ticker];
 
   if (!balance) return null;
 
@@ -89,7 +89,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
         </p>
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={closeModal} className="btn-ghost mr-4">
+          <Button onClick={closeModal} color="ghost" className="mr-4">
             Cancel
           </Button>
           {!isDepositing ? (

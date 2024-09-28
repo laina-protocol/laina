@@ -5,6 +5,7 @@ import Layout from '../layouts/Layout.astro';
 export function getStaticPaths() {
   return [
     { params: { path: undefined }, props: { title: 'Laina – DeFi made simple.' } },
+    { params: { path: 'laina' }, props: { title: 'Laina – DeFi made simple.' } },
     { params: { path: 'lend' }, props: { title: 'Laina – Lend assets' } },
     { params: { path: 'borrow' }, props: { title: 'Laina – Borrow assets' } },
     { params: { path: 'liquidate' }, props: { title: 'Laina – Liquidate loans' } },

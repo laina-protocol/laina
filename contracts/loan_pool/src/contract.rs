@@ -1,10 +1,8 @@
-use crate::pool;
 use crate::pool::Currency;
 use crate::positions;
+use crate::{pool, storage_types::Positions};
 
-use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, BytesN, Env, Map, Symbol, TryFromVal, Val,
-};
+use soroban_sdk::{contract, contractimpl, contractmeta, token, Address, BytesN, Env};
 
 // Metadata that is added on to the WASM custom section
 contractmeta!(
@@ -67,9 +65,7 @@ impl LoanPoolContract {
         user.require_auth();
 
         // Get users receivables
-        let receivables_val: Val = positions::read_positions(&e, user.clone());
-        let receivables_map: Map<Symbol, i128> = Map::try_from_val(&e, &receivables_val).unwrap();
-        let receivables: i128 = receivables_map.get_unchecked(Symbol::new(&e, "receivables"));
+        let Positions { receivables, .. } = positions::read_positions(&e, &user);
 
         // Check that user is not trying to move more than receivables (TODO: also include collateral?)
         assert!(
@@ -148,6 +144,11 @@ impl LoanPoolContract {
         amount
     }
 
+    /// Get user's positions in the pool
+    pub fn get_user_balance(e: Env, user: Address) -> Positions {
+        positions::read_positions(&e, &user)
+    }
+
     /// Get contract data entries
     pub fn get_contract_balance(e: Env) -> i128 {
         pool::read_total_balance(&e)
@@ -192,7 +193,7 @@ mod test {
     use soroban_sdk::{
         testutils::Address as _,
         token::{Client as TokenClient, StellarAssetClient},
-        Env,
+        Env, Symbol,
     };
 
     const TEST_LIQUIDATION_THRESHOLD: i128 = 800_000;

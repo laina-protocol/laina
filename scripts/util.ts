@@ -67,7 +67,7 @@ export const readTextFile = (path: string): string => readFileSync(path, { encod
 
 // This is a function so its value can update during init.
 export const loanManagerAddress = (): string =>
-  process.env.CONTRACT_ID_LOAN_MANAGER ?? readTextFile('./.soroban/contract-ids/loan_manager.txt');
+  process.env.CONTRACT_ID_LOAN_MANAGER || readTextFile('./.soroban/contract-ids/loan_manager.txt');
 
 export const createContractBindings = () => {
   bind('loan_manager', process.env.CONTRACT_ID_LOAN_MANAGER);
@@ -79,7 +79,7 @@ export const createContractBindings = () => {
 };
 
 const bind = (contractName: string, address: string | undefined) => {
-  const address_ = address ?? readTextFile(`./.soroban/contract-ids/${contractName}.txt`);
+  const address_ = address || readTextFile(`./.soroban/contract-ids/${contractName}.txt`);
   exe(
     `stellar contract bindings typescript --contract-id ${address_} --output-dir ./packages/${contractName} --overwrite`,
   );

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { mkdirSync } from 'fs';
 import crypto from 'crypto';
 import { CURRENCIES, type Currency } from '../currencies';
