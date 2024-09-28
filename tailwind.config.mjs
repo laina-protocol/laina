@@ -51,6 +51,9 @@ export default {
           '.btn-primary:hover': {
             'background-color': '#aaa',
           },
+          '.btn-ghost:hover': {
+            'background-color': '#efefef',
+          },
         },
       },
     ],

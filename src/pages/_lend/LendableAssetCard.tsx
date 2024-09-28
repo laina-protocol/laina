@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { type Balance, parsei128, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
+import { formatAmount, formatDollarPrice } from 'src/util/formatting';
 
 export interface LendableAssetCardProps {
   currency: CurrencyBinding;
@@ -48,19 +49,8 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   }, [contractClient]); // Dependency on loanPoolContract
 
   const formatSuppliedAmount = useCallback((amount: bigint | null) => {
-    if (amount === BigInt(0)) return '0';
-    if (!amount) return <Loading size="xs" />;
-
-    const ten_k = BigInt(10_000 * 10_000_000);
-    const one_m = BigInt(1_000_000 * 10_000_000);
-    switch (true) {
-      case amount > one_m:
-        return `${(Number(amount) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
-      case amount > ten_k:
-        return `${(Number(amount) / (1_000 * 10_000_000)).toFixed(1)}K`;
-      default:
-        return `${(Number(amount) / 10_000_000).toFixed(1)}`;
-    }
+    if (amount === null) return <Loading size="xs" />;
+    return formatAmount(amount);
   }, []);
 
   const fetchPriceData = useCallback(async () => {
@@ -84,20 +74,8 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
 
   const formatSuppliedAmountPrice = useCallback(
     (price: bigint | null) => {
-      if (totalSupplied === BigInt(0)) return '$0';
       if (!totalSupplied || !price) return null;
-
-      const ten_k = BigInt(10_000 * 10_000_000);
-      const one_m = BigInt(1_000_000 * 10_000_000);
-      const total_price = ((price / BigInt(10_000_000)) * totalSupplied) / BigInt(10_000_000);
-      switch (true) {
-        case total_price > one_m:
-          return `$${(Number(total_price) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
-        case total_price > ten_k:
-          return `$${(Number(total_price) / (1_000 * 10_000_000)).toFixed(1)}K`;
-        default:
-          return `$${(Number(total_price) / 10_000_000).toFixed(1)}`;
-      }
+      return formatDollarPrice(price, totalSupplied);
     },
     [totalSupplied],
   );
