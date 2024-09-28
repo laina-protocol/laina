@@ -1,4 +1,4 @@
-import WalletCard from '@components/WalletCard';
+import WalletCard from '@components/WalletCard/WalletCard';
 
 const LiquidatePage = () => (
   <div className="mt-14">

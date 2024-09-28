@@ -1,4 +1,4 @@
-import WalletCard from '@components/WalletCard';
+import WalletCard from '@components/WalletCard/WalletCard';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 import { BorrowableAssetCard } from './BorrowableAssetCard';
 

@@ -1,80 +1,21 @@
+import { Button } from '@components/Button';
+import { Loading } from '@components/Loading';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import { useState } from 'react';
 import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
 import { formatAmount, formatDollarPrice } from 'src/lib/formatting';
-import { type Positions, useWallet } from 'src/stellar-wallet';
-import { Button } from './Button';
-import { Card } from './Card';
-import Identicon from './Identicon';
-import { Loading } from './Loading';
+import { useWallet } from 'src/stellar-wallet';
 
-const ASSET_MODAL_ID = 'assets-modal';
-const LOANS_MODAL_ID = 'loans-modal';
-
-const WalletCard = () => {
-  const { wallet, positions } = useWallet();
-
-  const hasReceivables = Object.values(positions).some(({ receivables }) => receivables > 0n);
-  const hasLiabilities = Object.values(positions).some(({ liabilities }) => liabilities > 0n);
-
-  if (!wallet) {
-    return (
-      <Card bgColor="black" className="text-white p-6 mb-12 min-h-36 flex flex-col justify-center">
-        <h2 className="text-xl font-semibold">My Account</h2>
-        <p className="mt-2">To view your assets, connect a wallet first.</p>
-      </Card>
-    );
-  }
-
-  const openAssetModal = () => {
-    const modalEl = document.getElementById(ASSET_MODAL_ID) as HTMLDialogElement;
-    modalEl.showModal();
-  };
-
-  const closeAssetModal = () => {
-    const modalEl = document.getElementById(ASSET_MODAL_ID) as HTMLDialogElement;
-    modalEl.close();
-  };
-
-  return (
-    <>
-      <Card bgColor="black" className="text-white p-6 mb-12 flex flex-row flex-wrap justify-between">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">My Account</h2>
-          <div className="my-6 flex flex-row items-center">
-            <Identicon address={wallet.address} />
-            <div className="ml-9">
-              <p className="text-xl">{wallet.displayName}</p>
-              {/* TODO: Get wallet type from the kit. */}
-              <p className="text-grey leading-tight">Freighter</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col gap-9 my-auto">
-          {hasReceivables ? (
-            <Button color="white" onClick={openAssetModal}>
-              View Assets
-            </Button>
-          ) : (
-            <p>You haven't deposited any assets.</p>
-          )}
-          {hasLiabilities ? <Button color="white">View Loans</Button> : <p>You haven't borrowed any assets.</p>}
-        </div>
-      </Card>
-      <AssetsModal onClose={closeAssetModal} />
-    </>
-  );
-};
-
-interface AssetModalProps {
+export interface AssetsModalProps {
+  modalId: string;
   onClose: () => void;
 }
 
-const AssetsModal = ({ onClose }: AssetModalProps) => {
+const AssetsModal = ({ modalId, onClose }: AssetsModalProps) => {
   const { positions } = useWallet();
   return (
-    <dialog id={ASSET_MODAL_ID} className="modal">
+    <dialog id={modalId} className="modal">
       <div className="modal-box w-full max-w-full md:w-[800px] flex flex-col">
         <h3 className="text-xl font-bold tracking-tight mb-8">My Assets</h3>
         <table className="table">
@@ -115,7 +56,7 @@ interface TableRowProps {
 
 const TableRow = ({ receivables, ticker }: TableRowProps) => {
   const { wallet, prices, signTransaction, refetchBalances } = useWallet();
-  const [withdrawing, setWithdrawing] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   if (receivables === 0n) return null;
 
@@ -125,7 +66,7 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
   const handleWithdrawClick = async () => {
     if (!wallet) return;
 
-    setWithdrawing(true);
+    setIsWithdrawing(true);
 
     contractClient.options.publicKey = wallet.address;
 
@@ -138,7 +79,7 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
       alert('Error withdrawing');
     }
     refetchBalances();
-    setWithdrawing(false);
+    setIsWithdrawing(false);
   };
 
   return (
@@ -157,7 +98,7 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
       <td className="text-lg font-semibold">{formatAmount(receivables)}</td>
       <td className="text-lg font-semibold">{!isNil(price) && formatDollarPrice(price, receivables)}</td>
       <td>
-        {withdrawing ? (
+        {isWithdrawing ? (
           <Button disabled>
             <Loading />
             Withdrawing
@@ -170,4 +111,4 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
   );
 };
 
-export default WalletCard;
+export default AssetsModal;
