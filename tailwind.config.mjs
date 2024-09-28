@@ -28,8 +28,8 @@ export default {
       DEFAULT: '16px',
       full: '9999px',
     },
-    dropShadow: {
-      DEFAULT: '-.5rem .5rem 1rem rgba(0, 0, 0, 0.25)',
+    boxShadow: {
+      DEFAULT: '-15px 15px 60px 15px rgba(0, 0, 0, 25%)',
     },
     extend: {
       spacing: {

@@ -1,13 +1,13 @@
-import { useWallet, type PositionsRecord, type PriceRecord } from 'src/stellar-wallet';
+import { Loading } from '@components/Loading';
+import type { SupportedCurrency } from 'currencies';
+import { isNil } from 'ramda';
+import { formatDollarAmount, toDollars } from 'src/lib/formatting';
+import { type PositionsRecord, type PriceRecord, useWallet } from 'src/stellar-wallet';
 import { Button } from '../Button';
 import { Card } from '../Card';
 import Identicon from '../Identicon';
 import AssetsModal from './AssetsModal';
 import LoansModal from './LoansModal';
-import { formatDollarAmount, toDollars } from 'src/lib/formatting';
-import type { SupportedCurrency } from 'currencies';
-import { isNil } from 'ramda';
-import { Loading } from '@components/Loading';
 
 const ASSET_MODAL_ID = 'assets-modal';
 const LOANS_MODAL_ID = 'loans-modal';

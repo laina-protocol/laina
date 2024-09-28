@@ -6,5 +6,5 @@ export interface CardProps {
 }
 
 export const Card = ({ bgColor = 'white', className = '', children }: PropsWithChildren<CardProps>) => (
-  <div className={`bg-${bgColor} rounded drop-shadow ${className}`}>{children}</div>
+  <div className={`bg-${bgColor} rounded shadow ${className}`}>{children}</div>
 );
