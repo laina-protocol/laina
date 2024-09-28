@@ -6,8 +6,8 @@ import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
+import { formatAmount, formatDollarPrice } from 'src/lib/formatting';
 import { type Balance, parsei128, useWallet } from 'src/stellar-wallet';
-import { formatAmount, formatDollarPrice } from 'src/util/formatting';
 import { DepositModal } from './DepositModal';
 
 export interface LendableAssetCardProps {

@@ -188,6 +188,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     try {
       const { balances } = await HorizonServer.loadAccount(address);
       setWalletBalances(createBalanceRecord(balances));
+      const positions = await fetchAllPositions(address);
+      setPositions(positions);
     } catch (err) {
       console.error('Error fetching balances', err);
     }

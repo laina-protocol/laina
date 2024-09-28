@@ -9,7 +9,7 @@ export interface ButtonProps {
 }
 
 const buttonStyle = (color: 'black' | 'white') =>
-  `btn ${color === 'white' ? 'btn-primary' : 'btn-neutral'} font-semibold text-base rounded-full px-8 py-2`;
+  `btn ${color === 'white' ? 'btn-primary' : 'btn-neutral text-white'} font-semibold text-base rounded-full px-8 py-2`;
 
 export const Button = ({
   onClick,

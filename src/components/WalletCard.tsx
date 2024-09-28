@@ -1,11 +1,13 @@
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
+import { useState } from 'react';
 import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
+import { formatAmount, formatDollarPrice } from 'src/lib/formatting';
 import { type Positions, useWallet } from 'src/stellar-wallet';
-import { formatAmount, formatDollarPrice } from 'src/util/formatting';
 import { Button } from './Button';
 import { Card } from './Card';
 import Identicon from './Identicon';
+import { Loading } from './Loading';
 
 const ASSET_MODAL_ID = 'assets-modal';
 const LOANS_MODAL_ID = 'loans-modal';
@@ -73,7 +75,7 @@ const AssetsModal = ({ onClose }: AssetModalProps) => {
   const { positions } = useWallet();
   return (
     <dialog id={ASSET_MODAL_ID} className="modal">
-      <div className="modal-box w-full max-w-full md:w-[700px] flex flex-col">
+      <div className="modal-box w-full max-w-full md:w-[800px] flex flex-col">
         <h3 className="text-xl font-bold tracking-tight mb-8">My Assets</h3>
         <table className="table">
           <thead className="text-base text-grey">
@@ -112,12 +114,32 @@ interface TableRowProps {
 }
 
 const TableRow = ({ receivables, ticker }: TableRowProps) => {
-  const { prices } = useWallet();
+  const { wallet, prices, signTransaction, refetchBalances } = useWallet();
+  const [withdrawing, setWithdrawing] = useState(false);
 
   if (receivables === 0n) return null;
 
-  const { icon, name } = CURRENCY_BINDINGS.find((b) => b.ticker === ticker) as CurrencyBinding;
+  const { icon, name, contractClient } = CURRENCY_BINDINGS.find((b) => b.ticker === ticker) as CurrencyBinding;
   const price = prices?.[ticker];
+
+  const handleWithdrawClick = async () => {
+    if (!wallet) return;
+
+    setWithdrawing(true);
+
+    contractClient.options.publicKey = wallet.address;
+
+    const tx = await contractClient.withdraw({ user: wallet.address, amount: receivables });
+    try {
+      const { result } = await tx.signAndSend({ signTransaction });
+      alert(`Withdraw successful, result: ${result}`);
+    } catch (err) {
+      console.error('Error withdrawing', err);
+      alert('Error withdrawing');
+    }
+    refetchBalances();
+    setWithdrawing(false);
+  };
 
   return (
     <tr key={ticker}>
@@ -135,7 +157,14 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
       <td className="text-lg font-semibold">{formatAmount(receivables)}</td>
       <td className="text-lg font-semibold">{!isNil(price) && formatDollarPrice(price, receivables)}</td>
       <td>
-        <Button>Withdraw</Button>
+        {withdrawing ? (
+          <Button disabled>
+            <Loading />
+            Withdrawing
+          </Button>
+        ) : (
+          <Button onClick={handleWithdrawClick}>Withdraw</Button>
+        )}
       </td>
     </tr>
   );
