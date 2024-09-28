@@ -89,7 +89,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
         </p>
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={closeModal} className="btn-ghost mr-4">
+          <Button onClick={closeModal} color="ghost" className="mr-4">
             Cancel
           </Button>
           {!isDepositing ? (

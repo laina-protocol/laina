@@ -16,16 +16,20 @@ export const formatAmount = (amount: bigint): string => {
   return `${(Number(amount) / 10_000_000).toFixed(1)}`;
 };
 
-export const formatDollarPrice = (price: bigint, amount: bigint) => {
+export const toDollarsFormatted = (price: bigint, amount: bigint) => {
   if (amount === 0n) return '$0';
+  return formatDollarAmount(toDollars(price, amount));
+};
 
-  const total_price = ((price / SCALAR_7) * amount) / SCALAR_7;
+export const toDollars = (price: bigint, amount: bigint) => ((price / SCALAR_7) * amount) / SCALAR_7;
 
-  if (total_price > ONE_M) {
-    return `$${(Number(total_price) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
+export const formatDollarAmount = (amount: bigint) => {
+  if (amount === 0n) return '$0';
+  if (amount > ONE_M) {
+    return `$${(Number(amount) / (1_000_000 * 10_000_000)).toFixed(2)}M`;
   }
-  if (total_price > TEN_K) {
-    return `$${(Number(total_price) / (1_000 * 10_000_000)).toFixed(1)}K`;
+  if (amount > TEN_K) {
+    return `$${(Number(amount) / (1_000 * 10_000_000)).toFixed(1)}K`;
   }
-  return `$${(Number(total_price) / 10_000_000).toFixed(1)}`;
+  return `$${(Number(amount) / 10_000_000).toFixed(1)}`;
 };

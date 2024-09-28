@@ -3,13 +3,27 @@ import { Link } from 'react-router-dom';
 
 export interface ButtonProps {
   onClick?: () => void;
-  color?: 'black' | 'white';
+  color?: ButtonColor;
   disabled?: boolean;
   className?: string;
 }
 
-const buttonStyle = (color: 'black' | 'white') =>
-  `btn ${color === 'white' ? 'btn-primary' : 'btn-neutral text-white'} font-semibold text-base rounded-full px-8 py-2`;
+export type ButtonColor = 'black' | 'white' | 'ghost';
+
+const buttonStyle = (color: ButtonColor) => {
+  return `btn ${getButtonColor(color)} font-semibold text-base rounded-full px-8 py-2`;
+};
+
+const getButtonColor = (color: ButtonColor): string => {
+  switch (color) {
+    case 'black':
+      return 'btn-neutral text-white';
+    case 'white':
+      return 'btn-primary';
+    case 'ghost':
+      return 'btn-ghost';
+  }
+};
 
 export const Button = ({
   onClick,

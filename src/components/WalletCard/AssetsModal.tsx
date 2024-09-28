@@ -4,7 +4,7 @@ import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import { useState } from 'react';
 import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
-import { formatAmount, formatDollarPrice } from 'src/lib/formatting';
+import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface AssetsModalProps {
@@ -35,7 +35,7 @@ const AssetsModal = ({ modalId, onClose }: AssetsModalProps) => {
           </tbody>
         </table>
         <div className="modal-action">
-          <Button className="btn-ghost ml-auto" onClick={onClose}>
+          <Button color="ghost" className="ml-auto" onClick={onClose}>
             Close
           </Button>
         </div>
@@ -96,7 +96,7 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
         </div>
       </td>
       <td className="text-lg font-semibold">{formatAmount(receivables)}</td>
-      <td className="text-lg font-semibold">{!isNil(price) && formatDollarPrice(price, receivables)}</td>
+      <td className="text-lg font-semibold">{!isNil(price) && toDollarsFormatted(price, receivables)}</td>
       <td>
         {isWithdrawing ? (
           <Button disabled>

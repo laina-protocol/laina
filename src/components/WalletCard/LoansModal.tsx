@@ -5,7 +5,7 @@ import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
-import { formatAmount, formatDollarPrice } from 'src/lib/formatting';
+import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
 import { useWallet } from 'src/stellar-wallet';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 
@@ -37,7 +37,7 @@ const LoansModal = ({ modalId, onClose }: AssetsModalProps) => {
           </tbody>
         </table>
         <div className="modal-action">
-          <Button className="btn-ghost ml-auto" onClick={onClose}>
+          <Button color="ghost" className="ml-auto" onClick={onClose}>
             Close
           </Button>
         </div>
@@ -98,7 +98,7 @@ const TableRow = ({ liabilities, ticker }: TableRowProps) => {
         </div>
       </td>
       <td className="text-lg font-semibold">{formatAmount(liabilities)}</td>
-      <td className="text-lg font-semibold">{!isNil(price) && formatDollarPrice(price, liabilities)}</td>
+      <td className="text-lg font-semibold">{!isNil(price) && toDollarsFormatted(price, liabilities)}</td>
       <td>
         {isRepaying ? (
           <Button disabled>

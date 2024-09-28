@@ -6,7 +6,7 @@ import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { formatAmount, formatDollarPrice } from 'src/lib/formatting';
+import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
 import { type Balance, parsei128, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 
@@ -88,7 +88,7 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
       <div className="w-64">
         <p className="text-grey font-semibold">Total Supplied</p>
         <p className="text-xl font-semibold leading-6">{formatSuppliedAmount(totalSupplied)}</p>
-        <p>{!isNil(price) && !isNil(totalSupplied) && formatDollarPrice(price, totalSupplied)}</p>
+        <p>{!isNil(price) && !isNil(totalSupplied) && toDollarsFormatted(price, totalSupplied)}</p>
       </div>
 
       <div className="w-64">
