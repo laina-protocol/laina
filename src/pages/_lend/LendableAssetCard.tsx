@@ -1,13 +1,11 @@
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
-import type { xdr } from '@stellar/stellar-base';
-import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
-import { type Balance, parsei128, useWallet } from 'src/stellar-wallet';
+import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 
 export interface LendableAssetCardProps {
@@ -32,18 +30,8 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
     if (!contractClient) return;
 
     try {
-      const { simulation } = await contractClient.get_contract_balance();
-
-      if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
-        throw 'get_contract_balance simulation was unsuccessful.';
-      }
-
-      // TODO: why do we need to cast here? The type should infer properly.
-      const value = simulation.result?.retval.value() as xdr.Int128Parts;
-      setTotalSupplied(parsei128(value));
-
-      // const apy = await loanPoolContract.getSupplyAPY();
-      // setSupplyAPY(formatAPY(apy));
+      const { result } = await contractClient.get_contract_balance();
+      setTotalSupplied(result);
     } catch (error) {
       console.error('Error fetching contract data:', error);
     }

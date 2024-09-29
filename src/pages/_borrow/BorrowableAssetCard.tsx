@@ -2,8 +2,6 @@ import { Button } from '@components/Button';
 import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import type { xdr } from '@stellar/stellar-base';
-import { Api as RpcApi } from '@stellar/stellar-sdk/rpc';
 import { useCallback, useEffect, useState } from 'react';
 import { BINDING_USDC, BINDING_XLM, type CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
@@ -34,19 +32,8 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
     if (!contractClient) return;
 
     try {
-      const { simulation } = await contractClient.get_available_balance();
-
-      if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
-        throw 'get_contract_balance simulation was unsuccessful.';
-      }
-
-      // TODO: why do we need to cast here? The type should infer properly.
-      const value = simulation.result?.retval.value() as xdr.Int128Parts;
-      const supplied = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
-      setTotalSupplied(supplied);
-
-      // const apy = await loanPoolContract.getSupplyAPY();
-      // setSupplyAPY(formatAPY(apy));
+      const { result } = await contractClient.get_available_balance();
+      setTotalSupplied(result);
     } catch (error) {
       console.error('Error fetching contract data:', error);
     }
@@ -72,17 +59,8 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
     if (!loanManagerClient) return;
 
     try {
-      const { simulation } = await loanManagerClient.get_price({ token: currency.ticker });
-
-      if (!simulation || !RpcApi.isSimulationSuccess(simulation)) {
-        throw 'get_price simulation was unsuccessful.';
-      }
-
-      // TODO: why do we need to cast here? The type should infer properly.
-      const value = simulation.result?.retval.value() as xdr.Int128Parts;
-      const price = (value.hi().toBigInt() << BigInt(64)) + value.lo().toBigInt();
-
-      setTotalSuppliedPrice(price);
+      const { result } = await loanManagerClient.get_price({ token: currency.ticker });
+      setTotalSuppliedPrice(result);
     } catch (error) {
       console.error('Error fetchin price data:', error);
     }
