@@ -33,6 +33,7 @@ interface InfoCardProps {
   title: string;
   content: string;
   to: string;
+
   buttonText: string;
 }
 
