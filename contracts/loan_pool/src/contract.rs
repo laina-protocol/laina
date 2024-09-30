@@ -10,12 +10,6 @@ contractmeta!(
     val = "Lending pool with variable interest rate."
 );
 
-mod loan_manager {
-    soroban_sdk::contractimport!(
-        file = "../../target/wasm32-unknown-unknown/release/loan_manager.wasm"
-    );
-}
-
 #[contract]
 struct LoanPoolContract;
 
