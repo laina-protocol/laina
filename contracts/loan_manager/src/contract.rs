@@ -331,6 +331,10 @@ impl LoanManager {
 
         (borrowed_amount, new_borrowed_amount)
     }
+
+    pub fn get_interest_rate(e: Env, pool: Address) -> i128 {
+        get_interest(e, pool)
+    }
 }
 
 #[cfg(test)]
@@ -577,6 +581,170 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 10_003);
         assert_eq!(user_loan.health_factor, 99_970_008);
         assert_eq!(user_loan.collateral_amount, 100_000);
+    }
+
+    #[test]
+    fn interest_at_max_usage() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.min_persistent_entry_ttl = 1_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let admin2 = Address::generate(&e);
+        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
+
+        // Register mock Reflector contract.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        // Mint the user some coins
+        let user = Address::generate(&e);
+        collateral_asset.mint(&user, &10_000_000);
+
+        assert_eq!(collateral_token.balance(&user), 10_000_000);
+
+        // Set up a loan pool with funds for borrowing.
+        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
+
+        // Set up a loan_pool for the collaterals.
+        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
+
+        // Register loan manager contract.
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
+
+        // ACT
+        // Initialize the loan pool and deposit some of the admin's funds.
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.deposit(&admin, &1_000_000);
+
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+
+        // Create a loan.
+        contract_client.create_loan(
+            &user,
+            &999_000,
+            &loan_pool_id,
+            &10_000_000,
+            &collateral_pool_id,
+        );
+
+        contract_client.add_interest();
+
+        // Move time
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + 100_000;
+        });
+
+        // A new instance of reflector mock needs to be created, they only live for one ledger.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        assert_eq!(contract_client.get_interest_rate(&loan_pool_id), 2_980_000);
+    }
+
+    #[test]
+    fn interest_at_half_usage() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.min_persistent_entry_ttl = 1_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let admin2 = Address::generate(&e);
+        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
+
+        // Register mock Reflector contract.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        // Mint the user some coins
+        let user = Address::generate(&e);
+        collateral_asset.mint(&user, &10_000_000);
+
+        assert_eq!(collateral_token.balance(&user), 10_000_000);
+
+        // Set up a loan pool with funds for borrowing.
+        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
+
+        // Set up a loan_pool for the collaterals.
+        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
+
+        // Register loan manager contract.
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
+
+        // ACT
+        // Initialize the loan pool and deposit some of the admin's funds.
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.deposit(&admin, &1_000_000);
+
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+
+        // Create a loan.
+        contract_client.create_loan(
+            &user,
+            &500_000,
+            &loan_pool_id,
+            &10_000_000,
+            &collateral_pool_id,
+        );
+
+        contract_client.add_interest();
+
+        // Move time
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + 100_000;
+        });
+
+        // A new instance of reflector mock needs to be created, they only live for one ledger.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        assert_eq!(contract_client.get_interest_rate(&loan_pool_id), 644_440);
     }
 
     #[test]
