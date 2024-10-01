@@ -9,7 +9,7 @@ const WelcomePage = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
       <InfoCard
         title="Deposit Assets"
-        content="Deposit crypto assets for lending to earn interest. These assets can also be used as a collateral."
+        content="Deposit crypto assets for lending to earn interest."
         to="/lend"
         buttonText="Deposit"
       />
