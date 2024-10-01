@@ -1,8 +1,10 @@
+import { isNil } from 'ramda';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { Button } from '@components/Button';
 import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { useCallback, useEffect, useState } from 'react';
 import { BINDING_USDC, BINDING_XLM, type CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 import { BorrowModal } from './BorrowModal';
@@ -26,7 +28,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
 
   const collateralBalance = walletBalances[collateral.ticker];
 
-  const borrowDisabled = !wallet || !collateralBalance;
+  const borrowDisabled = !wallet || !collateralBalance || !totalSupplied;
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!contractClient) return;
@@ -106,6 +108,13 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
     modalEl.close();
   };
 
+  const tooltip = useMemo(() => {
+    if (!totalSupplied) return 'The pool has no assets to borrow';
+    if (!wallet) return 'Connect a wallet first';
+    if (!collateralBalance) return 'Not enough funds for collateral';
+    return 'Something odd happened.';
+  }, [totalSupplied, wallet, collateralBalance]);
+
   return (
     <Card className="mb-9 p-6 min-h-36 flex flex-row items-center">
       <div className="min-w-12">
@@ -129,7 +138,7 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
       </div>
 
       {borrowDisabled ? (
-        <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds for collateral'}>
+        <div className="tooltip" data-tip={tooltip}>
           <Button disabled={true} onClick={() => {}}>
             Borrow
           </Button>
@@ -137,7 +146,15 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
       ) : (
         <Button onClick={openModal}>Borrow</Button>
       )}
-      <BorrowModal modalId={modalId} onClose={closeModal} currency={currency} collateral={collateral} />
+      {!isNil(totalSupplied) && (
+        <BorrowModal
+          modalId={modalId}
+          onClose={closeModal}
+          currency={currency}
+          collateral={collateral}
+          totalSupplied={totalSupplied}
+        />
+      )}
     </Card>
   );
 };

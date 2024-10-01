@@ -11,12 +11,10 @@ export interface BorrowModalProps {
   onClose: () => void;
   currency: CurrencyBinding;
   collateral: CurrencyBinding;
+  totalSupplied: bigint;
 }
 
-// TODO: calculate this from the amount of funds in the pool.
-const MAX_LOAN = 10000;
-
-export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowModalProps) => {
+export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSupplied }: BorrowModalProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
   const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
 
@@ -75,6 +73,10 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
 
   const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0';
 
+  const maxLoan = (totalSupplied / 10_000_000n).toString();
+
+  const maxCollateral = collateralBalance.balance.split('.')[0];
+
   return (
     <dialog id={modalId} className="modal">
       <div className="modal-box">
@@ -84,7 +86,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
         <input
           type="range"
           min={0}
-          max={MAX_LOAN}
+          max={maxLoan}
           value={loanAmount}
           className="range"
           onChange={handleLoanAmountChange}
@@ -97,14 +99,14 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
           <span>|</span>
         </div>
         <p>
-          {loanAmount} {ticker} out of {MAX_LOAN} {ticker}
+          {loanAmount} {ticker} out of {maxLoan} {ticker}
         </p>
 
         <p className="text-lg mb-2 mt-4">Amount of collateral</p>
         <input
           type="range"
           min={0}
-          max={collateralBalance.balance}
+          max={maxCollateral}
           value={collateralAmount}
           className="range"
           onChange={handleCollateralAmountChange}
@@ -117,7 +119,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral }: BorrowMo
           <span>|</span>
         </div>
         <p>
-          {collateralAmount} {collateral.ticker} out of {collateralBalance.balance} {collateral.ticker}
+          {collateralAmount} {collateral.ticker} out of {maxCollateral} {collateral.ticker}
         </p>
 
         <div className="flex flex-row justify-end mt-8">
