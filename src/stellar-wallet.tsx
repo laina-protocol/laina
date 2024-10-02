@@ -79,7 +79,7 @@ const fetchAllPositions = async (user: string): Promise<PositionsRecord> => {
   const positionsArr = await Promise.all(
     CURRENCY_BINDINGS.map(async ({ contractClient, ticker }) => [
       ticker,
-      (await contractClient.get_user_balance({ user })).result,
+      (await contractClient.get_user_positions({ user })).result,
     ]),
   );
   return Object.fromEntries(positionsArr);
