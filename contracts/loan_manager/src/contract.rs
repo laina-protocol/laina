@@ -320,6 +320,8 @@ impl LoanManager {
         //TODO: calculate new health-factor. No need to check it relative to threshold.
 
         if new_borrowed_amount == 0 {
+            let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
+            collateral_pool_client.withdraw_collateral(&user, &amount);
             e.storage().persistent().remove(&key);
         } else {
             let loan = Loan {
