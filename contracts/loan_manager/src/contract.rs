@@ -203,6 +203,11 @@ impl LoanManager {
 
             let borrowed: i128 = loan.borrowed_amount;
 
+            if borrowed == 0 {
+                e.storage().persistent().remove(&key);
+                continue;
+            }
+
             let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
             let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
             let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
@@ -310,24 +315,31 @@ impl LoanManager {
             0
         };
 
+        let key = (Symbol::new(e, "Loan"), user.clone());
         let new_borrowed_amount = borrowed_amount - amount;
         //TODO: calculate new health-factor. No need to check it relative to threshold.
-        let loan = Loan {
-            borrowed_amount: new_borrowed_amount,
-            borrowed_from,
-            collateral_amount,
-            collateral_from,
-            health_factor,
-            unpaid_interest: new_unpaid_interest,
-        };
 
-        let key = (Symbol::new(e, "Loan"), user.clone());
-        e.storage().persistent().set(&key, &loan);
-        e.storage().persistent().extend_ttl(
-            &key,
-            POSITIONS_LIFETIME_THRESHOLD,
-            POSITIONS_BUMP_AMOUNT,
-        );
+        if new_borrowed_amount == 0 {
+            let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
+            collateral_pool_client.withdraw_collateral(&user, &amount);
+            e.storage().persistent().remove(&key);
+        } else {
+            let loan = Loan {
+                borrowed_amount: new_borrowed_amount,
+                borrowed_from,
+                collateral_amount,
+                collateral_from,
+                health_factor,
+                unpaid_interest: new_unpaid_interest,
+            };
+
+            e.storage().persistent().set(&key, &loan);
+            e.storage().persistent().extend_ttl(
+                &key,
+                POSITIONS_LIFETIME_THRESHOLD,
+                POSITIONS_BUMP_AMOUNT,
+            );
+        }
 
         (borrowed_amount, new_borrowed_amount)
     }

@@ -144,6 +144,26 @@ impl LoanPoolContract {
         amount
     }
 
+    pub fn withdraw_collateral(e: Env, user: Address, amount: i128) -> i128 {
+        user.require_auth();
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+        assert!(amount > 0, "Amount must be positive!");
+
+        let token_address = &pool::read_currency(&e).token_address;
+        let client = token::Client::new(&e, token_address);
+        client.transfer(&e.current_contract_address(), &user, &amount);
+
+        // Increase users position in pool as they deposit
+        // as this is collateral amount is added to collateral and
+        // liabilities & receivables stays intact
+        let liabilities: i128 = 0; // temp test param
+        let receivables: i128 = 0; // temp test param
+        positions::decrease_positions(&e, user.clone(), receivables, liabilities, amount);
+
+        amount
+    }
+
     /// Get user's positions in the pool
     pub fn get_user_balance(e: Env, user: Address) -> Positions {
         positions::read_positions(&e, &user)
