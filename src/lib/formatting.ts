@@ -1,6 +1,6 @@
 // 7 decimal numbers is the smallest unit of XLM, stroop.
-const SCALAR_7 = 10_000_000n;
-const CENTS_SCALAR = SCALAR_7 * 100_000n;
+export const SCALAR_7 = 10_000_000n;
+export const CENTS_SCALAR = SCALAR_7 * SCALAR_7 * 100_000n;
 
 const TEN_K = 10_000n * SCALAR_7;
 const ONE_M = 1_000_000n * SCALAR_7;
@@ -22,16 +22,16 @@ export const formatAmount = (amount: bigint): string => {
   return `${(Number(amount) / 10_000_000).toFixed(1)}`;
 };
 
-export const toDollarsFormatted = (price: bigint, amount: bigint) => {
+export const toDollarsFormatted = (price: bigint, amount: bigint): string => {
   if (amount === 0n) return '$0';
   return formatCentAmount(toCents(price, amount));
 };
 
-export const toCents = (price: bigint, amount: bigint) => {
+export const toCents = (price: bigint, amount: bigint): bigint => {
   return (price * amount) / CENTS_SCALAR;
 };
 
-export const formatCentAmount = (cents: bigint) => {
+export const formatCentAmount = (cents: bigint): string => {
   if (cents === 0n) return '$0';
 
   if (cents > ONE_M_CENTS) {

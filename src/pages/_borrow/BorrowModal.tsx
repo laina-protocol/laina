@@ -1,9 +1,10 @@
 import { Button } from '@components/Button';
+import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
+import { getIntegerPart, to7decimals } from '@lib/converters';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { to7decimals } from 'src/lib/converters';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface BorrowModalProps {
@@ -16,13 +17,16 @@ export interface BorrowModalProps {
 
 export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSupplied }: BorrowModalProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
-  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances, prices } = useWallet();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
-  const [loanAmount, setLoanAmount] = useState('0');
-  const [collateralAmount, setCollateralAmount] = useState('0');
+  const [loanAmount, setLoanAmount] = useState<string>('0');
+  const [collateralAmount, setCollateralAmount] = useState<string>('0');
 
   const collateralBalance = walletBalances[collateral.ticker];
+
+  const loanPrice = prices?.[ticker];
+  const collateralPrice = prices?.[collateral.ticker];
 
   // The modal is impossible to open without collateral balance.
   if (!collateralBalance) return null;
@@ -37,6 +41,10 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
   const handleBorrowClick = async () => {
     if (!wallet) {
       alert('Please connect your wallet first!');
+      return;
+    }
+    if (!loanAmount || !collateralAmount) {
+      alert('Empty loan amount or collateral!');
       return;
     }
 
@@ -75,55 +83,56 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
   const maxLoan = (totalSupplied / 10_000_000n).toString();
 
-  const maxCollateral = collateralBalance.balance.split('.')[0];
+  const maxCollateral = getIntegerPart(collateralBalance.balance);
+
+  const handleSelectMaxLoan = () => setLoanAmount(maxLoan);
+
+  const handleSelectMaxCollateral = () => setCollateralAmount(maxCollateral);
+
+  // TODO: get this from the contract.
+  const interestRate = '7.5%';
 
   return (
     <dialog id={modalId} className="modal">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg mb-8">Borrow {name}</h3>
+      <div className="modal-box w-full max-w-full md:w-[700px] p-10">
+        <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
+        <p className="my-4">
+          Borrow {name} using another asset as a collateral. The value of the collateral must exceed the value of the
+          borrowed asset.
+        </p>
+        <p className="my-4">
+          The higher the value of the collateral is to the value of the borrowed asset, the safer this loan is. This is
+          visualised by the health factor.
+        </p>
+        <p className="my-4">
+          The loan will be available for liquidation if the value of the borrowed asset raises to the value of the
+          collateral, causing you to lose some of your collateral.
+        </p>
+        <p className="my-4">The interest rate changes as the amount of assets borrowed from the pools changes.</p>
+        <p className="my-4">The annual interest rate is currently {interestRate}.</p>
 
-        <p className="text-lg mb-2">Amount to borrow</p>
-        <input
-          type="range"
-          min={0}
+        <p className="font-bold mb-2 mt-6">Amount to borrow</p>
+        <CryptoAmountSelector
           max={maxLoan}
           value={loanAmount}
-          className="range"
+          ticker={ticker}
+          price={loanPrice}
           onChange={handleLoanAmountChange}
+          onSelectMaximum={handleSelectMaxLoan}
         />
-        <div className="flex w-full justify-between px-2 text-xs">
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-        </div>
-        <p>
-          {loanAmount} {ticker} out of {maxLoan} {ticker}
-        </p>
 
-        <p className="text-lg mb-2 mt-4">Amount of collateral</p>
-        <input
-          type="range"
-          min={0}
+        <p className="font-bold mb-2 mt-4">Amount of collateral</p>
+        <CryptoAmountSelector
           max={maxCollateral}
           value={collateralAmount}
-          className="range"
+          ticker={collateral.ticker}
+          price={collateralPrice}
           onChange={handleCollateralAmountChange}
+          onSelectMaximum={handleSelectMaxCollateral}
         />
-        <div className="flex w-full justify-between px-2 text-xs">
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-        </div>
-        <p>
-          {collateralAmount} {collateral.ticker} out of {maxCollateral} {collateral.ticker}
-        </p>
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={closeModal} color="ghost" className="mr-4">
+          <Button onClick={closeModal} variant="ghost" className="mr-4">
             Cancel
           </Button>
           {!isBorrowing ? (

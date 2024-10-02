@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
+import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
-import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface AssetsModalProps {
@@ -37,7 +37,7 @@ const LoansModal = ({ modalId, onClose }: AssetsModalProps) => {
           </tbody>
         </table>
         <div className="modal-action">
-          <Button color="ghost" className="ml-auto" onClick={onClose}>
+          <Button variant="ghost" className="ml-auto" onClick={onClose}>
             Close
           </Button>
         </div>
