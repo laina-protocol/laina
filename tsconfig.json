@@ -9,7 +9,8 @@
       "@images/*": ["src/images/*"],
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
-      "@contracts/*": ["src/contracts/*"]
+      "@contracts/*": ["src/contracts/*"],
+      "@lib/*": ["src/lib/*"]
     }
   }
 }

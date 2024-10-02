@@ -1,7 +1,7 @@
 import { Loading } from '@components/Loading';
+import { formatCentAmount, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
-import { formatCentAmount, toCents } from 'src/lib/formatting';
 import { type PositionsRecord, type PriceRecord, useWallet } from 'src/stellar-wallet';
 import { Button } from '../Button';
 import { Card } from '../Card';
@@ -92,7 +92,7 @@ const WalletCard = () => {
                 <p className="text-grey">Total deposited</p>
                 <p className="text-xl leading-5">{formatCentAmount(values.receivablesCents)}</p>
               </div>
-              <Button color="white" className="w-44" onClick={openAssetModal}>
+              <Button variant="white" className="w-44" onClick={openAssetModal}>
                 View Assets
               </Button>
             </div>
@@ -105,7 +105,7 @@ const WalletCard = () => {
                 <p className="text-grey">Total borrowed</p>
                 <p className="text-xl leading-5">{formatCentAmount(values.liabilitiesCents)}</p>
               </div>
-              <Button color="white" className="w-44" onClick={openLoansModal}>
+              <Button variant="white" className="w-44" onClick={openLoansModal}>
                 View Loans
               </Button>
             </div>

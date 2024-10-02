@@ -1,8 +1,9 @@
 import { Button } from '@components/Button';
+import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
+import { getIntegerPart, to7decimals } from '@lib/converters';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { to7decimals } from 'src/lib/converters';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface DepositModalProps {
@@ -14,13 +15,16 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { contractClient, name, ticker } = currency;
 
-  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, prices, signTransaction, refetchBalances } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
   const balance = walletBalances[ticker];
+  const price = prices?.[ticker];
 
   if (!balance) return null;
+
+  const max = getIntegerPart(balance.balance);
 
   const closeModal = () => {
     refetchBalances();
@@ -58,38 +62,27 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
     setAmount(ev.target.value);
   };
 
+  const handleSelectMaxLoan = () => {
+    setAmount(max);
+  };
+
   return (
     <dialog id={modalId} className="modal">
       <div className="modal-box">
         <h3 className="font-bold text-lg mb-8">Deposit {name}</h3>
 
-        <div className="flex flex-row items-center">
-          <div className="w-full">
-            <p className="text-lg mb-2">Amount to deposit</p>
-            <input
-              type="range"
-              min={0}
-              max={balance.balance}
-              value={amount}
-              className="range"
-              onChange={handleAmountChange}
-            />
-            <div className="flex w-full justify-between px-2 text-xs">
-              <span>|</span>
-              <span>|</span>
-              <span>|</span>
-              <span>|</span>
-              <span>|</span>
-            </div>
-          </div>
-        </div>
-
-        <p>
-          {amount} {ticker} out of {balance.balance} {ticker}
-        </p>
+        <p className="text-lg mb-2">Amount to deposit</p>
+        <CryptoAmountSelector
+          max={max}
+          value={amount}
+          ticker={ticker}
+          price={price}
+          onChange={handleAmountChange}
+          onSelectMaximum={handleSelectMaxLoan}
+        />
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={closeModal} color="ghost" className="mr-4">
+          <Button onClick={closeModal} variant="ghost" className="mr-4">
             Cancel
           </Button>
           {!isDepositing ? (
