@@ -145,7 +145,7 @@ impl LoanPoolContract {
     }
 
     /// Get user's positions in the pool
-    pub fn get_user_balance(e: Env, user: Address) -> Positions {
+    pub fn get_user_positions(e: Env, user: Address) -> Positions {
         positions::read_positions(&e, &user)
     }
 
