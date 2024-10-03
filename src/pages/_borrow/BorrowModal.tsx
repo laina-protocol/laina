@@ -3,7 +3,7 @@ import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, to7decimals } from '@lib/converters';
-import { SCALAR_7, toCents } from '@lib/formatting';
+import { fromCents, SCALAR_7, toCents } from '@lib/formatting';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
@@ -11,6 +11,8 @@ import { useWallet } from 'src/stellar-wallet';
 const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;
 const HEALTH_FACTOR_GOOD_THRESHOLD = 1.6;
 const HEALTH_FACTOR_EXCELLENT_THRESHOLD = 2.0;
+
+const HEALTH_FACTOR_AUTO_THRESHOLD = 1.65;
 
 export interface BorrowModalProps {
   modalId: string;
@@ -86,6 +88,18 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
   const handleLoanAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setLoanAmount(ev.target.value);
+
+    if (!loanPrice || !collateralPrice) return;
+
+    // Move the collateral to reach the good health threshold
+    const loanAmountCents = toCents(loanPrice, BigInt(ev.target.value) * SCALAR_7);
+    const minHealthyCollateralCents = BigInt(Math.ceil(HEALTH_FACTOR_AUTO_THRESHOLD * Number(loanAmountCents) + 100));
+    const minHealthyCollateral = (fromCents(collateralPrice, minHealthyCollateralCents)) / SCALAR_7
+    if (minHealthyCollateral <= BigInt(maxCollateral)) {
+      setCollateralAmount(minHealthyCollateral.toString());
+    } else {
+      setCollateralAmount(maxCollateral);
+    }
   };
 
   const handleCollateralAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +140,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
         <p className="font-bold mb-2 mt-6">Amount to borrow</p>
         <CryptoAmountSelector
-          max={maxLoan}
+          max={"1000"}
           value={loanAmount}
           valueCents={loanAmountCents}
           ticker={ticker}
