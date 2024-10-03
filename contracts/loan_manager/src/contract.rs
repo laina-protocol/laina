@@ -113,13 +113,16 @@ impl LoanManager {
     ) {
         user.require_auth();
 
-        let token_ticker: Symbol = Symbol::new(&e, "USDC"); // temporary
-        let collateral_ticker: Symbol = Symbol::new(&e, "XLM"); // temporary
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
+        let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
+
+        let token_currency = borrow_pool_client.get_currency();
+        let collateral_currency = collateral_pool_client.get_currency();
         let health_factor: i128 = Self::calculate_health_factor(
             &e,
-            token_ticker,
+            token_currency.ticker,
             borrowed,
-            collateral_ticker,
+            collateral_currency.ticker,
             collateral,
         );
 
@@ -132,11 +135,9 @@ impl LoanManager {
         );
 
         // Deposit collateral
-        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
         let collateral_amount = collateral_pool_client.deposit_collateral(&user, &collateral);
 
         // Borrow the funds
-        let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
         let borrowed_amount = borrow_pool_client.borrow(&user, &borrowed);
 
         let unpaid_interest = 0;
@@ -227,13 +228,16 @@ impl LoanManager {
                     // Insert the new value to the loan_map
                     loan.borrowed_amount = new_borrowed;
                     // Get updated health_factor
-                    let token_ticker: Symbol = Symbol::new(&e, "USDC"); // temporary
-                    let collateral_ticker: Symbol = Symbol::new(&e, "XLM"); // temporary
+                    let collateral_pool_client = loan_pool::Client::new(&e, &loan.collateral_from);
+                    let borrow_pool_client = loan_pool::Client::new(&e, &loan.borrowed_from);
+
+                    let token_currency = borrow_pool_client.get_currency();
+                    let collateral_currency = collateral_pool_client.get_currency();
                     loan.health_factor = Self::calculate_health_factor(
                         &e,
-                        token_ticker,
+                        token_currency.ticker,
                         new_borrowed,
-                        collateral_ticker,
+                        collateral_currency.ticker,
                         loan.collateral_amount,
                     );
                     // It now calls reflector for each address. This is safe but might end up being costly
