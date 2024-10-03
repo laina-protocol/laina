@@ -336,7 +336,7 @@ impl LoanManager {
 
         if new_borrowed_amount == 0 {
             let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
-            collateral_pool_client.withdraw_collateral(&user, &amount);
+            collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
             e.storage().persistent().remove(&key);
 
             let mut addresses: Vec<Address> = e
