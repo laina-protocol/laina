@@ -1,4 +1,4 @@
-import { SCALAR_7, toDollarsFormatted } from '@lib/formatting';
+import { formatCentAmount } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import type { ChangeEvent } from 'react';
 import { Button } from './Button';
@@ -6,8 +6,8 @@ import { Button } from './Button';
 export interface CryptoAmountSelectorProps {
   max: string;
   value: string;
+  valueCents: bigint | undefined;
   ticker: SupportedCurrency;
-  price: bigint | undefined;
   onChange: (ev: ChangeEvent<HTMLInputElement>) => void;
   onSelectMaximum: () => void;
 }
@@ -15,13 +15,11 @@ export interface CryptoAmountSelectorProps {
 export const CryptoAmountSelector = ({
   max,
   value,
+  valueCents,
   ticker,
-  price,
   onChange,
   onSelectMaximum,
 }: CryptoAmountSelectorProps) => {
-  const dollarValue = price ? toDollarsFormatted(price, BigInt(value) * SCALAR_7) : undefined;
-
   return (
     <>
       <input type="range" min={0} max={max} value={value ?? '0'} className="range" onChange={onChange} />
@@ -37,7 +35,7 @@ export const CryptoAmountSelector = ({
           <input type="number" value={value} onChange={onChange} placeholder="" className="text-right w-2/3" />
           <span className="text-grey w-1/3">{ticker}</span>
         </label>
-        <span className="w-1/3">{dollarValue && `≈ ${dollarValue}`}</span>
+        <span className="w-1/3">{valueCents ? `≈ ${formatCentAmount(valueCents)}` : null}</span>
         <Button variant="outline" onClick={onSelectMaximum}>
           Select maximum
         </Button>

@@ -2,6 +2,7 @@ import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
 import { getIntegerPart, to7decimals } from '@lib/converters';
+import { SCALAR_7, toCents } from '@lib/formatting';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
@@ -21,6 +22,8 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
   const balance = walletBalances[ticker];
   const price = prices?.[ticker];
+
+  const amountCents = price ? toCents(price, BigInt(amount) * SCALAR_7) : undefined;
 
   if (!balance) return null;
 
@@ -75,8 +78,8 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
         <CryptoAmountSelector
           max={max}
           value={amount}
+          valueCents={amountCents}
           ticker={ticker}
-          price={price}
           onChange={handleAmountChange}
           onSelectMaximum={handleSelectMaxLoan}
         />
