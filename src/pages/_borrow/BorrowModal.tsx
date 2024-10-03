@@ -3,9 +3,14 @@ import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, to7decimals } from '@lib/converters';
+import { SCALAR_7, toCents } from '@lib/formatting';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
+
+const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;
+const HEALTH_FACTOR_GOOD_THRESHOLD = 1.6;
+const HEALTH_FACTOR_EXCELLENT_THRESHOLD = 2.0;
 
 export interface BorrowModalProps {
   modalId: string;
@@ -27,6 +32,14 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
   const loanPrice = prices?.[ticker];
   const collateralPrice = prices?.[collateral.ticker];
+
+  const loanAmountCents = loanPrice ? toCents(loanPrice, BigInt(loanAmount) * SCALAR_7) : undefined;
+  const collateralAmountCents = collateralPrice
+    ? toCents(collateralPrice, BigInt(collateralAmount) * SCALAR_7)
+    : undefined;
+
+  const healthFactor =
+    loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
   // The modal is impossible to open without collateral balance.
   if (!collateralBalance) return null;
@@ -79,7 +92,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
     setCollateralAmount(ev.target.value);
   };
 
-  const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0';
+  const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
   const maxLoan = (totalSupplied / 10_000_000n).toString();
 
@@ -115,8 +128,8 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
         <CryptoAmountSelector
           max={maxLoan}
           value={loanAmount}
+          valueCents={loanAmountCents}
           ticker={ticker}
-          price={loanPrice}
           onChange={handleLoanAmountChange}
           onSelectMaximum={handleSelectMaxLoan}
         />
@@ -125,11 +138,14 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
         <CryptoAmountSelector
           max={maxCollateral}
           value={collateralAmount}
+          valueCents={collateralAmountCents}
           ticker={collateral.ticker}
-          price={collateralPrice}
           onChange={handleCollateralAmountChange}
           onSelectMaximum={handleSelectMaxCollateral}
         />
+
+        <p className="font-bold mt-6 mb-2">Health Factor</p>
+        <HealthFactor value={healthFactor} />
 
         <div className="flex flex-row justify-end mt-8">
           <Button onClick={closeModal} variant="ghost" className="mr-4">
@@ -156,3 +172,35 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
     </dialog>
   );
 };
+
+const HealthFactor = ({ value }: { value: number }) => {
+  if (value < HEALTH_FACTOR_MIN_THRESHOLD) {
+    return <HealthBar text="Would liquidate immediately" textColor="text-red" bgColor="bg-red" bars={1} />;
+  }
+  if (value < HEALTH_FACTOR_GOOD_THRESHOLD) {
+    return <HealthBar text="At risk of liquidation" textColor="text-yellow" bgColor="bg-yellow" bars={2} />;
+  }
+  if (value < HEALTH_FACTOR_EXCELLENT_THRESHOLD) {
+    return <HealthBar text="Good" textColor="text-blue" bgColor="bg-blue" bars={3} />;
+  }
+  return <HealthBar text="Excellent" textColor="text-green" bgColor="bg-green" bars={4} />;
+};
+
+interface HealthBarProps {
+  text: string;
+  textColor: string;
+  bgColor: string;
+  bars: number;
+}
+
+const HealthBar = ({ text, textColor, bgColor, bars }: HealthBarProps) => (
+  <>
+    <p className={`${textColor} font-semibold`}>{text}</p>
+    <div className="w-full flex flex-row gap-2">
+      <div className={`h-3 w-full rounded-l ${bgColor}`} />
+      <div className={`h-3 w-full ${bars > 1 ? bgColor : 'bg-grey'}`} />
+      <div className={`h-3 w-full ${bars > 2 ? bgColor : 'bg-grey'}`} />
+      <div className={`h-3 w-full rounded-r ${bars > 3 ? bgColor : 'bg-grey'}`} />
+    </div>
+  </>
+);
