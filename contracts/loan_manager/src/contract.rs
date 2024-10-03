@@ -190,7 +190,7 @@ impl LoanManager {
         // Iterate over loans and add interest to capital borrowed.
         // In the same iteration add the amount to the liabilities of the lending pool.
         // First, lets retrieve the list of addresses with loans
-        let addresses: Vec<Address> = e
+        let mut addresses: Vec<Address> = e
             .storage()
             .persistent()
             .get(&LoansDataKey::Addresses)
@@ -199,43 +199,58 @@ impl LoanManager {
         for user in addresses.iter() {
             let key = (Symbol::new(&e, "Loan"), user.clone());
 
-            let mut loan: Loan = e.storage().persistent().get(&key).unwrap();
+            match e
+                .storage()
+                .persistent()
+                .get::<(Symbol, Address), Loan>(&key)
+            {
+                None => {
+                    if let Some(index) = addresses.iter().position(|x| x == user) {
+                        addresses.remove(index.try_into().unwrap());
+                        continue;
+                    } else {
+                        panic!("Address not found in Addresses");
+                    };
+                }
+                Some(mut loan) => {
+                    let borrowed: i128 = loan.borrowed_amount;
 
-            let borrowed: i128 = loan.borrowed_amount;
-
-            if borrowed == 0 {
-                e.storage().persistent().remove(&key);
-                continue;
+                    if borrowed == 0 {
+                        e.storage().persistent().remove(&key);
+                        continue;
+                    }
+                    let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
+                    let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
+                    let interest_since_update: i128 =
+                        (interest_amount_in_year * ledger_ratio) / DECIMAL;
+                    let new_borrowed: i128 = borrowed + interest_since_update;
+                    // Insert the new value to the loan_map
+                    loan.borrowed_amount = new_borrowed;
+                    // Get updated health_factor
+                    let token_ticker: Symbol = Symbol::new(&e, "USDC"); // temporary
+                    let collateral_ticker: Symbol = Symbol::new(&e, "XLM"); // temporary
+                    loan.health_factor = Self::calculate_health_factor(
+                        &e,
+                        token_ticker,
+                        new_borrowed,
+                        collateral_ticker,
+                        loan.collateral_amount,
+                    );
+                    // It now calls reflector for each address. This is safe but might end up being costly
+                    // Set it to storage
+                    loan.unpaid_interest += interest_since_update;
+                    e.storage().persistent().set(&key, &loan);
+                    e.storage().persistent().extend_ttl(
+                        &key,
+                        POSITIONS_LIFETIME_THRESHOLD,
+                        POSITIONS_BUMP_AMOUNT,
+                    );
+                    // TODO: this should also invoke the pools and update the amounts lended to liabilities.
+                    let borrowed_from = loan.borrowed_from;
+                    let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
+                    borrow_pool_client.increase_liabilities(&user, &interest_since_update);
+                }
             }
-
-            let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
-            let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
-            let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
-            let new_borrowed: i128 = borrowed + interest_since_update;
-            // Insert the new value to the loan_map
-            loan.borrowed_amount = new_borrowed;
-            // Get updated health_factor
-            let token_ticker: Symbol = Symbol::new(&e, "USDC"); // temporary
-            let collateral_ticker: Symbol = Symbol::new(&e, "XLM"); // temporary
-            loan.health_factor = Self::calculate_health_factor(
-                &e,
-                token_ticker,
-                new_borrowed,
-                collateral_ticker,
-                loan.collateral_amount,
-            ); // It now calls reflector for each address. This is safe but might end up being costly
-               // Set it to storage
-            loan.unpaid_interest += interest_since_update;
-            e.storage().persistent().set(&key, &loan);
-            e.storage().persistent().extend_ttl(
-                &key,
-                POSITIONS_LIFETIME_THRESHOLD,
-                POSITIONS_BUMP_AMOUNT,
-            );
-            // TODO: this should also invoke the pools and update the amounts lended to liabilities.
-            let borrowed_from = loan.borrowed_from;
-            let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
-            borrow_pool_client.increase_liabilities(&user, &interest_since_update);
         }
 
         e.storage().persistent().set(&key, &current_ledger);
@@ -323,6 +338,18 @@ impl LoanManager {
             let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
             collateral_pool_client.withdraw_collateral(&user, &amount);
             e.storage().persistent().remove(&key);
+
+            let mut addresses: Vec<Address> = e
+                .storage()
+                .persistent()
+                .get(&LoansDataKey::Addresses)
+                .unwrap();
+
+            if let Some(index) = addresses.iter().position(|x| x == user) {
+                addresses.remove(index.try_into().unwrap())
+            } else {
+                panic!("Address not found in Addresses");
+            };
         } else {
             let loan = Loan {
                 borrowed_amount: new_borrowed_amount,
