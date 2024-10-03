@@ -323,6 +323,18 @@ impl LoanManager {
             let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
             collateral_pool_client.withdraw_collateral(&user, &amount);
             e.storage().persistent().remove(&key);
+
+            let mut addresses: Vec<Address> = e
+                .storage()
+                .persistent()
+                .get(&LoansDataKey::Addresses)
+                .unwrap();
+
+            if let Some(index) = addresses.iter().position(|x| x == user) {
+                addresses.remove(index.try_into().unwrap())
+            } else {
+                panic!("Address not found in Addresses");
+            };
         } else {
             let loan = Loan {
                 borrowed_amount: new_borrowed_amount,
