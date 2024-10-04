@@ -1,5 +1,5 @@
 import WalletCard from '@components/WalletCard/WalletCard';
-import { CURRENCY_BINDINGS } from 'src/currency-bindings';
+import { CURRENCY_BINDINGS_ARR } from 'src/currency-bindings';
 import { LendableAssetCard } from './LendableAssetCard';
 
 const LendPage = () => {
@@ -7,7 +7,7 @@ const LendPage = () => {
     <div className="mt-14">
       <WalletCard />
       <h1 className="text-3xl font-semibold mb-8 tracking-tight">Lend Assets</h1>
-      {CURRENCY_BINDINGS.map((currency) => (
+      {CURRENCY_BINDINGS_ARR.map((currency) => (
         <LendableAssetCard currency={currency} key={currency.ticker} />
       ))}
     </div>

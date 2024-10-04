@@ -4,7 +4,7 @@ import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import { useState } from 'react';
-import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
+import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 
 export interface AssetsModalProps {
@@ -60,7 +60,7 @@ const TableRow = ({ receivables, ticker }: TableRowProps) => {
 
   if (receivables === 0n) return null;
 
-  const { icon, name, contractClient } = CURRENCY_BINDINGS.find((b) => b.ticker === ticker) as CurrencyBinding;
+  const { icon, name, contractClient } = CURRENCY_BINDINGS[ticker];
   const price = prices?.[ticker];
 
   const handleWithdrawClick = async () => {
