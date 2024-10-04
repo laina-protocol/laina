@@ -3,9 +3,10 @@ import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, to7decimals } from '@lib/converters';
-import { fromCents, SCALAR_7, toCents } from '@lib/formatting';
+import { SCALAR_7, fromCents, toCents } from '@lib/formatting';
+import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
-import type { CurrencyBinding } from 'src/currency-bindings';
+import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 
 const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;
@@ -18,22 +19,22 @@ export interface BorrowModalProps {
   modalId: string;
   onClose: () => void;
   currency: CurrencyBinding;
-  collateral: CurrencyBinding;
   totalSupplied: bigint;
 }
 
-export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSupplied }: BorrowModalProps) => {
+export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: BorrowModalProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
   const { wallet, walletBalances, signTransaction, refetchBalances, prices } = useWallet();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [loanAmount, setLoanAmount] = useState<string>('0');
+  const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>('XLM');
   const [collateralAmount, setCollateralAmount] = useState<string>('0');
 
-  const collateralBalance = walletBalances[collateral.ticker];
+  const collateralBalance = walletBalances[collateralTicker];
 
   const loanPrice = prices?.[ticker];
-  const collateralPrice = prices?.[collateral.ticker];
+  const collateralPrice = prices?.[collateralTicker];
 
   const loanAmountCents = loanPrice ? toCents(loanPrice, BigInt(loanAmount) * SCALAR_7) : undefined;
   const collateralAmountCents = collateralPrice
@@ -68,12 +69,14 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
     try {
       loanManagerClient.options.publicKey = wallet.address;
 
+      const { contractId: collateralCurrencyId } = CURRENCY_BINDINGS[collateralTicker];
+
       const tx = await loanManagerClient.create_loan({
         user: wallet.address,
         borrowed: to7decimals(loanAmount),
         borrowed_from: loanCurrencyId,
         collateral: to7decimals(collateralAmount),
-        collateral_from: collateral.contractId,
+        collateral_from: collateralCurrencyId,
       });
       await tx.signAndSend({ signTransaction });
       alert('Loan created succesfully!');
@@ -94,7 +97,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
     // Move the collateral to reach the good health threshold
     const loanAmountCents = toCents(loanPrice, BigInt(ev.target.value) * SCALAR_7);
     const minHealthyCollateralCents = BigInt(Math.ceil(HEALTH_FACTOR_AUTO_THRESHOLD * Number(loanAmountCents) + 100));
-    const minHealthyCollateral = (fromCents(collateralPrice, minHealthyCollateralCents)) / SCALAR_7
+    const minHealthyCollateral = fromCents(collateralPrice, minHealthyCollateralCents) / SCALAR_7;
     if (minHealthyCollateral <= BigInt(maxCollateral)) {
       setCollateralAmount(minHealthyCollateral.toString());
     } else {
@@ -104,6 +107,11 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
   const handleCollateralAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setCollateralAmount(ev.target.value);
+  };
+
+  const handleCollateralTickerChange = (ticker: SupportedCurrency) => {
+    setCollateralTicker(ticker);
+    setCollateralAmount('0');
   };
 
   const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
@@ -140,7 +148,7 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
         <p className="font-bold mb-2 mt-6">Amount to borrow</p>
         <CryptoAmountSelector
-          max={"1000"}
+          max={'1000'}
           value={loanAmount}
           valueCents={loanAmountCents}
           ticker={ticker}
@@ -153,9 +161,10 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
           max={maxCollateral}
           value={collateralAmount}
           valueCents={collateralAmountCents}
-          ticker={collateral.ticker}
+          ticker={collateralTicker}
           onChange={handleCollateralAmountChange}
           onSelectMaximum={handleSelectMaxCollateral}
+          onSelectTicker={handleCollateralTickerChange}
         />
 
         <p className="font-bold mt-6 mb-2">Health Factor</p>
@@ -209,12 +218,12 @@ interface HealthBarProps {
 
 const HealthBar = ({ text, textColor, bgColor, bars }: HealthBarProps) => (
   <>
-    <p className={`${textColor} font-semibold`}>{text}</p>
+    <p className={`${textColor} font-semibold transition-all`}>{text}</p>
     <div className="w-full flex flex-row gap-2">
-      <div className={`h-3 w-full rounded-l ${bgColor}`} />
-      <div className={`h-3 w-full ${bars > 1 ? bgColor : 'bg-grey'}`} />
-      <div className={`h-3 w-full ${bars > 2 ? bgColor : 'bg-grey'}`} />
-      <div className={`h-3 w-full rounded-r ${bars > 3 ? bgColor : 'bg-grey'}`} />
+      <div className={`transition-all h-3 w-full rounded-l ${bgColor}`} />
+      <div className={`transition-all h-3 w-full ${bars > 1 ? bgColor : 'bg-grey'}`} />
+      <div className={`transition-all h-3 w-full ${bars > 2 ? bgColor : 'bg-grey'}`} />
+      <div className={`transition-all h-3 w-full rounded-r ${bars > 3 ? bgColor : 'bg-grey'}`} />
     </div>
   </>
 );

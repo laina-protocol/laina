@@ -51,4 +51,12 @@ export const BINDING_EURC: CurrencyBinding = {
   icon: EURCIcon.src,
 };
 
-export const CURRENCY_BINDINGS = [BINDING_XLM, BINDING_WBTC, BINDING_WETH, BINDING_USDC, BINDING_EURC];
+export const CURRENCY_BINDINGS = {
+  XLM: BINDING_XLM,
+  wBTC: BINDING_WBTC,
+  wETH: BINDING_WETH,
+  USDC: BINDING_USDC,
+  EURC: BINDING_EURC,
+} as const;
+
+export const CURRENCY_BINDINGS_ARR = Object.values(CURRENCY_BINDINGS);

@@ -33,7 +33,7 @@ export const toCents = (price: bigint, amount: bigint): bigint => {
 
 export const fromCents = (price: bigint, cents: bigint): bigint => {
   return (cents * CENTS_SCALAR) / price;
-}
+};
 
 export const formatCentAmount = (cents: bigint): string => {
   if (cents === 0n) return '$0';
