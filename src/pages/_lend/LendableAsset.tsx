@@ -1,5 +1,4 @@
 import { Button } from '@components/Button';
-import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';

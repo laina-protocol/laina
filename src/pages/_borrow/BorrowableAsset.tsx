@@ -2,7 +2,6 @@ import { isNil } from 'ramda';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@components/Button';
-import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { BINDING_USDC, BINDING_XLM, type CurrencyBinding } from 'src/currency-bindings';
