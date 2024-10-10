@@ -144,6 +144,7 @@ impl LoanManager {
 
         // FIXME: Currently one can call initialize multiple times to change same addresses loan
         let loan = Loan {
+            owner: user.clone(),
             borrowed_amount,
             borrowed_from,
             collateral_amount,
@@ -312,6 +313,7 @@ impl LoanManager {
         user.require_auth();
 
         let Loan {
+            owner,
             borrowed_amount,
             borrowed_from,
             collateral_amount,
@@ -356,6 +358,7 @@ impl LoanManager {
             };
         } else {
             let loan = Loan {
+                owner,
                 borrowed_amount: new_borrowed_amount,
                 borrowed_from,
                 collateral_amount,
