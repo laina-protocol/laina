@@ -3,8 +3,8 @@ interface IdenticonProps {
 }
 
 const Identicon = ({ address }: IdenticonProps) => (
-  <div className="avatar bg-white rounded-full">
-    <div className="w-16 p-3">
+  <div className="avatar bg-white rounded-full border-4">
+    <div className="w-14 p-[.6rem]">
       <img src={`https://id.lobstr.co/${address}.png`} alt="Your wallet's identicon" />
     </div>
   </div>

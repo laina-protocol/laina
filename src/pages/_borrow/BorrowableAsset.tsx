@@ -13,7 +13,7 @@ interface BorrowableAssetCardProps {
   currency: CurrencyBinding;
 }
 
-export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
+export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
   const { icon, name, ticker, contractClient } = currency;
 
   const modalId = `borrow-modal-${ticker}`;
@@ -116,36 +116,36 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
   }, [totalSupplied, wallet, collateralBalance]);
 
   return (
-    <Card className="mb-9 p-6 min-h-36 flex flex-row items-center">
-      <div className="min-w-12">
+    <tr className="border-none text-base h-[6.5rem]">
+      <td className="w-20 pl-2 pr-6">
         <img src={icon} alt="" className="mx-auto max-h-12" />
-      </div>
+      </td>
 
-      <div className="ml-6 w-64">
+      <td>
         <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
         <span>{ticker}</span>
-      </div>
+      </td>
 
-      <div className="w-64">
-        <p className="text-grey font-semibold">Available Balance</p>
+      <td>
         <p className="text-xl font-semibold leading-6">{formatSuppliedAmount(totalSupplied)}</p>
         <p>{formatSuppliedAmountPrice(totalSuppliedPrice)}</p>
-      </div>
+      </td>
 
-      <div className="w-64">
-        <p className="text-grey font-semibold">Borrow APY</p>
+      <td>
         <p className="text-xl font-semibold leading-6">1.61%</p>
-      </div>
+      </td>
 
-      {borrowDisabled ? (
-        <div className="tooltip" data-tip={tooltip}>
-          <Button disabled={true} onClick={() => {}}>
-            Borrow
-          </Button>
-        </div>
-      ) : (
-        <Button onClick={openModal}>Borrow</Button>
-      )}
+      <td>
+        {borrowDisabled ? (
+          <div className="tooltip" data-tip={tooltip}>
+            <Button disabled={true} onClick={() => {}}>
+              Borrow
+            </Button>
+          </div>
+        ) : (
+          <Button onClick={openModal}>Borrow</Button>
+        )}
+      </td>
       {!isNil(totalSupplied) && (
         <BorrowModal
           modalId={modalId}
@@ -155,6 +155,6 @@ export const BorrowableAssetCard = ({ currency }: BorrowableAssetCardProps) => {
           totalSupplied={totalSupplied}
         />
       )}
-    </Card>
+    </tr>
   );
 };

@@ -38,7 +38,7 @@ interface InfoCardProps {
 }
 
 const InfoCard = ({ title, content, to, buttonText }: InfoCardProps) => (
-  <Card className="w-full p-20 flex flex-col">
+  <Card className="w-full p-12 flex flex-col">
     <h3 className="text-2xl font-bold tracking-tight mb-6">{title}</h3>
     <p className="mb-6">{content}</p>
     <LinkButton className="mt-auto w-fit" to={to}>

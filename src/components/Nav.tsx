@@ -25,11 +25,9 @@ export default function Nav() {
         </Link>
       </div>
 
-      <div className="hidden md:flex flex-row ml-auto mr-14">
+      <div className="hidden md:flex flex-row ml-auto mr-8">
         <LinkItem to="/laina">Laina</LinkItem>
-        <LinkItem to="/lend">Lend</LinkItem>
-        <LinkItem to="/borrow">Borrow</LinkItem>
-        <LinkItem to="/liquidate">Liquidate</LinkItem>
+        <LinkItem to="/lend">Assets</LinkItem>
       </div>
 
       <div ref={buttonWrapperRef} />
@@ -38,14 +36,8 @@ export default function Nav() {
 }
 
 const LinkItem = ({ to, children }: PropsWithChildren<{ to: string }>) => {
-  const { pathname } = useLocation();
-  const selected = pathname === to;
-
   return (
-    <Link
-      to={to}
-      className={`text-base font-semibold p-4 hover:underline ${selected ? 'underline decoration-2' : ''}}`}
-    >
+    <Link to={to} className="text-base font-semibold p-4 hover:underline">
       {children}
     </Link>
   );

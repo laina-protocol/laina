@@ -4,7 +4,7 @@ import { type PropsWithChildren, createContext, useContext, useEffect, useState 
 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import type { SupportedCurrency } from 'currencies';
-import { CURRENCY_BINDINGS } from './currency-bindings';
+import { BINDING_USDC, BINDING_XLM, CURRENCY_BINDINGS } from './currency-bindings';
 
 const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
 
@@ -77,7 +77,7 @@ const createWalletObj = (address: string): Wallet => ({
 
 const fetchAllPositions = async (user: string): Promise<PositionsRecord> => {
   const positionsArr = await Promise.all(
-    CURRENCY_BINDINGS.map(async ({ contractClient, ticker }) => [
+    [BINDING_XLM, BINDING_USDC].map(async ({ contractClient, ticker }) => [
       ticker,
       (await contractClient.get_user_balance({ user })).result,
     ]),
@@ -85,16 +85,19 @@ const fetchAllPositions = async (user: string): Promise<PositionsRecord> => {
   return Object.fromEntries(positionsArr);
 };
 
-const createBalanceRecord = (balances: Balance[]): BalanceRecord =>
-  balances.reduce((acc, balance) => {
+const createBalanceRecord = (balances: Balance[]): BalanceRecord => {
+  console.log({ balances });
+  return balances.reduce((acc, balance) => {
     if (balance.asset_type === 'native') {
       acc.XLM = balance;
     } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'USDC') {
       acc.USDC = balance;
+    } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'EURC') {
+      acc.EURC = balance;
     }
     return acc;
   }, {} as BalanceRecord);
-
+};
 const fetchAllPrices = async (): Promise<PriceRecord> => {
   const [XLM, wBTC, wETH, USDC, EURC] = await Promise.all([
     fetchPriceData('XLM'),
@@ -128,6 +131,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     setWalletBalances(createBalanceRecord(balances));
     setPositions(await fetchAllPositions(address));
   };
+
+  console.log({ positions });
 
   // Set initial wallet on load.
   // biome-ignore lint: useEffect is ass
