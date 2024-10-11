@@ -41,7 +41,7 @@ export const CURRENCY_USDC: Currency = {
 export const CURRENCY_EURC: Currency = {
   name: 'Euro Coin',
   ticker: 'EURC',
-  tokenContractAddress: 'GB3Q6QDZYTHWT7E5PVS3W7FUT5GVAFC5KSZFFLPU25GO7VTC3NM2ZTVO',
+  tokenContractAddress: 'CCUUDM434BMZMYWYDITHFXHDMIVTGGD6T2I5UKNX5BSLXLW7HVR4MCGZ',
   loanPoolName: 'pool_eurc',
 } as const;
 

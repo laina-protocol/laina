@@ -1,5 +1,4 @@
 import { Button } from '@components/Button';
-import { Card } from '@components/Card';
 import { Loading } from '@components/Loading';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
@@ -8,11 +7,11 @@ import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
 import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 
-export interface LendableAssetCardProps {
+export interface LendableAssetProps {
   currency: CurrencyBinding;
 }
 
-export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
+export const LendableAsset = ({ currency }: LendableAssetProps) => {
   const { icon, name, ticker, contractClient } = currency;
 
   const { wallet, walletBalances, prices } = useWallet();
@@ -63,37 +62,37 @@ export const LendableAssetCard = ({ currency }: LendableAssetCardProps) => {
   };
 
   return (
-    <Card className="mb-9 p-6 min-h-36 flex flex-row items-center">
-      <div className="min-w-12">
+    <tr className="border-none text-base h-[6.5rem]">
+      <td className="pl-2 pr-6 w-20">
         <img src={icon} alt="" className="mx-auto max-h-12" />
-      </div>
+      </td>
 
-      <div className="ml-6 w-64">
+      <td>
         <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
         <span>{ticker}</span>
-      </div>
+      </td>
 
-      <div className="w-64">
-        <p className="text-grey font-semibold">Total Supplied</p>
+      <td>
         <p className="text-xl font-semibold leading-6">{formatSuppliedAmount(totalSupplied)}</p>
         <p>{!isNil(price) && !isNil(totalSupplied) && toDollarsFormatted(price, totalSupplied)}</p>
-      </div>
+      </td>
 
-      <div className="w-64">
-        <p className="text-grey font-semibold">Supply APY</p>
+      <td>
         <p className="text-xl font-semibold leading-6">1.23%</p>
-      </div>
+      </td>
 
-      {isPoor ? (
-        <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
-          <Button disabled={true} onClick={() => {}}>
-            Deposit
-          </Button>
-        </div>
-      ) : (
-        <Button onClick={openModal}>Deposit</Button>
-      )}
+      <td className="pr-0">
+        {isPoor ? (
+          <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
+            <Button disabled={true} onClick={() => {}}>
+              Deposit
+            </Button>
+          </div>
+        ) : (
+          <Button onClick={openModal}>Deposit</Button>
+        )}
+      </td>
       <DepositModal modalId={modalId} onClose={closeModal} currency={currency} />
-    </Card>
+    </tr>
   );
 };

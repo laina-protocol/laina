@@ -91,6 +91,8 @@ const createBalanceRecord = (balances: Balance[]): BalanceRecord =>
       acc.XLM = balance;
     } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'USDC') {
       acc.USDC = balance;
+    } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'EURC') {
+      acc.EURC = balance;
     }
     return acc;
   }, {} as BalanceRecord);

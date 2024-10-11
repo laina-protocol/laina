@@ -1,15 +1,29 @@
+import { Card } from '@components/Card';
+import { Table } from '@components/Table';
 import WalletCard from '@components/WalletCard/WalletCard';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
-import { LendableAssetCard } from './LendableAssetCard';
+import { LendableAsset } from './LendableAsset';
+
+const links = [
+  { to: '/lend', label: 'Lend' },
+  { to: '/borrow', label: 'Borrow' },
+  { to: '/liquidate', label: 'Liquidate' },
+];
 
 const LendPage = () => {
   return (
-    <div className="mt-14">
+    <div className="my-14">
       <WalletCard />
-      <h1 className="text-3xl font-semibold mb-8 tracking-tight">Lend Assets</h1>
-      {CURRENCY_BINDINGS.map((currency) => (
-        <LendableAssetCard currency={currency} key={currency.ticker} />
-      ))}
+      <Card links={links}>
+        <div className="px-12 pb-12 pt-4">
+          <h1 className="text-2xl font-semibold mb-4 tracking-tight">Lend Assets</h1>
+          <Table headers={['Asset', null, 'Total Supplied', 'Supply APY', null]}>
+            {CURRENCY_BINDINGS.map((currency) => (
+              <LendableAsset currency={currency} key={currency.ticker} />
+            ))}
+          </Table>
+        </div>
+      </Card>
     </div>
   );
 };

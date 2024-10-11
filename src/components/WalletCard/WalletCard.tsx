@@ -17,7 +17,7 @@ const WalletCard = () => {
 
   if (!wallet) {
     return (
-      <Card bgColor="black" className="text-white p-6 mb-12 min-h-36 flex flex-col justify-center">
+      <Card bgColor="black" className="text-white p-12 mb-12 min-h-36 flex flex-col justify-center">
         <h2 className="text-xl font-semibold">My Account</h2>
         <p className="mt-2">To view your assets, connect a wallet first.</p>
       </Card>
@@ -28,7 +28,7 @@ const WalletCard = () => {
 
   if (isNil(values)) {
     return (
-      <Card bgColor="black" className="text-white p-6 mb-12 flex flex-row flex-wrap justify-between items-center">
+      <Card bgColor="black" className="text-white p-12 mb-12 flex flex-row flex-wrap justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">My Account</h2>
           <div className="my-6 flex flex-row items-center">
@@ -73,7 +73,7 @@ const WalletCard = () => {
 
   return (
     <>
-      <Card bgColor="black" className="text-white p-6 mb-12 flex flex-row flex-wrap justify-between">
+      <Card bgColor="black" className="text-white p-12 mb-12 flex flex-row flex-wrap justify-between">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">My Account</h2>
           <div className="my-6 flex flex-row items-center">
