@@ -381,6 +381,73 @@ impl LoanManager {
     pub fn get_interest_rate(e: Env, pool: Address) -> i128 {
         get_interest(e, pool)
     }
+
+    pub fn liquidate(e: Env, user: Address, loan: Loan, amount: i128) -> (i128, i128, i128) {
+        user.require_auth();
+
+        let Loan {
+            owner,
+            borrowed_amount,
+            borrowed_from,
+            collateral_from,
+            collateral_amount,
+            health_factor,
+            unpaid_interest,
+        } = loan;
+
+        let key = (Symbol::new(&e, "Loan"), owner.clone());
+
+        let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
+
+        assert!(health_factor < 12000000);
+        assert!(amount < (borrowed_amount / 2));
+
+        const TEMP_BONUS: i128 = 5_000_000;
+
+        let collateral_amount_bonus =
+            (((amount * 10_000_000 / borrowed_amount) * collateral_amount) / 10_000_000)
+                + (TEMP_BONUS / 10_000);
+
+        borrow_pool_client.liquidate(&user, &amount, &unpaid_interest, &owner);
+
+        collateral_pool_client.liquidate_transfer_collateral(
+            &user,
+            &collateral_amount_bonus,
+            &owner,
+        );
+
+        let borrowed_ticker = Symbol::new(&e, "XLM");
+        let collateral_ticker = Symbol::new(&e, "USDC");
+        let new_borrowed_amount = borrowed_amount - amount;
+        let new_collateral_amount = collateral_amount - collateral_amount_bonus;
+
+        let new_health_factor = Self::calculate_health_factor(
+            &e,
+            borrowed_ticker,
+            new_borrowed_amount,
+            collateral_ticker,
+            new_collateral_amount,
+        );
+
+        let new_loan = Loan {
+            owner,
+            borrowed_amount: new_borrowed_amount,
+            borrowed_from,
+            collateral_from,
+            collateral_amount: collateral_amount - collateral_amount_bonus,
+            health_factor: new_health_factor,
+            unpaid_interest, // Temp
+        };
+
+        e.storage().persistent().set(&key, &new_loan);
+
+        (
+            borrowed_amount - amount,
+            collateral_amount - collateral_amount_bonus,
+            collateral_amount_bonus,
+        )
+    }
 }
 
 #[cfg(test)]
@@ -924,5 +991,102 @@ mod tests {
         contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
         contract_client.repay(&user, &2_000);
+    }
+    #[test]
+    fn liquidate() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.min_persistent_entry_ttl = 1_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let admin2 = Address::generate(&e);
+        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token_contract_id.clone(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
+
+        // Register mock Reflector contract.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        // Mint the user some coins
+        let user = Address::generate(&e);
+        collateral_asset.mint(&user, &1_000_000);
+
+        assert_eq!(collateral_token.balance(&user), 1_000_000);
+
+        // Set up a loan pool with funds for borrowing.
+        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
+
+        // Set up a loan_pool for the collaterals.
+        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
+
+        // Register loan manager contract.
+        let contract_id = e.register_contract(None, LoanManager);
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
+
+        // ACT
+        // Initialize the loan pool and deposit some of the admin's funds.
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.deposit(&admin, &900_000);
+
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+
+        // Create a loan.
+        contract_client.create_loan(&user, &10_000, &loan_pool_id, &12_001, &collateral_pool_id);
+
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 10_000);
+
+        contract_client.add_interest();
+
+        // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
+        assert_eq!(user_loan.borrowed_amount, 10_000);
+        assert_eq!(user_loan.health_factor, 12_001_000);
+
+        // Move time
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + 100_000;
+        });
+
+        // A new instance of reflector mock needs to be created, they only live for one ledger.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        contract_client.add_interest();
+
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 10_003);
+        assert_eq!(user_loan.health_factor, 11_997_400);
+        assert_eq!(user_loan.collateral_amount, 12_001);
+
+        contract_client.liquidate(&admin, &user_loan, &5_000);
+
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 5_003);
+        assert_eq!(user_loan.health_factor, 10_999_400);
+        assert_eq!(user_loan.collateral_amount, 5_503);
     }
 }
