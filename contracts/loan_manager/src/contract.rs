@@ -417,8 +417,8 @@ impl LoanManager {
             &owner,
         );
 
-        let borrowed_ticker = Symbol::new(&e, "XLM");
-        let collateral_ticker = Symbol::new(&e, "USDC");
+        let borrowed_ticker = borrow_pool_client.get_currency().ticker;
+        let collateral_ticker = collateral_pool_client.get_currency().ticker;
         let new_borrowed_amount = borrowed_amount - amount;
         let new_collateral_amount = collateral_amount - collateral_amount_bonus;
 
@@ -996,6 +996,7 @@ mod tests {
     fn liquidate() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -1088,5 +1089,7 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 5_003);
         assert_eq!(user_loan.health_factor, 10_999_400);
         assert_eq!(user_loan.collateral_amount, 5_503);
+
+        e.budget().print();
     }
 }
