@@ -3,36 +3,38 @@ import { Link } from 'react-router-dom';
 
 export interface ButtonProps {
   onClick?: () => void;
-  color?: ButtonColor;
+  variant?: ButtonVariant;
   disabled?: boolean;
   className?: string;
 }
 
-export type ButtonColor = 'black' | 'white' | 'ghost';
+export type ButtonVariant = 'black' | 'white' | 'ghost' | 'outline';
 
-const buttonStyle = (color: ButtonColor) => {
-  return `btn ${getButtonColor(color)} font-semibold text-base rounded-full px-8 py-2`;
+const buttonStyle = (variant: ButtonVariant) => {
+  return `btn ${getButtonVariant(variant)} font-semibold text-base rounded-full px-8 py-2`;
 };
 
-const getButtonColor = (color: ButtonColor): string => {
-  switch (color) {
+const getButtonVariant = (variant: ButtonVariant): string => {
+  switch (variant) {
     case 'black':
       return 'btn-neutral text-white';
     case 'white':
       return 'btn-primary';
     case 'ghost':
       return 'btn-ghost';
+    case 'outline':
+      return 'btn-outline';
   }
 };
 
 export const Button = ({
   onClick,
-  color = 'black',
+  variant = 'black',
   disabled = false,
   className = '',
   children,
 }: PropsWithChildren<ButtonProps>) => (
-  <button type="button" onClick={onClick} disabled={disabled} className={`${buttonStyle(color)} ${className}`}>
+  <button type="button" onClick={onClick} disabled={disabled} className={`${buttonStyle(variant)} ${className}`}>
     {children}
   </button>
 );

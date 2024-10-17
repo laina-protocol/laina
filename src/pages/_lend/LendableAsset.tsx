@@ -1,9 +1,9 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { formatAmount, toDollarsFormatted } from 'src/lib/formatting';
 import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 

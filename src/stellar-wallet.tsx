@@ -4,7 +4,7 @@ import { type PropsWithChildren, createContext, useContext, useEffect, useState 
 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import type { SupportedCurrency } from 'currencies';
-import { CURRENCY_BINDINGS } from './currency-bindings';
+import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
 
 const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
 
@@ -77,9 +77,9 @@ const createWalletObj = (address: string): Wallet => ({
 
 const fetchAllPositions = async (user: string): Promise<PositionsRecord> => {
   const positionsArr = await Promise.all(
-    CURRENCY_BINDINGS.map(async ({ contractClient, ticker }) => [
+    CURRENCY_BINDINGS_ARR.map(async ({ contractClient, ticker }) => [
       ticker,
-      (await contractClient.get_user_balance({ user })).result,
+      (await contractClient.get_user_positions({ user })).result,
     ]),
   );
   return Object.fromEntries(positionsArr);

@@ -15,6 +15,10 @@ export default {
       },
       black: '#000',
       primary: '#000',
+      red: '#e51414',
+      yellow: '#e18c02',
+      blue: '#0048ff',
+      green: '#0fdd13',
     },
     fontSize: {
       sm: ['14px', '20px'],
