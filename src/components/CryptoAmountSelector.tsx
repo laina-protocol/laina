@@ -1,8 +1,8 @@
+import { isBalanceZero } from '@lib/converters';
 import { formatCentAmount } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
-import { isNil, useWith } from 'ramda';
+import { isNil } from 'ramda';
 import type { ChangeEvent } from 'react';
-import { CURRENCY_BINDINGS_ARR } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 import { Button } from './Button';
 
@@ -13,7 +13,12 @@ export interface CryptoAmountSelectorProps {
   ticker: SupportedCurrency;
   onChange: (ev: ChangeEvent<HTMLInputElement>) => void;
   onSelectMaximum: () => void;
-  onSelectTicker?: (ticker: SupportedCurrency) => void;
+  tickerChangeOptions?: TickerChangeOptions;
+}
+
+export interface TickerChangeOptions {
+  options: SupportedCurrency[];
+  onSelectTicker: (ticker: SupportedCurrency) => void;
 }
 
 export const CryptoAmountSelector = ({
@@ -23,7 +28,7 @@ export const CryptoAmountSelector = ({
   ticker,
   onChange,
   onSelectMaximum,
-  onSelectTicker,
+  tickerChangeOptions,
 }: CryptoAmountSelectorProps) => (
   <>
     <input type="range" min={0} max={max} value={value ?? '0'} className="range" onChange={onChange} />
@@ -35,7 +40,7 @@ export const CryptoAmountSelector = ({
       <span>|</span>
     </div>
     <div className="flex flex-row items-center max-w-full gap-2">
-      {isNil(onSelectTicker) ? (
+      {isNil(tickerChangeOptions) ? (
         <label className="input input-bordered flex items-center gap-2 w-1/2">
           <input type="number" value={value} onChange={onChange} placeholder="" className="text-right w-1/2" />
           <span className="text-grey w-1/2">{ticker}</span>
@@ -53,10 +58,10 @@ export const CryptoAmountSelector = ({
             className="select select-bordered w-1/2 join-item"
             value={ticker}
             onChange={(ev) => {
-              onSelectTicker(ev.target.value as SupportedCurrency);
+              tickerChangeOptions.onSelectTicker(ev.target.value as SupportedCurrency);
             }}
           >
-            {CURRENCY_BINDINGS_ARR.map(({ ticker }) => (
+            {tickerChangeOptions.options.map((ticker) => (
               <TickerOption key={ticker} ticker={ticker} />
             ))}
           </select>
@@ -73,7 +78,7 @@ export const CryptoAmountSelector = ({
 const TickerOption = ({ ticker }: { ticker: SupportedCurrency }) => {
   const { walletBalances } = useWallet();
   const balance = walletBalances[ticker];
-  const disabled = isNil(balance) || balance.balance === '0';
+  const disabled = isNil(balance) || isBalanceZero(balance.balance);
 
   return (
     <option disabled={disabled} value={ticker}>
