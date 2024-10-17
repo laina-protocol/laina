@@ -226,6 +226,7 @@ mod test {
     fn initialize() {
         let e: Env = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin: Address = Address::generate(&e);
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
@@ -254,6 +255,7 @@ mod test {
     fn deposit() {
         let e: Env = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin: Address = Address::generate(&e);
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
@@ -287,6 +289,7 @@ mod test {
     fn borrow() {
         let e = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin = Address::generate(&e);
 
@@ -325,6 +328,7 @@ mod test {
     fn withdraw() {
         let e: Env = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin: Address = Address::generate(&e);
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
@@ -363,6 +367,7 @@ mod test {
     fn deposit_more_than_account_balance() {
         let e: Env = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin: Address = Address::generate(&e);
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
@@ -395,6 +400,7 @@ mod test {
     fn withdraw_more_than_balance() {
         let e: Env = Env::default();
         e.mock_all_auths();
+        e.budget().reset_unlimited();
 
         let admin: Address = Address::generate(&e);
         let token_contract_id = e.register_stellar_asset_contract(admin.clone());
