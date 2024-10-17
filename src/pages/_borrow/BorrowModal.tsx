@@ -6,7 +6,7 @@ import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
-import { CURRENCY_BINDINGS, type CurrencyBinding } from 'src/currency-bindings';
+import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 
 const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;
@@ -30,6 +30,10 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
   const [loanAmount, setLoanAmount] = useState<string>('0');
   const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>('XLM');
   const [collateralAmount, setCollateralAmount] = useState<string>('0');
+
+  const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
+    ({ ticker }) => ticker,
+  );
 
   const collateralBalance = walletBalances[collateralTicker];
 
@@ -133,7 +137,7 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
         <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
         <p className="my-4">
           Borrow {name} using another asset as a collateral. The value of the collateral must exceed the value of the
-          borrowed asset.
+          borrowed asset. You will receive the collateral back to your wallet after repaying the loan in full.
         </p>
         <p className="my-4">
           The higher the value of the collateral is to the value of the borrowed asset, the safer this loan is. This is
@@ -164,7 +168,10 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
           ticker={collateralTicker}
           onChange={handleCollateralAmountChange}
           onSelectMaximum={handleSelectMaxCollateral}
-          onSelectTicker={handleCollateralTickerChange}
+          tickerChangeOptions={{
+            onSelectTicker: handleCollateralTickerChange,
+            options: collateralOptions,
+          }}
         />
 
         <p className="font-bold mt-6 mb-2">Health Factor</p>
