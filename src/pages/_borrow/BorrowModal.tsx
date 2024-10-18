@@ -1,28 +1,52 @@
 import { Button } from '@components/Button';
+import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
+import { getIntegerPart, to7decimals } from '@lib/converters';
+import { SCALAR_7, fromCents, toCents } from '@lib/formatting';
+import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
-import type { CurrencyBinding } from 'src/currency-bindings';
-import { to7decimals } from 'src/lib/converters';
+import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
+
+const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;
+const HEALTH_FACTOR_GOOD_THRESHOLD = 1.6;
+const HEALTH_FACTOR_EXCELLENT_THRESHOLD = 2.0;
+
+const HEALTH_FACTOR_AUTO_THRESHOLD = 1.65;
 
 export interface BorrowModalProps {
   modalId: string;
   onClose: () => void;
   currency: CurrencyBinding;
-  collateral: CurrencyBinding;
   totalSupplied: bigint;
 }
 
-export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSupplied }: BorrowModalProps) => {
+export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: BorrowModalProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
-  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances, prices } = useWallet();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
-  const [loanAmount, setLoanAmount] = useState('0');
-  const [collateralAmount, setCollateralAmount] = useState('0');
+  const [loanAmount, setLoanAmount] = useState<string>('0');
+  const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>('XLM');
+  const [collateralAmount, setCollateralAmount] = useState<string>('0');
 
-  const collateralBalance = walletBalances[collateral.ticker];
+  const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
+    ({ ticker }) => ticker,
+  );
+
+  const collateralBalance = walletBalances[collateralTicker];
+
+  const loanPrice = prices?.[ticker];
+  const collateralPrice = prices?.[collateralTicker];
+
+  const loanAmountCents = loanPrice ? toCents(loanPrice, BigInt(loanAmount) * SCALAR_7) : undefined;
+  const collateralAmountCents = collateralPrice
+    ? toCents(collateralPrice, BigInt(collateralAmount) * SCALAR_7)
+    : undefined;
+
+  const healthFactor =
+    loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
   // The modal is impossible to open without collateral balance.
   if (!collateralBalance) return null;
@@ -39,18 +63,24 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
       alert('Please connect your wallet first!');
       return;
     }
+    if (!loanAmount || !collateralAmount) {
+      alert('Empty loan amount or collateral!');
+      return;
+    }
 
     setIsBorrowing(true);
 
     try {
       loanManagerClient.options.publicKey = wallet.address;
 
+      const { contractId: collateralCurrencyId } = CURRENCY_BINDINGS[collateralTicker];
+
       const tx = await loanManagerClient.create_loan({
         user: wallet.address,
         borrowed: to7decimals(loanAmount),
         borrowed_from: loanCurrencyId,
         collateral: to7decimals(collateralAmount),
-        collateral_from: collateral.contractId,
+        collateral_from: collateralCurrencyId,
       });
       await tx.signAndSend({ signTransaction });
       alert('Loan created succesfully!');
@@ -65,65 +95,90 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
 
   const handleLoanAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setLoanAmount(ev.target.value);
+
+    if (!loanPrice || !collateralPrice) return;
+
+    // Move the collateral to reach the good health threshold
+    const loanAmountCents = toCents(loanPrice, BigInt(ev.target.value) * SCALAR_7);
+    const minHealthyCollateralCents = BigInt(Math.ceil(HEALTH_FACTOR_AUTO_THRESHOLD * Number(loanAmountCents) + 100));
+    const minHealthyCollateral = fromCents(collateralPrice, minHealthyCollateralCents) / SCALAR_7;
+    if (minHealthyCollateral <= BigInt(maxCollateral)) {
+      setCollateralAmount(minHealthyCollateral.toString());
+    } else {
+      setCollateralAmount(maxCollateral);
+    }
   };
 
   const handleCollateralAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setCollateralAmount(ev.target.value);
   };
 
-  const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0';
+  const handleCollateralTickerChange = (ticker: SupportedCurrency) => {
+    setCollateralTicker(ticker);
+    setCollateralAmount('0');
+  };
+
+  const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
   const maxLoan = (totalSupplied / 10_000_000n).toString();
 
-  const maxCollateral = collateralBalance.balance.split('.')[0];
+  const maxCollateral = getIntegerPart(collateralBalance.balance);
+
+  const handleSelectMaxLoan = () => setLoanAmount(maxLoan);
+
+  const handleSelectMaxCollateral = () => setCollateralAmount(maxCollateral);
+
+  // TODO: get this from the contract.
+  const interestRate = '7.5%';
 
   return (
     <dialog id={modalId} className="modal">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg mb-8">Borrow {name}</h3>
-
-        <p className="text-lg mb-2">Amount to borrow</p>
-        <input
-          type="range"
-          min={0}
-          max={maxLoan}
-          value={loanAmount}
-          className="range"
-          onChange={handleLoanAmountChange}
-        />
-        <div className="flex w-full justify-between px-2 text-xs">
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-        </div>
-        <p>
-          {loanAmount} {ticker} out of {maxLoan} {ticker}
+      <div className="modal-box w-full max-w-full md:w-[700px] p-10">
+        <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
+        <p className="my-4">
+          Borrow {name} using another asset as a collateral. The value of the collateral must exceed the value of the
+          borrowed asset. You will receive the collateral back to your wallet after repaying the loan in full.
         </p>
+        <p className="my-4">
+          The higher the value of the collateral is to the value of the borrowed asset, the safer this loan is. This is
+          visualised by the health factor.
+        </p>
+        <p className="my-4">
+          The loan will be available for liquidation if the value of the borrowed asset raises to the value of the
+          collateral, causing you to lose some of your collateral.
+        </p>
+        <p className="my-4">The interest rate changes as the amount of assets borrowed from the pools changes.</p>
+        <p className="my-4">The annual interest rate is currently {interestRate}.</p>
 
-        <p className="text-lg mb-2 mt-4">Amount of collateral</p>
-        <input
-          type="range"
-          min={0}
+        <p className="font-bold mb-2 mt-6">Amount to borrow</p>
+        <CryptoAmountSelector
+          max={'1000'}
+          value={loanAmount}
+          valueCents={loanAmountCents}
+          ticker={ticker}
+          onChange={handleLoanAmountChange}
+          onSelectMaximum={handleSelectMaxLoan}
+        />
+
+        <p className="font-bold mb-2 mt-4">Amount of collateral</p>
+        <CryptoAmountSelector
           max={maxCollateral}
           value={collateralAmount}
-          className="range"
+          valueCents={collateralAmountCents}
+          ticker={collateralTicker}
           onChange={handleCollateralAmountChange}
+          onSelectMaximum={handleSelectMaxCollateral}
+          tickerChangeOptions={{
+            onSelectTicker: handleCollateralTickerChange,
+            options: collateralOptions,
+          }}
         />
-        <div className="flex w-full justify-between px-2 text-xs">
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-          <span>|</span>
-        </div>
-        <p>
-          {collateralAmount} {collateral.ticker} out of {maxCollateral} {collateral.ticker}
-        </p>
+
+        <p className="font-bold mt-6 mb-2">Health Factor</p>
+        <HealthFactor value={healthFactor} />
 
         <div className="flex flex-row justify-end mt-8">
-          <Button onClick={closeModal} color="ghost" className="mr-4">
+          <Button onClick={closeModal} variant="ghost" className="mr-4">
             Cancel
           </Button>
           {!isBorrowing ? (
@@ -147,3 +202,35 @@ export const BorrowModal = ({ modalId, onClose, currency, collateral, totalSuppl
     </dialog>
   );
 };
+
+const HealthFactor = ({ value }: { value: number }) => {
+  if (value < HEALTH_FACTOR_MIN_THRESHOLD) {
+    return <HealthBar text="Would liquidate immediately" textColor="text-red" bgColor="bg-red" bars={1} />;
+  }
+  if (value < HEALTH_FACTOR_GOOD_THRESHOLD) {
+    return <HealthBar text="At risk of liquidation" textColor="text-yellow" bgColor="bg-yellow" bars={2} />;
+  }
+  if (value < HEALTH_FACTOR_EXCELLENT_THRESHOLD) {
+    return <HealthBar text="Good" textColor="text-blue" bgColor="bg-blue" bars={3} />;
+  }
+  return <HealthBar text="Excellent" textColor="text-green" bgColor="bg-green" bars={4} />;
+};
+
+interface HealthBarProps {
+  text: string;
+  textColor: string;
+  bgColor: string;
+  bars: number;
+}
+
+const HealthBar = ({ text, textColor, bgColor, bars }: HealthBarProps) => (
+  <>
+    <p className={`${textColor} font-semibold transition-all`}>{text}</p>
+    <div className="w-full flex flex-row gap-2">
+      <div className={`transition-all h-3 w-full rounded-l ${bgColor}`} />
+      <div className={`transition-all h-3 w-full ${bars > 1 ? bgColor : 'bg-grey'}`} />
+      <div className={`transition-all h-3 w-full ${bars > 2 ? bgColor : 'bg-grey'}`} />
+      <div className={`transition-all h-3 w-full rounded-r ${bars > 3 ? bgColor : 'bg-grey'}`} />
+    </div>
+  </>
+);

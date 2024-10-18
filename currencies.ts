@@ -11,7 +11,7 @@ export type Currency = {
 // TODO: use environment variables for the addresses.
 
 export const CURRENCY_XLM: Currency = {
-  name: 'Stellar Lumen',
+  name: 'Stellar Lumens',
   ticker: 'XLM',
   tokenContractAddress: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
   loanPoolName: 'pool_xlm',
