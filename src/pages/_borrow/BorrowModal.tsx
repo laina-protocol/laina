@@ -152,7 +152,7 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
 
         <p className="font-bold mb-2 mt-6">Amount to borrow</p>
         <CryptoAmountSelector
-          max={'1000'}
+          max={maxLoan}
           value={loanAmount}
           valueCents={loanAmountCents}
           ticker={ticker}
