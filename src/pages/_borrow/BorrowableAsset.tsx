@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { BINDING_USDC, BINDING_XLM, type CurrencyBinding } from 'src/currency-bindings';
+import { isBalanceZero } from '@lib/converters';
+import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 import { BorrowModal } from './BorrowModal';
 
@@ -22,12 +23,12 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
-  // Collateral is the other supported currency for now.
-  const collateral = ticker === 'XLM' ? BINDING_USDC : BINDING_XLM;
+  // Does the user have some other token in their wallet to use as a collateral?
+  const isCollateral = Object.entries(walletBalances)
+    .filter(([t, _b]) => t !== ticker)
+    .some(([_t, b]) => !isBalanceZero(b.balance));
 
-  const collateralBalance = walletBalances[collateral.ticker];
-
-  const borrowDisabled = !wallet || !collateralBalance || !totalSupplied;
+  const borrowDisabled = !wallet || !isCollateral || !totalSupplied;
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!contractClient) return;
@@ -110,9 +111,9 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
   const tooltip = useMemo(() => {
     if (!totalSupplied) return 'The pool has no assets to borrow';
     if (!wallet) return 'Connect a wallet first';
-    if (!collateralBalance) return 'Not enough funds for collateral';
+    if (!isCollateral) return 'Another token needed for the collateral';
     return 'Something odd happened.';
-  }, [totalSupplied, wallet, collateralBalance]);
+  }, [totalSupplied, wallet, isCollateral]);
 
   return (
     <tr className="border-none text-base h-[6.5rem]">
@@ -146,13 +147,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
         )}
       </td>
       {!isNil(totalSupplied) && (
-        <BorrowModal
-          modalId={modalId}
-          onClose={closeModal}
-          currency={currency}
-          collateral={collateral}
-          totalSupplied={totalSupplied}
-        />
+        <BorrowModal modalId={modalId} onClose={closeModal} currency={currency} totalSupplied={totalSupplied} />
       )}
     </tr>
   );

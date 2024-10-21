@@ -1,7 +1,7 @@
 import { Loading } from '@components/Loading';
+import { formatCentAmount, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
-import { formatDollarAmount, toDollars } from 'src/lib/formatting';
 import { type PositionsRecord, type PriceRecord, useWallet } from 'src/stellar-wallet';
 import { Button } from '../Button';
 import { Card } from '../Card';
@@ -48,8 +48,8 @@ const WalletCard = () => {
     );
   }
 
-  const hasReceivables = values.receivablesDollars > 0n;
-  const hasLiabilities = values.liabilitiesDollars > 0n;
+  const hasReceivables = values.receivablesCents > 0n;
+  const hasLiabilities = values.liabilitiesCents > 0n;
 
   const openAssetModal = () => {
     const modalEl = document.getElementById(ASSET_MODAL_ID) as HTMLDialogElement;
@@ -90,9 +90,9 @@ const WalletCard = () => {
             <div className="flex flex-row">
               <div className="w-40 mr-10">
                 <p className="text-grey">Total deposited</p>
-                <p className="text-xl leading-5">{formatDollarAmount(values.receivablesDollars)}</p>
+                <p className="text-xl leading-5">{formatCentAmount(values.receivablesCents)}</p>
               </div>
-              <Button color="white" className="w-44" onClick={openAssetModal}>
+              <Button variant="white" className="w-44" onClick={openAssetModal}>
                 View Assets
               </Button>
             </div>
@@ -103,9 +103,9 @@ const WalletCard = () => {
             <div className="flex flex-row">
               <div className="w-40 mr-10">
                 <p className="text-grey">Total borrowed</p>
-                <p className="text-xl leading-5">{formatDollarAmount(values.liabilitiesDollars)}</p>
+                <p className="text-xl leading-5">{formatCentAmount(values.liabilitiesCents)}</p>
               </div>
-              <Button color="white" className="w-44" onClick={openLoansModal}>
+              <Button variant="white" className="w-44" onClick={openLoansModal}>
                 View Loans
               </Button>
             </div>
@@ -121,21 +121,21 @@ const WalletCard = () => {
 };
 
 type ValueObj = {
-  receivablesDollars: bigint;
-  liabilitiesDollars: bigint;
+  receivablesCents: bigint;
+  liabilitiesCents: bigint;
 };
 
 const calculateTotalValue = (prices: PriceRecord, positions: PositionsRecord): ValueObj => {
   return Object.entries(positions).reduce(
     (acc, [ticker, { receivables, liabilities }]) => {
       const price = prices[ticker as SupportedCurrency];
-      acc.receivablesDollars += toDollars(price, receivables);
-      acc.liabilitiesDollars += toDollars(price, liabilities);
+      acc.receivablesCents += toCents(price, receivables);
+      acc.liabilitiesCents += toCents(price, liabilities);
       return acc;
     },
     {
-      receivablesDollars: 0n,
-      liabilitiesDollars: 0n,
+      receivablesCents: 0n,
+      liabilitiesCents: 0n,
     } as ValueObj,
   );
 };
