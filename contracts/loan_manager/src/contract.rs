@@ -409,14 +409,20 @@ impl LoanManager {
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
 
+        let borrowed_ticker = borrow_pool_client.get_currency().ticker;
+        let collateral_ticker = collateral_pool_client.get_currency().ticker;
+
+        let borrowed_price = Self::get_price(&e, borrowed_ticker.clone());
+        let collateral_price = Self::get_price(&e, collateral_ticker.clone());
+
+        const TEMP_BONUS: i128 = 10_500_000; // multiplier 1.05 -> 5%
+
+        let liquidation_value = amount * borrowed_price;
+        let collateral_amount_bonus =
+            (liquidation_value * TEMP_BONUS / collateral_price) / 10_000_000;
+
         assert!(health_factor < 12000000); // Temp high value for testing
         assert!(amount < (borrowed_amount / 2));
-
-        const TEMP_BONUS: i128 = 5_000_000;
-
-        let collateral_amount_bonus =
-            (((amount * 10_000_000 / borrowed_amount) * collateral_amount) / 10_000_000)
-                + (TEMP_BONUS / 10_000);
 
         borrow_pool_client.liquidate(&user, &amount, &unpaid_interest, &borrower);
 
@@ -426,8 +432,6 @@ impl LoanManager {
             &borrower,
         );
 
-        let borrowed_ticker = borrow_pool_client.get_currency().ticker;
-        let collateral_ticker = collateral_pool_client.get_currency().ticker;
         let new_borrowed_amount = borrowed_amount - amount;
         let new_collateral_amount = collateral_amount - collateral_amount_bonus;
 
@@ -1096,18 +1100,26 @@ mod tests {
 
         contract_client.add_interest();
 
+        let user_loan = contract_client.get_loan(&user);
+
         assert_eq!(user_loan.borrowed_amount, 10_003);
         assert_eq!(user_loan.health_factor, 11_997_400);
         assert_eq!(user_loan.collateral_amount, 12_001);
 
-        contract_client.liquidate(&admin, &user, &5_000);
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + 1_000;
+        });
+
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+
+        contract_client.liquidate(&admin, &user, &5000);
 
         let user_loan = contract_client.get_loan(&user);
 
         assert_eq!(user_loan.borrowed_amount, 5_003);
-        assert_eq!(user_loan.health_factor, 10_999_400);
-        assert_eq!(user_loan.collateral_amount, 5_503);
-
+        assert_eq!(user_loan.health_factor, 13_493_903);
+        assert_eq!(user_loan.collateral_amount, 6_751);
         e.budget().print();
     }
 }
