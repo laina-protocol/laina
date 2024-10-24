@@ -24,6 +24,7 @@ const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5O
 #[repr(u32)]
 pub enum Error {
     AlreadyInitialized = 1,
+    LoanAlreadyExists = 2,
 }
 
 #[contract]
@@ -110,8 +111,15 @@ impl LoanManager {
         borrowed_from: Address,
         collateral: i128,
         collateral_from: Address,
-    ) {
+    ) -> Result<(), Error> {
         user.require_auth();
+
+        if e.storage()
+            .persistent()
+            .has(&LoansDataKey::Loan(user.clone()))
+        {
+            return Err(Error::LoanAlreadyExists);
+        }
 
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
@@ -144,7 +152,7 @@ impl LoanManager {
 
         // FIXME: Currently one can call initialize multiple times to change same addresses loan
         let loan = Loan {
-            owner: user.clone(),
+            borrower: user.clone(),
             borrowed_amount,
             borrowed_from,
             collateral_amount,
@@ -169,6 +177,7 @@ impl LoanManager {
             POSITIONS_LIFETIME_THRESHOLD,
             POSITIONS_BUMP_AMOUNT,
         );
+        Ok(())
     }
 
     pub fn add_interest(e: Env) {
@@ -313,7 +322,7 @@ impl LoanManager {
         user.require_auth();
 
         let Loan {
-            owner,
+            borrower,
             borrowed_amount,
             borrowed_from,
             collateral_amount,
@@ -358,7 +367,7 @@ impl LoanManager {
             };
         } else {
             let loan = Loan {
-                owner,
+                borrower,
                 borrowed_amount: new_borrowed_amount,
                 borrowed_from,
                 collateral_amount,
@@ -382,25 +391,25 @@ impl LoanManager {
         get_interest(e, pool)
     }
 
-    pub fn liquidate(e: Env, user: Address, loan: Loan, amount: i128) -> (i128, i128, i128) {
+    pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
         user.require_auth();
 
         let Loan {
-            owner,
+            borrower,
             borrowed_amount,
             borrowed_from,
             collateral_from,
             collateral_amount,
             health_factor,
             unpaid_interest,
-        } = loan;
+        } = Self::get_loan(&e, borrower);
 
-        let key = (Symbol::new(&e, "Loan"), owner.clone());
+        let key = (Symbol::new(&e, "Loan"), borrower.clone());
 
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
 
-        assert!(health_factor < 12000000);
+        assert!(health_factor < 12000000); // Temp high value for testing
         assert!(amount < (borrowed_amount / 2));
 
         const TEMP_BONUS: i128 = 5_000_000;
@@ -409,12 +418,12 @@ impl LoanManager {
             (((amount * 10_000_000 / borrowed_amount) * collateral_amount) / 10_000_000)
                 + (TEMP_BONUS / 10_000);
 
-        borrow_pool_client.liquidate(&user, &amount, &unpaid_interest, &owner);
+        borrow_pool_client.liquidate(&user, &amount, &unpaid_interest, &borrower);
 
         collateral_pool_client.liquidate_transfer_collateral(
             &user,
             &collateral_amount_bonus,
-            &owner,
+            &borrower,
         );
 
         let borrowed_ticker = borrow_pool_client.get_currency().ticker;
@@ -431,7 +440,7 @@ impl LoanManager {
         );
 
         let new_loan = Loan {
-            owner,
+            borrower,
             borrowed_amount: new_borrowed_amount,
             borrowed_from,
             collateral_from,
@@ -467,6 +476,7 @@ mod tests {
     #[test]
     fn initialize() {
         let e = Env::default();
+        e.budget().reset_default();
         let admin = Address::generate(&e);
 
         let contract_id = e.register_contract(None, LoanManager);
@@ -478,6 +488,7 @@ mod tests {
     #[test]
     fn cannot_re_initialize() {
         let e = Env::default();
+        e.budget().reset_default();
         let admin = Address::generate(&e);
 
         let contract_id = e.register_contract(None, LoanManager);
@@ -492,6 +503,7 @@ mod tests {
     fn deploy_pool() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
 
         let admin = Address::generate(&e);
         let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
@@ -523,6 +535,7 @@ mod tests {
     fn upgrade_manager_and_pool() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
         e.mock_all_auths();
 
         let admin = Address::generate(&e);
@@ -547,6 +560,7 @@ mod tests {
     fn create_loan() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -609,6 +623,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
+        e.budget().reset_default();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
             li.min_persistent_entry_ttl = 1_000_000;
@@ -700,6 +715,7 @@ mod tests {
     fn interest_at_max_usage() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -782,6 +798,7 @@ mod tests {
     fn interest_at_half_usage() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -864,6 +881,7 @@ mod tests {
     fn repay() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -938,6 +956,7 @@ mod tests {
     fn repay_more_than_borrowed() {
         // ARRANGE
         let e = Env::default();
+        e.budget().reset_default();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -997,6 +1016,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.budget().reset_unlimited();
+        e.budget().print();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -1076,13 +1096,11 @@ mod tests {
 
         contract_client.add_interest();
 
-        let user_loan = contract_client.get_loan(&user);
-
         assert_eq!(user_loan.borrowed_amount, 10_003);
         assert_eq!(user_loan.health_factor, 11_997_400);
         assert_eq!(user_loan.collateral_amount, 12_001);
 
-        contract_client.liquidate(&admin, &user_loan, &5_000);
+        contract_client.liquidate(&admin, &user, &5_000);
 
         let user_loan = contract_client.get_loan(&user);
 
