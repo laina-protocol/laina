@@ -11,6 +11,7 @@ pub(crate) const POSITIONS_LIFETIME_THRESHOLD: u32 = POSITIONS_BUMP_AMOUNT - DAY
 #[derive(Clone)]
 #[contracttype]
 pub struct Loan {
+    pub borrower: Address,
     pub borrowed_amount: i128,
     pub borrowed_from: Address,
     pub collateral_amount: i128,
