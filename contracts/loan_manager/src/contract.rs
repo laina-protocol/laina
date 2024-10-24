@@ -456,9 +456,9 @@ impl LoanManager {
         e.storage().persistent().set(&key, &new_loan);
 
         (
-            borrowed_amount - amount,
+            new_borrowed_amount,
             collateral_amount - collateral_amount_bonus,
-            collateral_amount_bonus,
+            new_collateral_amount,
         )
     }
 }
