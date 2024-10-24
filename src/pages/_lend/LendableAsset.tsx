@@ -1,5 +1,6 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { isBalanceZero } from '@lib/converters';
 import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
@@ -21,9 +22,9 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
 
   const modalId = `deposit-modal-${ticker}`;
 
-  const balance: Balance | undefined = walletBalances[ticker];
+  const balance: Balance | undefined = walletBalances?.[ticker];
 
-  const isPoor = !balance?.balance || balance.balance === '0';
+  const isPoor = !balance?.trustline || isBalanceZero(balance.balanceLine.balance);
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!contractClient) return;

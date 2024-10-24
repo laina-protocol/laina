@@ -77,8 +77,8 @@ export const CryptoAmountSelector = ({
 
 const TickerOption = ({ ticker }: { ticker: SupportedCurrency }) => {
   const { walletBalances } = useWallet();
-  const balance = walletBalances[ticker];
-  const disabled = isNil(balance) || isBalanceZero(balance.balance);
+  const balance = walletBalances?.[ticker];
+  const disabled = isNil(balance) || !balance.trustline || isBalanceZero(balance.balanceLine.balance);
 
   return (
     <option disabled={disabled} value={ticker}>

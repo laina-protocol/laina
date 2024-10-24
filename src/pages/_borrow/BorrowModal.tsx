@@ -1,3 +1,5 @@
+import * as StellarSdk from '@stellar/stellar-sdk'
+import { Warning } from '@components/Alert';
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
@@ -35,6 +37,10 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     ({ ticker }) => ticker,
   );
 
+  // The modal is impossible to open before the balances load.
+  if (!walletBalances) return null;
+
+  const loanBalance = walletBalances[ticker];
   const collateralBalance = walletBalances[collateralTicker];
 
   const loanPrice = prices?.[ticker];
@@ -49,7 +55,7 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
   // The modal is impossible to open without collateral balance.
-  if (!collateralBalance) return null;
+  if (!collateralBalance.trustline) return null;
 
   const closeModal = () => {
     refetchBalances();
@@ -74,6 +80,8 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
       loanManagerClient.options.publicKey = wallet.address;
 
       const { contractId: collateralCurrencyId } = CURRENCY_BINDINGS[collateralTicker];
+
+
 
       const tx = await loanManagerClient.create_loan({
         user: wallet.address,
@@ -118,11 +126,14 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     setCollateralAmount('0');
   };
 
-  const isBorrowDisabled = loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
+  const isTrustline = loanBalance.trustline;
+
+  const isBorrowDisabled =
+    !isTrustline || loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
   const maxLoan = (totalSupplied / 10_000_000n).toString();
 
-  const maxCollateral = getIntegerPart(collateralBalance.balance);
+  const maxCollateral = getIntegerPart(collateralBalance.balanceLine.balance);
 
   const handleSelectMaxLoan = () => setLoanAmount(maxLoan);
 
@@ -135,6 +146,11 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     <dialog id={modalId} className="modal">
       <div className="modal-box w-full max-w-full md:w-[700px] p-10">
         <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
+        {!isTrustline ? (
+          <Warning>
+            <span>Create a trustline for {ticker} in your wallet first!</span>
+          </Warning>
+        ) : null}
         <p className="my-4">
           Borrow {name} using another asset as a collateral. The value of the collateral must exceed the value of the
           borrowed asset. You will receive the collateral back to your wallet after repaying the loan in full.

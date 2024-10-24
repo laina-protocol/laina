@@ -24,9 +24,11 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
   // Does the user have some other token in their wallet to use as a collateral?
-  const isCollateral = Object.entries(walletBalances)
-    .filter(([t, _b]) => t !== ticker)
-    .some(([_t, b]) => !isBalanceZero(b.balance));
+  const isCollateral = !walletBalances
+    ? false
+    : Object.entries(walletBalances)
+        .filter(([t, _b]) => t !== ticker)
+        .some(([_t, b]) => b.trustline && !isBalanceZero(b.balanceLine.balance));
 
   const borrowDisabled = !wallet || !isCollateral || !totalSupplied;
 
