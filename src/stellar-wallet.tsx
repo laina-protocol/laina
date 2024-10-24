@@ -3,7 +3,7 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 import { type PropsWithChildren, createContext, useContext, useEffect, useState } from 'react';
 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import type { SupportedCurrency } from 'currencies';
+import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
 
 const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
@@ -13,10 +13,12 @@ export type Wallet = {
   displayName: string;
 };
 
-export type Balance = StellarSdk.Horizon.HorizonApi.BalanceLine;
+export type Balance =
+  | { trustline: false }
+  | { trustline: true; balanceLine: StellarSdk.Horizon.HorizonApi.BalanceLine };
 
 export type BalanceRecord = {
-  [K in SupportedCurrency]?: Balance;
+  [K in SupportedCurrency]: Balance;
 };
 
 export type Positions = {
@@ -35,7 +37,7 @@ export type PriceRecord = {
 
 export type WalletContext = {
   wallet: Wallet | null;
-  walletBalances: BalanceRecord;
+  walletBalances: BalanceRecord | null;
   positions: PositionsRecord;
   prices: PriceRecord | null;
   createConnectWalletButton: (container: HTMLElement) => void;
@@ -56,11 +58,11 @@ type XDR_BASE64 = string;
 
 const Context = createContext<WalletContext>({
   wallet: null,
-  walletBalances: {},
+  walletBalances: null,
   positions: {},
   prices: null,
-  createConnectWalletButton: () => {},
-  refetchBalances: () => {},
+  createConnectWalletButton: () => { },
+  refetchBalances: () => { },
   signTransaction: () => Promise.reject(),
 });
 
@@ -85,17 +87,24 @@ const fetchAllPositions = async (user: string): Promise<PositionsRecord> => {
   return Object.fromEntries(positionsArr);
 };
 
-const createBalanceRecord = (balances: Balance[]): BalanceRecord =>
-  balances.reduce((acc, balance) => {
-    if (balance.asset_type === 'native') {
-      acc.XLM = balance;
-    } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'USDC') {
-      acc.USDC = balance;
-    } else if (balance.asset_type === 'credit_alphanum4' && balance.asset_code === 'EURC') {
-      acc.EURC = balance;
-    }
-    return acc;
-  }, {} as BalanceRecord);
+const createBalanceRecord = (balances: StellarSdk.Horizon.HorizonApi.BalanceLine[]): BalanceRecord =>
+  balances.reduce(
+    (acc, balanceLine) => {
+      if (balanceLine.asset_type === 'native') {
+        acc.XLM = { trustline: true, balanceLine };
+      } else if (balanceLine.asset_type === 'credit_alphanum4' && isSupportedCurrency(balanceLine.asset_code)) {
+        acc[balanceLine.asset_code] = { trustline: true, balanceLine };
+      }
+      return acc;
+    },
+    {
+      XLM: { trustline: false },
+      wBTC: { trustline: false },
+      wETH: { trustline: false },
+      USDC: { trustline: false },
+      EURC: { trustline: false },
+    } as BalanceRecord,
+  );
 
 const fetchAllPrices = async (): Promise<PriceRecord> => {
   const [XLM, wBTC, wETH, USDC, EURC] = await Promise.all([
@@ -120,7 +129,7 @@ const fetchPriceData = async (token: string): Promise<bigint> => {
 
 export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [walletBalances, setWalletBalances] = useState<BalanceRecord>({});
+  const [walletBalances, setWalletBalances] = useState<BalanceRecord | null>(null);
   const [positions, setPositions] = useState<PositionsRecord>({});
   const [prices, setPrices] = useState<PriceRecord | null>(null);
 
@@ -154,7 +163,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       onConnect: ({ address }) => setWallet(address),
       onDisconnect: () => {
         setAddress(null);
-        setWalletBalances({});
+        setWalletBalances(null);
       },
     });
   };

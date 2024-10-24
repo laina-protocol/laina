@@ -1,5 +1,8 @@
 export type SupportedCurrency = 'XLM' | 'wBTC' | 'wETH' | 'USDC' | 'EURC';
 
+export const isSupportedCurrency = (obj: unknown): obj is SupportedCurrency =>
+  typeof obj === 'string' && ['XLM', 'wBTC', 'wETH', 'USDC', 'EURC'].includes(obj);
+
 export type Currency = {
   name: string;
   ticker: SupportedCurrency;
