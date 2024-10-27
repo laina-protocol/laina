@@ -1,17 +1,13 @@
-import { type PropsWithChildren, useEffect, useRef } from 'react';
+import type { PropsWithChildren } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useWallet } from 'src/stellar-wallet';
 import logo from '/public/laina_v3_shrinked.png';
+import { Button } from './Button';
+import Identicon from './Identicon';
 
 export default function Nav() {
   const { pathname } = useLocation();
-  const { createConnectWalletButton } = useWallet();
-
-  const buttonWrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    buttonWrapperRef.current && createConnectWalletButton(buttonWrapperRef.current);
-  }, [createConnectWalletButton]);
+  const { wallet, openConnectWalletModal, disconnectWallet } = useWallet();
 
   const isIndex = pathname === '/';
 
@@ -30,7 +26,26 @@ export default function Nav() {
         <LinkItem to="/lend">Assets</LinkItem>
       </div>
 
-      <div ref={buttonWrapperRef} />
+      {!wallet ? (
+        <Button onClick={openConnectWalletModal}>Connect wallet</Button>
+      ) : (
+        <div className="dropdown dropdown-end">
+          <div tabIndex={0} role="button">
+            <Identicon address={wallet.address} />
+          </div>
+          <ul className="dropdown-content rounded-box bg-white mt-1 mr-1 w-64 z-[1] p-4 shadow">
+            <li className="px-8 py-4">
+              <p className="font-semibold">{wallet.displayName}</p>
+              <p className="text-grey leading-tight">{wallet.name}</p>
+            </li>
+            <li>
+              <Button variant="outline" onClick={disconnectWallet}>
+                Disconnect Wallet
+              </Button>
+            </li>
+          </ul>
+        </div>
+      )}
     </nav>
   );
 }

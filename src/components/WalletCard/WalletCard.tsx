@@ -13,13 +13,16 @@ const ASSET_MODAL_ID = 'assets-modal';
 const LOANS_MODAL_ID = 'loans-modal';
 
 const WalletCard = () => {
-  const { wallet, positions, prices } = useWallet();
+  const { wallet, openConnectWalletModal, positions, prices } = useWallet();
 
   if (!wallet) {
     return (
-      <Card bgColor="black" className="text-white p-12 mb-12 min-h-36 flex flex-col justify-center">
+      <Card bgColor="black" className="text-white p-12 mb-12 min-h-36 flex flex-col justify-center items-start">
         <h2 className="text-xl font-semibold">My Account</h2>
-        <p className="mt-2">To view your assets, connect a wallet first.</p>
+        <p className="mt-2 mb-6">To view your assets, connect a wallet first.</p>
+        <Button variant="white" onClick={openConnectWalletModal}>
+          Connect Wallet
+        </Button>
       </Card>
     );
   }
@@ -35,8 +38,7 @@ const WalletCard = () => {
             <Identicon address={wallet.address} />
             <div className="ml-9">
               <p className="text-xl">{wallet.displayName}</p>
-              {/* TODO: Get wallet type from the kit. */}
-              <p className="text-grey leading-tight">Freighter</p>
+              <p className="text-grey leading-tight">{wallet.name}</p>
             </div>
           </div>
         </div>
