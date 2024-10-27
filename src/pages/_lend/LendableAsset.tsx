@@ -24,7 +24,7 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
 
   const balance: Balance | undefined = walletBalances?.[ticker];
 
-  const isPoor = !balance?.trustline || isBalanceZero(balance.balanceLine.balance);
+  const isPoor = !balance?.trustLine || isBalanceZero(balance.balanceLine.balance);
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!contractClient) return;

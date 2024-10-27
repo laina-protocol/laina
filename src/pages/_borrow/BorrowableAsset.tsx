@@ -7,7 +7,7 @@ import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { isBalanceZero } from '@lib/converters';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
-import { BorrowModal } from './BorrowModal';
+import { BorrowModal } from './BorrowModal/BorrowModal';
 
 interface BorrowableAssetCardProps {
   currency: CurrencyBinding;

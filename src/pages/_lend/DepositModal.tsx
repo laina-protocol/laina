@@ -25,7 +25,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
   const amountCents = price ? toCents(price, BigInt(amount) * SCALAR_7) : undefined;
 
-  if (!balance || !balance.trustline) return null;
+  if (!balance || !balance.trustLine) return null;
 
   const max = getIntegerPart(balance.balanceLine.balance);
 

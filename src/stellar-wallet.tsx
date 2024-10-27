@@ -44,7 +44,7 @@ export type WalletContext = {
   signTransaction: SignTransaction;
 };
 
-type SignTransaction = (
+export type SignTransaction = (
   tx: XDR_BASE64,
   opts?: {
     network?: string;
