@@ -28,7 +28,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
     ? false
     : Object.entries(walletBalances)
         .filter(([t, _b]) => t !== ticker)
-        .some(([_t, b]) => b.trustline && !isBalanceZero(b.balanceLine.balance));
+        .some(([_t, b]) => b.trustLine && !isBalanceZero(b.balanceLine.balance));
 
   const borrowDisabled = !wallet || !isCollateral || !totalSupplied;
 
@@ -66,7 +66,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
       const { result } = await loanManagerClient.get_price({ token: currency.ticker });
       setTotalSuppliedPrice(result);
     } catch (error) {
-      console.error('Error fetchin price data:', error);
+      console.error('Error fetching price data:', error);
     }
   }, [currency.ticker]);
 

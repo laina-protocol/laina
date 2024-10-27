@@ -1,4 +1,3 @@
-import * as StellarSdk from '@stellar/stellar-sdk'
 import { Warning } from '@components/Alert';
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
@@ -6,6 +5,7 @@ import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, fromCents, toCents } from '@lib/formatting';
+import { createAddTrustlineTransaction, sendTransaction } from '@lib/horizon';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
@@ -37,8 +37,8 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     ({ ticker }) => ticker,
   );
 
-  // The modal is impossible to open before the balances load.
-  if (!walletBalances) return null;
+  // The modal is impossible to open without a wallet or before the balances load.
+  if (!wallet || !walletBalances) return null;
 
   const loanBalance = walletBalances[ticker];
   const collateralBalance = walletBalances[collateralTicker];
@@ -55,13 +55,19 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
   // The modal is impossible to open without collateral balance.
-  if (!collateralBalance.trustline) return null;
+  if (!collateralBalance.trustLine) return null;
 
   const closeModal = () => {
     refetchBalances();
     setLoanAmount('0');
     setCollateralAmount('0');
     onClose();
+  };
+
+  const handleAddTrustlineClick = async () => {
+    const tx = await createAddTrustlineTransaction(wallet.address, currency);
+    const signedTx = await signTransaction(tx.toXDR());
+    sendTransaction(signedTx);
   };
 
   const handleBorrowClick = async () => {
@@ -80,8 +86,6 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
       loanManagerClient.options.publicKey = wallet.address;
 
       const { contractId: collateralCurrencyId } = CURRENCY_BINDINGS[collateralTicker];
-
-
 
       const tx = await loanManagerClient.create_loan({
         user: wallet.address,
@@ -126,7 +130,7 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
     setCollateralAmount('0');
   };
 
-  const isTrustline = loanBalance.trustline;
+  const isTrustline = loanBalance.trustLine;
 
   const isBorrowDisabled =
     !isTrustline || loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
@@ -149,6 +153,7 @@ export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: Borro
         {!isTrustline ? (
           <Warning>
             <span>Create a trustline for {ticker} in your wallet first!</span>
+            <Button onClick={handleAddTrustlineClick}>Add trustline</Button>
           </Warning>
         ) : null}
         <p className="my-4">

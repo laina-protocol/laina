@@ -1,12 +1,11 @@
 import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
-import * as StellarSdk from '@stellar/stellar-sdk';
+import type * as StellarSdk from '@stellar/stellar-sdk';
 import { type PropsWithChildren, createContext, useContext, useEffect, useState } from 'react';
 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
+import { getBalances } from '@lib/horizon';
 import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
-
-const HorizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org/');
 
 export type Wallet = {
   address: string;
@@ -14,8 +13,8 @@ export type Wallet = {
 };
 
 export type Balance =
-  | { trustline: false }
-  | { trustline: true; balanceLine: StellarSdk.Horizon.HorizonApi.BalanceLine };
+  | { trustLine: false }
+  | { trustLine: true; balanceLine: StellarSdk.Horizon.HorizonApi.BalanceLine };
 
 export type BalanceRecord = {
   [K in SupportedCurrency]: Balance;
@@ -61,8 +60,8 @@ const Context = createContext<WalletContext>({
   walletBalances: null,
   positions: {},
   prices: null,
-  createConnectWalletButton: () => { },
-  refetchBalances: () => { },
+  createConnectWalletButton: () => {},
+  refetchBalances: () => {},
   signTransaction: () => Promise.reject(),
 });
 
@@ -91,18 +90,18 @@ const createBalanceRecord = (balances: StellarSdk.Horizon.HorizonApi.BalanceLine
   balances.reduce(
     (acc, balanceLine) => {
       if (balanceLine.asset_type === 'native') {
-        acc.XLM = { trustline: true, balanceLine };
+        acc.XLM = { trustLine: true, balanceLine };
       } else if (balanceLine.asset_type === 'credit_alphanum4' && isSupportedCurrency(balanceLine.asset_code)) {
-        acc[balanceLine.asset_code] = { trustline: true, balanceLine };
+        acc[balanceLine.asset_code] = { trustLine: true, balanceLine };
       }
       return acc;
     },
     {
-      XLM: { trustline: false },
-      wBTC: { trustline: false },
-      wETH: { trustline: false },
-      USDC: { trustline: false },
-      EURC: { trustline: false },
+      XLM: { trustLine: false },
+      wBTC: { trustLine: false },
+      wETH: { trustLine: false },
+      USDC: { trustLine: false },
+      EURC: { trustLine: false },
     } as BalanceRecord,
   );
 
@@ -122,7 +121,7 @@ const fetchPriceData = async (token: string): Promise<bigint> => {
     const { result } = await loanManagerClient.get_price({ token });
     return result;
   } catch (error) {
-    console.error('Error fetching price data:', error);
+    console.error(`Error fetching price data: for ${token}`, error);
     return 0n;
   }
 };
@@ -135,7 +134,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   const setWallet = async (address: string) => {
     setAddress(address);
-    const { balances } = await HorizonServer.loadAccount(address);
+    const balances = await getBalances(address);
     setWalletBalances(createBalanceRecord(balances));
     setPositions(await fetchAllPositions(address));
   };
@@ -172,7 +171,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     if (!address) return;
 
     try {
-      const { balances } = await HorizonServer.loadAccount(address);
+      const balances = await getBalances(address);
       setWalletBalances(createBalanceRecord(balances));
       const positions = await fetchAllPositions(address);
       setPositions(positions);
