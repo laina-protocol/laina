@@ -82,8 +82,7 @@ const WalletCard = () => {
             <Identicon address={wallet.address} />
             <div className="ml-9">
               <p className="text-xl">{wallet.displayName}</p>
-              {/* TODO: Get wallet type from the kit. */}
-              <p className="text-grey leading-tight">Freighter</p>
+              <p className="text-grey leading-tight">{wallet.name}</p>
             </div>
           </div>
         </div>
