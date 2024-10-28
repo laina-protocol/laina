@@ -20,14 +20,14 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 
-  const balance = walletBalances[ticker];
+  const balance = walletBalances?.[ticker];
   const price = prices?.[ticker];
 
   const amountCents = price ? toCents(price, BigInt(amount) * SCALAR_7) : undefined;
 
-  if (!balance) return null;
+  if (!balance || !balance.trustLine) return null;
 
-  const max = getIntegerPart(balance.balance);
+  const max = getIntegerPart(balance.balanceLine.balance);
 
   const closeModal = () => {
     refetchBalances();

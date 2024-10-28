@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 export interface CardProps {
   className?: string;
-  bgColor?: string;
+  bgColor?: 'white' | 'black';
   links?: LinkProps[];
 }
 
@@ -13,7 +13,9 @@ export interface LinkProps {
 }
 
 export const Card = ({ bgColor = 'white', className = '', links, children }: PropsWithChildren<CardProps>) => (
-  <div className={`bg-${bgColor} rounded shadow border-2 border-grey-light ${className}`}>
+  <div
+    className={`rounded shadow border-2 ${bgColor === 'white' ? 'bg-white border-grey-light' : 'bg-black border-black'} ${className}`}
+  >
     {links && (
       <div className="px-12 py-2 border-b-2 border-grey-light flex flex-row mb-8">
         {links.map(({ to, label }) => (

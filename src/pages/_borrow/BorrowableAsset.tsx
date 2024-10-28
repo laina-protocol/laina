@@ -7,7 +7,7 @@ import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { isBalanceZero } from '@lib/converters';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
-import { BorrowModal } from './BorrowModal';
+import { BorrowModal } from './BorrowModal/BorrowModal';
 
 interface BorrowableAssetCardProps {
   currency: CurrencyBinding;
@@ -24,9 +24,11 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
   // Does the user have some other token in their wallet to use as a collateral?
-  const isCollateral = Object.entries(walletBalances)
-    .filter(([t, _b]) => t !== ticker)
-    .some(([_t, b]) => !isBalanceZero(b.balance));
+  const isCollateral = !walletBalances
+    ? false
+    : Object.entries(walletBalances)
+        .filter(([t, _b]) => t !== ticker)
+        .some(([_t, b]) => b.trustLine && !isBalanceZero(b.balanceLine.balance));
 
   const borrowDisabled = !wallet || !isCollateral || !totalSupplied;
 
@@ -64,7 +66,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
       const { result } = await loanManagerClient.get_price({ token: currency.ticker });
       setTotalSuppliedPrice(result);
     } catch (error) {
-      console.error('Error fetchin price data:', error);
+      console.error('Error fetching price data:', error);
     }
   }, [currency.ticker]);
 
