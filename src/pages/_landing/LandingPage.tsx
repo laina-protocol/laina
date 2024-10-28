@@ -68,11 +68,9 @@ const LandingPage = () => (
         </div>
       </div>
       <div className="md:w-1/2 pt-8 md:py-14 md:pl-14 my-auto">
-        <p className="text-lg md:text-xl mb-8 leading-relaxed tracking-tight">
-          Got a question? Ask us in the Stellar Dev Discord!
-        </p>
-        <NativeLinkButton to="https://discord.com/invite/stellardev" className="text-lg">
-          Join Stellar Discord
+        <p className="text-lg md:text-xl mb-8 leading-relaxed tracking-tight">Got a question? Ask us in our Discord!</p>
+        <NativeLinkButton to="https://discord.gg/gnUAFr3fUv" className="text-lg">
+          Join Laina's Discord
         </NativeLinkButton>
       </div>
     </section>
