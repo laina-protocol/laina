@@ -5,9 +5,11 @@ import { type PropsWithChildren, createContext, useContext, useEffect, useState 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getBalances } from '@lib/horizon';
 import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
+import { isNil } from 'ramda';
 import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
 
 export type Wallet = {
+  name: string;
   address: string;
   displayName: string;
 };
@@ -39,7 +41,8 @@ export type WalletContext = {
   walletBalances: BalanceRecord | null;
   positions: PositionsRecord;
   prices: PriceRecord | null;
-  createConnectWalletButton: (container: HTMLElement) => void;
+  openConnectWalletModal: () => void;
+  disconnectWallet: () => void;
   refetchBalances: () => void;
   signTransaction: SignTransaction;
 };
@@ -60,7 +63,8 @@ const Context = createContext<WalletContext>({
   walletBalances: null,
   positions: {},
   prices: null,
-  createConnectWalletButton: () => {},
+  openConnectWalletModal: () => {},
+  disconnectWallet: () => {},
   refetchBalances: () => {},
   signTransaction: () => Promise.reject(),
 });
@@ -71,7 +75,8 @@ const kit: StellarWalletsKit = new StellarWalletsKit({
   modules: allowAllModules(),
 });
 
-const createWalletObj = (address: string): Wallet => ({
+const createWalletObj = (name: string, address: string): Wallet => ({
+  name,
   address,
   displayName: `${address.slice(0, 4)}...${address.slice(-4)}`,
 });
@@ -127,25 +132,32 @@ const fetchPriceData = async (token: string): Promise<bigint> => {
 };
 
 export const WalletProvider = ({ children }: PropsWithChildren) => {
-  const [address, setAddress] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [walletBalances, setWalletBalances] = useState<BalanceRecord | null>(null);
   const [positions, setPositions] = useState<PositionsRecord>({});
   const [prices, setPrices] = useState<PriceRecord | null>(null);
 
-  const setWallet = async (address: string) => {
-    setAddress(address);
-    const balances = await getBalances(address);
-    setWalletBalances(createBalanceRecord(balances));
-    setPositions(await fetchAllPositions(address));
+  const loadWallet = async (name: string) => {
+    try {
+      const { address } = await kit.getAddress();
+      setWallet(createWalletObj(name, address));
+      const balances = await getBalances(address);
+      setWalletBalances(createBalanceRecord(balances));
+      setPositions(await fetchAllPositions(address));
+      localStorage.setItem('wallet-connected', name);
+    } catch (err) {
+      console.error('Loading wallet failed', err);
+      localStorage.removeItem('wallet-connected');
+    }
   };
 
   // Set initial wallet on load.
   // biome-ignore lint: useEffect is ass
   useEffect(() => {
-    kit
-      .getAddress()
-      .then(({ address }) => setWallet(address))
-      .catch((err) => console.log('No initial wallet.', err));
+    const walletConnected = localStorage.getItem('wallet-connected');
+    if (!isNil(walletConnected)) {
+      loadWallet(walletConnected);
+    }
     fetchAllPrices()
       .then((res) => setPrices(res))
       .catch((err) => console.error('Error fetching prices', err));
@@ -156,31 +168,33 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     return signedTxXdr;
   };
 
-  const createConnectWalletButton = (container: HTMLElement) => {
-    kit.createButton({
-      container,
-      onConnect: ({ address }) => setWallet(address),
-      onDisconnect: () => {
-        setAddress(null);
-        setWalletBalances(null);
+  const openConnectWalletModal = () => {
+    kit.openModal({
+      onWalletSelected: ({ name }) => {
+        loadWallet(name);
       },
     });
   };
 
+  const disconnectWallet = () => {
+    setWallet(null);
+    setWalletBalances(null);
+    setPositions({});
+    localStorage.removeItem('wallet-connected');
+  };
+
   const refetchBalances = async () => {
-    if (!address) return;
+    if (!wallet) return;
 
     try {
-      const balances = await getBalances(address);
+      const balances = await getBalances(wallet.address);
       setWalletBalances(createBalanceRecord(balances));
-      const positions = await fetchAllPositions(address);
+      const positions = await fetchAllPositions(wallet.address);
       setPositions(positions);
     } catch (err) {
       console.error('Error fetching balances', err);
     }
   };
-
-  const wallet: Wallet | null = address ? createWalletObj(address) : null;
 
   return (
     <Context.Provider
@@ -189,7 +203,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         walletBalances,
         positions,
         prices,
-        createConnectWalletButton,
+        openConnectWalletModal,
+        disconnectWallet,
         refetchBalances,
         signTransaction,
       }}
