@@ -400,7 +400,7 @@ impl LoanManager {
             borrowed_from,
             collateral_from,
             collateral_amount,
-            health_factor,
+            health_factor: _,
             unpaid_interest,
         } = Self::get_loan(&e, borrower);
 
@@ -412,6 +412,18 @@ impl LoanManager {
         let borrowed_ticker = borrow_pool_client.get_currency().ticker;
         let collateral_ticker = collateral_pool_client.get_currency().ticker;
 
+        // Check that loan is for sure liquidatable at this moment.
+        assert!(
+            Self::calculate_health_factor(
+                &e,
+                borrowed_ticker.clone(),
+                borrowed_amount,
+                collateral_ticker.clone(),
+                collateral_amount,
+            ) < 12000000
+        ); // Temp high value for testing
+        assert!(amount < (borrowed_amount / 2));
+
         let borrowed_price = Self::get_price(&e, borrowed_ticker.clone());
         let collateral_price = Self::get_price(&e, collateral_ticker.clone());
 
@@ -420,9 +432,6 @@ impl LoanManager {
         let liquidation_value = amount * borrowed_price;
         let collateral_amount_bonus =
             (liquidation_value * TEMP_BONUS / collateral_price) / 10_000_000;
-
-        assert!(health_factor < 12000000); // Temp high value for testing
-        assert!(amount < (borrowed_amount / 2));
 
         borrow_pool_client.liquidate(&user, &amount, &unpaid_interest, &borrower);
 
