@@ -72,6 +72,7 @@ impl LoanPoolContract {
             amount <= receivables,
             "Amount can not be greater than receivables!"
         );
+        assert!(amount <= Self::get_available_balance(e.clone()));
 
         // TODO: Decrease AvailableBalance
         pool::change_available_balance(&e, -amount);
@@ -208,6 +209,48 @@ impl LoanPoolContract {
         positions::decrease_positions(&e, user, 0, amount, 0);
         pool::change_available_balance(&e, amount);
         pool::change_total_balance(&e, amount);
+    }
+
+    pub fn liquidate(
+        e: Env,
+        user: Address,
+        amount: i128,
+        unpaid_interest: i128,
+        loan_owner: Address,
+    ) {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+
+        let amount_to_admin = if amount < unpaid_interest {
+            amount / 10
+        } else {
+            unpaid_interest / 10
+        };
+
+        let amount_to_pool = amount - amount_to_admin;
+
+        let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
+        client.transfer(&user, &e.current_contract_address(), &amount_to_pool);
+        client.transfer(&user, &loan_manager_addr, &amount_to_admin);
+
+        positions::decrease_positions(&e, loan_owner, 0, amount, 0);
+        pool::change_available_balance(&e, amount);
+        pool::change_total_balance(&e, amount);
+    }
+
+    pub fn liquidate_transfer_collateral(
+        e: Env,
+        user: Address,
+        amount_collateral: i128,
+        loan_owner: Address,
+    ) {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e);
+        loan_manager_addr.require_auth();
+
+        let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
+        client.transfer(&e.current_contract_address(), &user, &amount_collateral);
+
+        positions::decrease_positions(&e, loan_owner, 0, 0, amount_collateral);
     }
 }
 
@@ -353,9 +396,7 @@ mod test {
 
         assert_eq!(result, amount);
 
-        let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
-
-        assert_eq!(withdraw_result, (amount, amount));
+        contract_client.withdraw(&user, &amount);
     }
 
     #[test]
@@ -424,5 +465,47 @@ mod test {
         assert_eq!(result, amount);
 
         contract_client.withdraw(&user, &(amount * 2));
+    }
+    #[test]
+    #[should_panic]
+    fn withdraw_more_than_available_balance() {
+        let e: Env = Env::default();
+        e.mock_all_auths();
+
+        let admin: Address = Address::generate(&e);
+        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = TokenClient::new(&e, &token_contract_id);
+        let currency = Currency {
+            token_address: token_contract_id,
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+        assert_eq!(token.balance(&user), 1000);
+
+        let user2 = Address::generate(&e);
+        stellar_asset.mint(&user2, &1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 100;
+
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
+
+        let result: i128 = contract_client.deposit(&user, &amount);
+
+        assert_eq!(result, amount);
+
+        contract_client.borrow(&user2, &500);
+
+        let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
+
+        assert_eq!(withdraw_result, (amount, amount));
     }
 }
