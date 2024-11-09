@@ -1,4 +1,6 @@
-# Soroban Project
+# Laina DeFi Protocol
+
+![Static Badge](https://img.shields.io/badge/License-Business_Source_1.1-red)
 
 ## Project Structure
 
