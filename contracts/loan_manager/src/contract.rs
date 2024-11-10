@@ -15,8 +15,8 @@ mod loan_pool {
     );
 }
 
-// This is the real address of the Reflector Oracle in testnet.
-// We use the same adress to mock it for testing.
+// This is the real address of the Reflector Oracle in Testnet.
+// We use the same address to mock it for testing.
 const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
 #[contracterror]
@@ -523,7 +523,7 @@ mod tests {
         deployer_client.initialize(&admin);
 
         // Setup test token
-        let token_address = e.register_stellar_asset_contract(admin.clone());
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
         let ticker = Symbol::new(&e, "XLM");
 
         let wasm_hash = e.deployer().upload_contract_wasm(loan_pool::WASM);
@@ -532,7 +532,7 @@ mod tests {
         // ACT
         // Deploy contract using loan_manager as factory
         let loan_pool_addr =
-            deployer_client.deploy_pool(&wasm_hash, &salt, &token_address, &ticker, &800_000);
+            deployer_client.deploy_pool(&wasm_hash, &salt, &token.address(), &ticker, &800_000);
 
         // ASSERT
         // No authorizations needed - the contract acts as a factory.
@@ -557,7 +557,7 @@ mod tests {
         deployer_client.initialize(&admin);
 
         // Setup test token
-        let token_address = e.register_stellar_asset_contract(admin.clone());
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
         let ticker = Symbol::new(&e, "XLM");
 
         let manager_wasm_hash = e.deployer().upload_contract_wasm(loan_manager::WASM);
@@ -565,7 +565,7 @@ mod tests {
         let salt = BytesN::from_array(&e, &[0; 32]);
 
         // ACT
-        deployer_client.deploy_pool(&pool_wasm_hash, &salt, &token_address, &ticker, &800_000);
+        deployer_client.deploy_pool(&pool_wasm_hash, &salt, &token.address(), &ticker, &800_000);
         deployer_client.upgrade(&manager_wasm_hash, &pool_wasm_hash);
     }
 
@@ -577,21 +577,21 @@ mod tests {
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
-        let loan_token = TokenClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
+        let loan_token_client = TokenClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -603,7 +603,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &1000);
 
-        assert_eq!(collateral_token.balance(&user), 1000);
+        assert_eq!(collateral_token_client.balance(&user), 1000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
@@ -627,8 +627,8 @@ mod tests {
         contract_client.create_loan(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
 
         // ASSERT
-        assert_eq!(loan_token.balance(&user), 10);
-        assert_eq!(collateral_token.balance(&user), 900);
+        assert_eq!(loan_token_client.balance(&user), 10);
+        assert_eq!(collateral_token_client.balance(&user), 900);
     }
 
     #[test]
@@ -645,20 +645,20 @@ mod tests {
         });
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -670,7 +670,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &1_000_000);
 
-        assert_eq!(collateral_token.balance(&user), 1_000_000);
+        assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
@@ -697,14 +697,14 @@ mod tests {
         let user_loan = contract_client.get_loan(&user);
 
         assert_eq!(user_loan.borrowed_amount, 10_000);
-        assert_eq!(collateral_token.balance(&user), 900_000);
+        assert_eq!(collateral_token_client.balance(&user), 900_000);
 
         contract_client.add_interest();
 
         // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
         assert_eq!(user_loan.borrowed_amount, 10_000);
         assert_eq!(user_loan.health_factor, 100_000_000);
-        assert_eq!(collateral_token.balance(&user), 900_000);
+        assert_eq!(collateral_token_client.balance(&user), 900_000);
 
         // Move time
         e.ledger().with_mut(|li| {
@@ -738,20 +738,20 @@ mod tests {
         });
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -763,7 +763,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &10_000_000);
 
-        assert_eq!(collateral_token.balance(&user), 10_000_000);
+        assert_eq!(collateral_token_client.balance(&user), 10_000_000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
@@ -821,20 +821,20 @@ mod tests {
         });
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -846,7 +846,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &10_000_000);
 
-        assert_eq!(collateral_token.balance(&user), 10_000_000);
+        assert_eq!(collateral_token_client.balance(&user), 10_000_000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
@@ -898,21 +898,21 @@ mod tests {
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
-        let loan_token = TokenClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
+        let loan_token_client = TokenClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -924,7 +924,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &1_000_000);
 
-        assert_eq!(collateral_token.balance(&user), 1_000_000);
+        assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
@@ -949,8 +949,8 @@ mod tests {
         contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
         // ASSERT
-        assert_eq!(loan_token.balance(&user), 1_000);
-        assert_eq!(collateral_token.balance(&user), 900_000);
+        assert_eq!(loan_token_client.balance(&user), 1_000);
+        assert_eq!(collateral_token_client.balance(&user), 900_000);
 
         let user_loan = contract_client.get_loan(&user);
 
@@ -973,20 +973,20 @@ mod tests {
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -998,7 +998,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &1_000_000);
 
-        assert_eq!(collateral_token.balance(&user), 1_000_000);
+        assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
@@ -1039,20 +1039,20 @@ mod tests {
         });
 
         let admin = Address::generate(&e);
-        let loan_token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token_contract_id);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
         loan_asset.mint(&admin, &1_000_000);
         let loan_currency = loan_pool::Currency {
-            token_address: loan_token_contract_id.clone(),
+            token_address: loan_token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let admin2 = Address::generate(&e);
-        let collateral_token_contract_id = e.register_stellar_asset_contract(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token_contract_id);
-        let collateral_token = TokenClient::new(&e, &collateral_token_contract_id);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
         let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token_contract_id.clone(),
+            token_address: collateral_token.address(),
             ticker: Symbol::new(&e, "USDC"),
         };
 
@@ -1064,7 +1064,7 @@ mod tests {
         let user = Address::generate(&e);
         collateral_asset.mint(&user, &1_000_000);
 
-        assert_eq!(collateral_token.balance(&user), 1_000_000);
+        assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
         let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);

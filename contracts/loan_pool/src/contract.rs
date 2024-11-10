@@ -267,21 +267,19 @@ mod test {
 
     #[test]
     fn initialize() {
-        let e: Env = Env::default();
+        let e = Env::default();
         e.mock_all_auths();
 
-        let admin: Address = Address::generate(&e);
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
-        let token = TokenClient::new(&e, &token_contract_id);
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
-        assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
@@ -295,21 +293,19 @@ mod test {
 
     #[test]
     fn deposit() {
-        let e: Env = Env::default();
+        let e = Env::default();
         e.mock_all_auths();
 
-        let admin: Address = Address::generate(&e);
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
-        let token = TokenClient::new(&e, &token_contract_id);
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
-        assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
@@ -333,12 +329,12 @@ mod test {
 
         let admin = Address::generate(&e);
 
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let asset = StellarAssetClient::new(&e, &token_contract_id);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let asset = StellarAssetClient::new(&e, &token.address());
 
-        let token_client = TokenClient::new(&e, &token_contract_id);
+        let token_client = TokenClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
@@ -366,21 +362,19 @@ mod test {
 
     #[test]
     fn withdraw() {
-        let e: Env = Env::default();
+        let e = Env::default();
         e.mock_all_auths();
 
-        let admin: Address = Address::generate(&e);
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
-        let token = TokenClient::new(&e, &token_contract_id);
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
-        assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
@@ -402,21 +396,19 @@ mod test {
     #[test]
     #[should_panic]
     fn deposit_more_than_account_balance() {
-        let e: Env = Env::default();
+        let e = Env::default();
         e.mock_all_auths();
 
-        let admin: Address = Address::generate(&e);
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
-        let token = TokenClient::new(&e, &token_contract_id);
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
-        assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
@@ -434,21 +426,19 @@ mod test {
     #[test]
     #[should_panic(expected = "Amount can not be greater than receivables!")]
     fn withdraw_more_than_balance() {
-        let e: Env = Env::default();
+        let e = Env::default();
         e.mock_all_auths();
 
-        let admin: Address = Address::generate(&e);
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
-        let token = TokenClient::new(&e, &token_contract_id);
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
-        assert_eq!(token.balance(&user), 1000);
 
         let contract_id = e.register_contract(None, LoanPoolContract);
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
@@ -469,21 +459,19 @@ mod test {
     #[test]
     #[should_panic]
     fn withdraw_more_than_available_balance() {
-        let e: Env = Env::default();
+        let e = Env::default();
         e.mock_all_auths();
 
-        let admin: Address = Address::generate(&e);
-        let token_contract_id = e.register_stellar_asset_contract(admin.clone());
-        let stellar_asset = StellarAssetClient::new(&e, &token_contract_id);
-        let token = TokenClient::new(&e, &token_contract_id);
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
         let currency = Currency {
-            token_address: token_contract_id,
+            token_address: token.address(),
             ticker: Symbol::new(&e, "XLM"),
         };
 
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
-        assert_eq!(token.balance(&user), 1000);
 
         let user2 = Address::generate(&e);
         stellar_asset.mint(&user2, &1000);
