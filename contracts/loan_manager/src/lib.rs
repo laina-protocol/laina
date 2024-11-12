@@ -1,7 +1,7 @@
 #![no_std]
 
 mod contract;
+mod error;
 mod interest;
 mod oracle;
-mod positions;
-mod storage_types;
+mod storage;
