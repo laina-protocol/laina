@@ -1,13 +1,10 @@
+use soroban_sdk::{contract, contractimpl, vec, Address, BytesN, Env, String, Symbol, Vec};
+
+use crate::error::LoanManagerError;
 use crate::interest::get_interest;
 use crate::oracle::{self, Asset};
-use crate::positions;
-use crate::storage_types::{
-    Loan, LoansDataKey, DAY_IN_LEDGERS, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
-};
-
-use soroban_sdk::{
-    contract, contracterror, contractimpl, vec, Address, BytesN, Env, String, Symbol, Vec,
-};
+use crate::storage::{self, read_pool_addresses};
+use crate::storage::{Loan, DAY_IN_LEDGERS};
 
 mod loan_pool {
     soroban_sdk::contractimport!(
@@ -19,14 +16,6 @@ mod loan_pool {
 // We use the same address to mock it for testing.
 const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum Error {
-    AlreadyInitialized = 1,
-    LoanAlreadyExists = 2,
-}
-
 #[contract]
 struct LoanManager;
 
@@ -34,12 +23,13 @@ struct LoanManager;
 #[contractimpl]
 impl LoanManager {
     /// Set the admin that's allowed to upgrade the wasm.
-    pub fn initialize(e: Env, admin: Address) -> Result<(), Error> {
-        if e.storage().persistent().has(&LoansDataKey::Admin) {
-            return Err(Error::AlreadyInitialized);
+    pub fn initialize(e: Env, admin: Address) -> Result<(), LoanManagerError> {
+        if storage::admin_exists(&e) {
+            return Err(LoanManagerError::AlreadyInitialized);
         }
 
-        e.storage().persistent().set(&LoansDataKey::Admin, &admin);
+        storage::write_admin(&e, &admin);
+        storage::write_borrowers(&e, vec![&e]);
         Ok(())
     }
 
@@ -56,15 +46,9 @@ impl LoanManager {
         let deployed_address: Address = e.deployer().with_current_contract(salt).deploy(wasm_hash);
 
         // Add the new address to storage
-        let mut pool_addresses = e
-            .storage()
-            .persistent()
-            .get(&LoansDataKey::PoolAddresses)
-            .unwrap_or(vec![&e]);
+        let mut pool_addresses = storage::read_pool_addresses(&e).unwrap_or(vec![&e]);
         pool_addresses.push_back(deployed_address.clone());
-        e.storage()
-            .persistent()
-            .set(&LoansDataKey::PoolAddresses, &pool_addresses);
+        storage::write_pool_addresses(&e, &pool_addresses);
 
         let pool_client = loan_pool::Client::new(&e, &deployed_address);
 
@@ -83,14 +67,16 @@ impl LoanManager {
     }
 
     /// Upgrade deployed loan pools and the loan manager WASM.
-    pub fn upgrade(e: Env, new_manager_wasm_hash: BytesN<32>, new_pool_wasm_hash: BytesN<32>) {
-        let admin: Address = e.storage().persistent().get(&LoansDataKey::Admin).unwrap();
+    pub fn upgrade(
+        e: Env,
+        new_manager_wasm_hash: BytesN<32>,
+        new_pool_wasm_hash: BytesN<32>,
+    ) -> Result<(), LoanManagerError> {
+        let admin: Address = storage::read_admin(&e)?;
         admin.require_auth();
 
         // Upgrade the loan pools.
-        e.storage()
-            .persistent()
-            .get(&LoansDataKey::PoolAddresses)
+        storage::read_pool_addresses(&e)
             .unwrap_or(vec![&e])
             .iter()
             .for_each(|pool| {
@@ -101,6 +87,8 @@ impl LoanManager {
         // Upgrade the loan manager.
         e.deployer()
             .update_current_contract_wasm(new_manager_wasm_hash);
+
+        Ok(())
     }
 
     /// Initialize a new loan
@@ -111,14 +99,11 @@ impl LoanManager {
         borrowed_from: Address,
         collateral: i128,
         collateral_from: Address,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LoanManagerError> {
         user.require_auth();
 
-        if e.storage()
-            .persistent()
-            .has(&LoansDataKey::Loan(user.clone()))
-        {
-            return Err(Error::LoanAlreadyExists);
+        if storage::user_loan_exists(&e, user.clone()) {
+            return Err(LoanManagerError::LoanAlreadyExists);
         }
 
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
@@ -161,26 +146,15 @@ impl LoanManager {
             unpaid_interest,
         };
 
-        positions::init_loan(&e, user.clone(), loan);
-
-        let key = LoansDataKey::Addresses;
-
-        // Update the list of addresses with loans
-        let mut addresses: Vec<Address> = e.storage().persistent().get(&key).unwrap_or(vec![&e]);
-
-        if !addresses.contains(&user) {
-            addresses.push_back(user);
-        }
-        e.storage().persistent().set(&key, &addresses);
-        e.storage().persistent().extend_ttl(
-            &key,
-            POSITIONS_LIFETIME_THRESHOLD,
-            POSITIONS_BUMP_AMOUNT,
-        );
-        Ok(())
+        storage::write_loan(&e, user.clone(), loan);
+        storage::append_borrower(&e, user)
     }
 
-    pub fn add_interest(e: Env) {
+    pub fn get_loan(e: Env, borrower: Address) -> Result<Loan, LoanManagerError> {
+        storage::read_loan(&e, borrower)
+    }
+
+    pub fn add_interest(e: Env) -> Result<(), LoanManagerError> {
         const DECIMAL: i128 = 10000000;
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
@@ -191,8 +165,7 @@ impl LoanManager {
 
         let current_ledger = e.ledger().sequence();
 
-        let key: LoansDataKey = LoansDataKey::LastUpdated;
-        let previous_ledger: u32 = e.storage().persistent().get(&key).unwrap_or(current_ledger); // If there is no previous ledger, use current.
+        let previous_ledger: u32 = storage::read_last_updated(&e).unwrap_or(current_ledger); // If there is no previous ledger, use current.
 
         let ledgers_since_update: u32 = current_ledger - previous_ledger; // Currently unused but is a placeholder for interest calculations. Now time is handled.
         let ledger_ratio: i128 =
@@ -201,78 +174,51 @@ impl LoanManager {
         // Iterate over loans and add interest to capital borrowed.
         // In the same iteration add the amount to the liabilities of the lending pool.
         // First, lets retrieve the list of addresses with loans
-        let mut addresses: Vec<Address> = e
-            .storage()
-            .persistent()
-            .get(&LoansDataKey::Addresses)
-            .unwrap();
+        let addresses = read_pool_addresses(&e).ok_or(LoanManagerError::NotInitialized)?;
 
         for user in addresses.iter() {
-            let key = (Symbol::new(&e, "Loan"), user.clone());
+            let mut loan = storage::read_loan(&e, user.clone())?;
 
-            match e
-                .storage()
-                .persistent()
-                .get::<(Symbol, Address), Loan>(&key)
-            {
-                None => {
-                    if let Some(index) = addresses.iter().position(|x| x == user) {
-                        addresses.remove(index.try_into().unwrap());
-                        continue;
-                    } else {
-                        panic!("Address not found in Addresses");
-                    };
-                }
-                Some(mut loan) => {
-                    let borrowed: i128 = loan.borrowed_amount;
+            let borrowed: i128 = loan.borrowed_amount;
 
-                    if borrowed == 0 {
-                        e.storage().persistent().remove(&key);
-                        continue;
-                    }
-                    let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
-                    let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
-                    let interest_since_update: i128 =
-                        (interest_amount_in_year * ledger_ratio) / DECIMAL;
-                    let new_borrowed: i128 = borrowed + interest_since_update;
-                    // Insert the new value to the loan_map
-                    loan.borrowed_amount = new_borrowed;
-                    // Get updated health_factor
-                    let collateral_pool_client = loan_pool::Client::new(&e, &loan.collateral_from);
-                    let borrow_pool_client = loan_pool::Client::new(&e, &loan.borrowed_from);
-
-                    let token_currency = borrow_pool_client.get_currency();
-                    let collateral_currency = collateral_pool_client.get_currency();
-                    loan.health_factor = Self::calculate_health_factor(
-                        &e,
-                        token_currency.ticker,
-                        new_borrowed,
-                        collateral_currency.ticker,
-                        loan.collateral_amount,
-                    );
-                    // It now calls reflector for each address. This is safe but might end up being costly
-                    // Set it to storage
-                    loan.unpaid_interest += interest_since_update;
-                    e.storage().persistent().set(&key, &loan);
-                    e.storage().persistent().extend_ttl(
-                        &key,
-                        POSITIONS_LIFETIME_THRESHOLD,
-                        POSITIONS_BUMP_AMOUNT,
-                    );
-                    // TODO: this should also invoke the pools and update the amounts lended to liabilities.
-                    let borrowed_from = loan.borrowed_from;
-                    let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
-                    borrow_pool_client.increase_liabilities(&user, &interest_since_update);
-                }
+            if borrowed == 0 {
+                storage::delete_loan(&e, user.clone());
+                continue;
             }
+
+            let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
+            let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
+            let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
+            let new_borrowed: i128 = borrowed + interest_since_update;
+            // Insert the new value to the loan_map
+            loan.borrowed_amount = new_borrowed;
+            // Get updated health_factor
+            let collateral_pool_client = loan_pool::Client::new(&e, &loan.collateral_from);
+            let borrow_pool_client = loan_pool::Client::new(&e, &loan.borrowed_from);
+
+            let token_currency = borrow_pool_client.get_currency();
+            let collateral_currency = collateral_pool_client.get_currency();
+            loan.health_factor = Self::calculate_health_factor(
+                &e,
+                token_currency.ticker,
+                new_borrowed,
+                collateral_currency.ticker,
+                loan.collateral_amount,
+            );
+            // It now calls reflector for each address. This is safe but might end up being costly
+            // Set it to storage
+            loan.unpaid_interest += interest_since_update;
+
+            storage::write_loan(&e, user.clone(), loan.clone());
+
+            // TODO: this should also invoke the pools and update the amounts lended to liabilities.
+            let borrowed_from = loan.borrowed_from;
+            let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
+            borrow_pool_client.increase_liabilities(&user, &interest_since_update);
         }
 
-        e.storage().persistent().set(&key, &current_ledger);
-        e.storage().persistent().extend_ttl(
-            &key,
-            POSITIONS_LIFETIME_THRESHOLD,
-            POSITIONS_BUMP_AMOUNT,
-        );
+        storage::write_last_updated(&e, &current_ledger);
+        Ok(())
     }
 
     pub fn calculate_health_factor(
@@ -300,14 +246,6 @@ impl LoanManager {
         collateral_value * DECIMAL_TO_INT_MULTIPLIER / borrowed_value
     }
 
-    pub fn get_loan(e: &Env, addr: Address) -> Loan {
-        if let Some(loan) = positions::read_positions(e, addr) {
-            loan
-        } else {
-            panic!() // TODO: It should be panic_with_error or something and give out detailed error.
-        }
-    }
-
     pub fn get_price(e: &Env, token: Symbol) -> i128 {
         let reflector_address = Address::from_string(&String::from_str(e, REFLECTOR_ADDRESS));
         let reflector_contract = oracle::Client::new(e, &reflector_address);
@@ -318,7 +256,7 @@ impl LoanManager {
         asset_pricedata.price
     }
 
-    pub fn repay(e: &Env, user: Address, amount: i128) -> (i128, i128) {
+    pub fn repay(e: &Env, user: Address, amount: i128) -> Result<i128, LoanManagerError> {
         user.require_auth();
 
         let Loan {
@@ -329,7 +267,7 @@ impl LoanManager {
             collateral_from,
             health_factor,
             unpaid_interest,
-        } = Self::get_loan(e, user.clone());
+        } = storage::read_loan(e, user.clone())?;
 
         assert!(
             amount <= borrowed_amount,
@@ -345,20 +283,15 @@ impl LoanManager {
             0
         };
 
-        let key = (Symbol::new(e, "Loan"), user.clone());
         let new_borrowed_amount = borrowed_amount - amount;
         //TODO: calculate new health-factor. No need to check it relative to threshold.
 
         if new_borrowed_amount == 0 {
             let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
             collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
-            e.storage().persistent().remove(&key);
+            storage::delete_loan(e, user.clone());
 
-            let mut addresses: Vec<Address> = e
-                .storage()
-                .persistent()
-                .get(&LoansDataKey::Addresses)
-                .unwrap();
+            let mut addresses: Vec<Address> = storage::read_borrowers(e).unwrap();
 
             if let Some(index) = addresses.iter().position(|x| x == user) {
                 addresses.remove(index.try_into().unwrap())
@@ -376,22 +309,22 @@ impl LoanManager {
                 unpaid_interest: new_unpaid_interest,
             };
 
-            e.storage().persistent().set(&key, &loan);
-            e.storage().persistent().extend_ttl(
-                &key,
-                POSITIONS_LIFETIME_THRESHOLD,
-                POSITIONS_BUMP_AMOUNT,
-            );
+            storage::write_loan(e, user, loan);
         }
 
-        (borrowed_amount, new_borrowed_amount)
+        Ok(new_borrowed_amount)
     }
 
     pub fn get_interest_rate(e: Env, pool: Address) -> i128 {
         get_interest(e, pool)
     }
 
-    pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
+    pub fn liquidate(
+        e: Env,
+        user: Address,
+        borrower: Address,
+        amount: i128,
+    ) -> Result<(i128, i128, i128), LoanManagerError> {
         user.require_auth();
 
         let Loan {
@@ -402,9 +335,7 @@ impl LoanManager {
             collateral_amount,
             health_factor: _,
             unpaid_interest,
-        } = Self::get_loan(&e, borrower);
-
-        let key = (Symbol::new(&e, "Loan"), borrower.clone());
+        } = storage::read_loan(&e, borrower)?;
 
         let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
@@ -453,7 +384,7 @@ impl LoanManager {
         );
 
         let new_loan = Loan {
-            borrower,
+            borrower: borrower.clone(),
             borrowed_amount: new_borrowed_amount,
             borrowed_from,
             collateral_from,
@@ -462,13 +393,13 @@ impl LoanManager {
             unpaid_interest, // Temp
         };
 
-        e.storage().persistent().set(&key, &new_loan);
+        storage::write_loan(&e, borrower, new_loan);
 
-        (
+        Ok((
             new_borrowed_amount,
             collateral_amount - collateral_amount_bonus,
             new_collateral_amount,
-        )
+        ))
     }
 }
 
@@ -692,7 +623,15 @@ mod tests {
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
         // Create a loan.
-        contract_client.create_loan(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
+        contract_client.initialize(&admin);
+        let res = contract_client.try_create_loan(
+            &user,
+            &10_000,
+            &loan_pool_id,
+            &100_000,
+            &collateral_pool_id,
+        );
+        assert!(res.is_ok());
 
         let user_loan = contract_client.get_loan(&user);
 
@@ -715,7 +654,8 @@ mod tests {
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
         e.register_contract_wasm(&reflector_addr, oracle::WASM);
 
-        contract_client.add_interest();
+        let res3 = contract_client.try_add_interest();
+        assert!(res3.is_ok());
 
         let user_loan = contract_client.get_loan(&user);
 
@@ -961,7 +901,7 @@ mod tests {
         let user_loan = contract_client.get_loan(&user);
         assert_eq!(user_loan.borrowed_amount, 900);
 
-        assert_eq!((900, 800), contract_client.repay(&user, &100));
+        assert_eq!(800, contract_client.repay(&user, &100));
     }
 
     #[test]
