@@ -1,4 +1,3 @@
-use crate::interest::get_interest;
 use crate::oracle::{self, Asset};
 use crate::positions;
 use crate::storage_types::{
@@ -233,7 +232,7 @@ impl LoanManager {
                         e.storage().persistent().remove(&key);
                         continue;
                     }
-                    let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
+                    let interest_rate: i128 = 1000; //get_interest(e.clone(), loan.borrowed_from.clone());
                     let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
                     let interest_since_update: i128 =
                         (interest_amount_in_year * ledger_ratio) / DECIMAL;
@@ -390,8 +389,8 @@ impl LoanManager {
         (borrowed_amount, new_borrowed_amount)
     }
 
-    pub fn get_interest_rate(e: Env, pool: Address) -> i128 {
-        get_interest(e, pool)
+    pub fn get_interest_rate(_e: Env, _pool: Address) -> i128 {
+        1000_i128 //temp
     }
 
     pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
