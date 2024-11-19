@@ -194,6 +194,10 @@ impl LoanPoolContract {
         pool::write_accrual(&e, new_accrual);
     }
 
+    pub fn get_accrual(e: Env) -> i128 {
+        pool::read_accrual(&e)
+    }
+
     /// Get user's positions in the pool
     pub fn get_user_positions(e: Env, user: Address) -> Positions {
         positions::read_positions(&e, &user)
@@ -287,7 +291,7 @@ impl LoanPoolContract {
 mod test {
     use super::*; // This imports LoanPoolContract and everything else from the parent module
     use soroban_sdk::{
-        testutils::Address as _,
+        testutils::{Address as _, Ledger},
         token::{Client as TokenClient, StellarAssetClient},
         Env, Symbol,
     };
@@ -524,5 +528,55 @@ mod test {
         let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
 
         assert_eq!(withdraw_result, (amount, amount));
+    }
+    #[test]
+    fn add_accrual() {
+        let e = Env::default();
+        e.mock_all_auths();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.min_persistent_entry_ttl = 10_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
+        let currency = Currency {
+            token_address: token.address(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+
+        let user2 = Address::generate(&e);
+        stellar_asset.mint(&user2, &1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 1000;
+
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
+
+        let result: i128 = contract_client.deposit(&user, &amount);
+
+        assert_eq!(result, amount);
+
+        contract_client.borrow(&user2, &999);
+
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + (DAY_IN_LEDGERS * 365);
+        });
+
+        contract_client.add_interest_to_accrual();
+        // value of 12980000 is expected as usage is 999/1000 and max interest rate is 30%
+        // Time in ledgers is shifted by ~one year.
+        assert_eq!(12_980_000, contract_client.get_accrual());
     }
 }
