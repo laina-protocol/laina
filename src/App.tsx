@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
+import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import Footer from '@components/Footer';
 import Nav from '@components/Nav';
@@ -11,18 +11,14 @@ import WelcomePage from '@pages/_welcome/WelcomePage';
 import { WalletProvider } from './stellar-wallet';
 
 const PageWrapper = () => {
-  const { pathname } = useLocation();
-
-  const isIndex = pathname === '/';
-
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
-      <main className={`max-w-screen flex-1 ${isIndex ? 'w-[74rem]' : 'w-256'}`}>
+      <main className="max-w-screen flex-1 w-[74rem]">
         <Outlet />
       </main>
       <Footer />
-    </div>
+    </div >
   );
 };
 
