@@ -9,9 +9,7 @@ export default function Nav() {
   const { wallet, openConnectWalletModal, disconnectWallet } = useWallet();
 
   return (
-    <nav
-      className="relative mx-auto flex justify-between items-center pt-12 pb-6 px-4 max-w-full w-[74rem]"
-    >
+    <nav className="relative mx-auto flex justify-between items-center pt-12 pb-6 px-4 max-w-full w-[74rem]">
       <div>
         <Link to="/">
           <img src={logo.src} alt="logo" className="w-32" />

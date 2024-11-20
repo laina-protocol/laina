@@ -65,9 +65,9 @@ const Context = createContext<WalletContext>({
   walletBalances: null,
   positions: {},
   prices: null,
-  openConnectWalletModal: () => { },
-  disconnectWallet: () => { },
-  refetchBalances: () => { },
+  openConnectWalletModal: () => {},
+  disconnectWallet: () => {},
+  refetchBalances: () => {},
   signTransaction: () => Promise.reject(),
 });
 
@@ -140,7 +140,7 @@ interface WalletState {
 
 const storeWalletState = (state: WalletState) => {
   localStorage.setItem('wallet-state', JSON.stringify(state));
-}
+};
 
 const loadWalletState = (): WalletState | null => {
   const text = localStorage.getItem('wallet-state');
@@ -149,13 +149,13 @@ const loadWalletState = (): WalletState | null => {
   const { timeout, name } = JSON.parse(text);
   return {
     name,
-    timeout: new Date(timeout)
+    timeout: new Date(timeout),
   };
-}
+};
 
 const deleteWalletState = () => {
   localStorage.removeItem('wallet-state');
-}
+};
 
 export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [wallet, setWallet] = useState<Wallet | null>(null);

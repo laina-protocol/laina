@@ -18,7 +18,7 @@ const PageWrapper = () => {
         <Outlet />
       </main>
       <Footer />
-    </div >
+    </div>
   );
 };
 
