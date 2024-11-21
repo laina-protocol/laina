@@ -1,7 +1,6 @@
 use crate::interest::get_interest;
 use crate::pool::Currency;
 use crate::positions;
-use crate::storage_types::DAY_IN_LEDGERS;
 use crate::{pool, storage_types::Positions};
 
 use soroban_sdk::{contract, contractimpl, contractmeta, token, Address, BytesN, Env};
@@ -530,7 +529,7 @@ mod test {
         assert_eq!(withdraw_result, (amount, amount));
     }
     #[test]
-    fn add_accrual() {
+    fn add_accrual_full_usage() {
         let e = Env::default();
         e.mock_all_auths();
         e.ledger().with_mut(|li| {
@@ -572,7 +571,6 @@ mod test {
         contract_client.borrow(&user2, &999);
 
         e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000 + (DAY_IN_LEDGERS * 365);
             li.timestamp = 1 + 31_556_926; // one year in seconds
         });
 
@@ -580,5 +578,54 @@ mod test {
         // value of 12980000 is expected as usage is 999/1000 and max interest rate is 30%
         // Time in ledgers is shifted by ~one year.
         assert_eq!(12_980_000, contract_client.get_accrual());
+    }
+    #[test]
+    fn add_accrual_half_usage() {
+        let e = Env::default();
+        e.mock_all_auths();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.timestamp = 1;
+            li.min_persistent_entry_ttl = 10_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
+        let currency = Currency {
+            token_address: token.address(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+
+        let user2 = Address::generate(&e);
+        stellar_asset.mint(&user2, &1000);
+
+        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 1000;
+
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
+
+        let result: i128 = contract_client.deposit(&user, &amount);
+
+        assert_eq!(result, amount);
+
+        contract_client.borrow(&user2, &500);
+
+        e.ledger().with_mut(|li| {
+            li.timestamp = 1 + 31_556_926; // one year in seconds
+        });
+
+        contract_client.add_interest_to_accrual();
+        assert_eq!(10_644_440, contract_client.get_accrual());
     }
 }
