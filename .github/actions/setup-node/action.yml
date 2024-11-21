@@ -1,0 +1,13 @@
+name: Setup Node.js with .nvmrc
+description: Reads the .nvmrc file and sets up the corresponding Node.js version
+runs:
+  using: composite
+  steps:
+    - name: Read .nvmrc
+      run: echo "node-version=$(cat .nvmrc)" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.node-version }}

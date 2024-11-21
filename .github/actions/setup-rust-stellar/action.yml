@@ -14,10 +14,12 @@ runs:
         toolchain: stable
         targets: wasm32-unknown-unknown
 
-    - name: Rust cache
-      uses: stellar/actions/rust-cache@main
-
     - name: Install Stellar CLI
       run: |
-        cargo install --locked stellar-cli --version ${{ inputs.stellar_version }} --features opt
+        wget -q https://github.com/stellar/stellar-cli/releases/download/v22.0.0/stellar-cli-22.0.0-x86_64-unknown-linux-gnu.tar.gz
+        tar xvf stellar-cli-22.0.0-x86_64-unknown-linux-gnu.tar.gz
+        sudo mv stellar /usr/local/bin/
+        stellar --version
       shell: bash
+
+

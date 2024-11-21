@@ -40,9 +40,9 @@ export const buildContracts = () => {
   exe(`make build`);
 };
 
-/** Install all contracts and save their wasm hashes to .soroban */
+/** Install all contracts and save their wasm hashes to .stellar */
 export const installContracts = () => {
-  const contractsDir = `./.soroban/contract-wasm-hash`;
+  const contractsDir = `./.stellar/contract-wasm-hash`;
   mkdirSync(contractsDir, { recursive: true });
 
   const wasmFiles = readdirSync(`./target/wasm32-unknown-unknown/release`).filter((file) => file.endsWith('.wasm'));
@@ -55,7 +55,7 @@ export const installContracts = () => {
 /* Install a contract */
 const install = (wasm: string) => {
   exe(
-    `stellar contract install --wasm ${wasm} --ignore-checks > ./.soroban/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
+    `stellar contract install --wasm ${wasm} --ignore-checks > ./.stellar/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
   );
 };
 
@@ -67,7 +67,7 @@ export const readTextFile = (path: string): string => readFileSync(path, { encod
 
 // This is a function so its value can update during init.
 export const loanManagerAddress = (): string =>
-  process.env.CONTRACT_ID_LOAN_MANAGER || readTextFile('./.soroban/contract-ids/loan_manager.txt');
+  process.env.CONTRACT_ID_LOAN_MANAGER || readTextFile('./.stellar/contract-ids/loan_manager.txt');
 
 export const createContractBindings = () => {
   bind('loan_manager', process.env.CONTRACT_ID_LOAN_MANAGER);
@@ -79,7 +79,7 @@ export const createContractBindings = () => {
 };
 
 const bind = (contractName: string, address: string | undefined) => {
-  const address_ = address || readTextFile(`./.soroban/contract-ids/${contractName}.txt`);
+  const address_ = address || readTextFile(`./.stellar/contract-ids/${contractName}.txt`);
   exe(
     `stellar contract bindings typescript --contract-id ${address_} --output-dir ./packages/${contractName} --overwrite`,
   );
