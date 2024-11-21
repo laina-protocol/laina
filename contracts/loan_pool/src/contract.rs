@@ -32,7 +32,7 @@ impl LoanPoolContract {
         pool::write_total_balance(&e, 0);
         pool::write_available_balance(&e, 0);
         pool::write_accrual(&e, 10_000_000); // Default initial accrual value.
-        pool::write_accrual_last_updated(&e, e.ledger().sequence());
+        pool::write_accrual_last_updated(&e, e.ledger().timestamp());
     }
 
     pub fn upgrade(e: Env, new_wasm_hash: BytesN<32>) {
@@ -171,6 +171,7 @@ impl LoanPoolContract {
 
     pub fn add_interest_to_accrual(e: Env) {
         const DECIMAL: i128 = 10000000;
+        const SECONDS_IN_YEAR: u64 = 31_556_926;
         /*
         We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
         and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
@@ -178,13 +179,12 @@ impl LoanPoolContract {
         */
         // TODO: we must store the init ledger for loans as loans started on different times would pay the same amount of interest on the given time.
 
-        let current_ledger = e.ledger().sequence();
-
+        let current_timestamp = e.ledger().timestamp();
         let accrual = pool::read_accrual(&e);
         let accrual_last_update = pool::read_accrual_last_updated(&e);
-        let ledgers_since_update: u32 = current_ledger - accrual_last_update; // Currently unused but is a placeholder for interest calculations. Now time is handled.
+        let ledgers_since_update = current_timestamp - accrual_last_update; // Currently unused but is a placeholder for interest calculations. Now time is handled.
         let ledger_ratio: i128 =
-            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(DAY_IN_LEDGERS * 365));
+            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(SECONDS_IN_YEAR));
 
         let interest_rate: i128 = get_interest(e.clone());
         let interest_amount_in_year: i128 = (accrual * interest_rate) / DECIMAL;
@@ -535,6 +535,7 @@ mod test {
         e.mock_all_auths();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
+            li.timestamp = 1;
             li.min_persistent_entry_ttl = 10_000_000;
             li.min_temp_entry_ttl = 1_000_000;
             li.max_entry_ttl = 1_000_001;
@@ -572,6 +573,7 @@ mod test {
 
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000 + (DAY_IN_LEDGERS * 365);
+            li.timestamp = 1 + 31_556_926; // one year in seconds
         });
 
         contract_client.add_interest_to_accrual();

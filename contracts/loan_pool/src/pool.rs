@@ -110,14 +110,14 @@ pub fn read_accrual(e: &Env) -> i128 {
     e.storage().persistent().get(&key).unwrap()
 }
 
-pub fn write_accrual_last_updated(e: &Env, sequence: u32) {
+pub fn write_accrual_last_updated(e: &Env, sequence: u64) {
     let key = PoolDataKey::AccrualLastUpdate;
 
     e.storage().persistent().set(&key, &sequence);
     extend_persistent(e.clone(), &key);
 }
 
-pub fn read_accrual_last_updated(e: &Env) -> u32 {
+pub fn read_accrual_last_updated(e: &Env) -> u64 {
     let key = PoolDataKey::AccrualLastUpdate;
 
     e.storage().persistent().get(&key).unwrap()
