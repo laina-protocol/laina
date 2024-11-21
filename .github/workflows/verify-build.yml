@@ -19,17 +19,8 @@ jobs:
         with:
           node-version: '${{ steps.nvm.outputs.NVMRC }}'
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Stellar
-        run: cargo install --locked stellar-cli --features opt
+      - name: Setup Rust and Stellar
+        uses: ./.github/actions/setup-rust-stellar
 
       - name: Build contracts
         run: make build
@@ -52,5 +43,8 @@ jobs:
           npm install
           npm run init
 
-      - name: Install, build, and upload your site output
+      - name: Build Astro app
+        env:
+          PUBLIC_SOROBAN_NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org/
         uses: withastro/action@v2

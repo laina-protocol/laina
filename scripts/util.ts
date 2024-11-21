@@ -83,6 +83,7 @@ const bind = (contractName: string, address: string | undefined) => {
   exe(
     `stellar contract bindings typescript --contract-id ${address_} --output-dir ./packages/${contractName} --overwrite`,
   );
+  exe(`cd ./packages/${contractName} && npm install && npm run build && cd ../..`);
 };
 
 export const createContractImports = () => {
