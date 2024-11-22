@@ -5,7 +5,6 @@ import { type PropsWithChildren, createContext, useContext, useEffect, useState 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getBalances } from '@lib/horizon';
 import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
-import { isNil } from 'ramda';
 import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
 
 const WALLET_TIMEOUT_DAYS = 3;
@@ -56,7 +55,10 @@ export type SignTransaction = (
     networkPassphrase?: string;
     accountToSign?: string;
   },
-) => Promise<XDR_BASE64>;
+) => Promise<{
+  signedTxXdr: XDR_BASE64;
+  signerAddress?: string;
+}>;
 
 type XDR_BASE64 = string;
 
@@ -195,8 +197,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   }, []);
 
   const signTransaction: SignTransaction = async (tx, opts) => {
-    const { signedTxXdr } = await kit.signTransaction(tx, opts);
-    return signedTxXdr;
+    return kit.signTransaction(tx, opts);
   };
 
   const openConnectWalletModal = () => {

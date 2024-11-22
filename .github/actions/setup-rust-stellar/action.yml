@@ -8,11 +8,15 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
         targets: wasm32-unknown-unknown
+
 
     - name: Install Stellar CLI
       run: |

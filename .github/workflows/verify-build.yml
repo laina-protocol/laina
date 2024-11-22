@@ -10,11 +10,6 @@ jobs:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: "true"
-
       - name: Setup Rust and Stellar
         uses: ./.github/actions/setup-rust-stellar
 

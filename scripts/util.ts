@@ -24,7 +24,7 @@ const GENESIS_ACCOUNTS = {
 export const GENESIS_ACCOUNT = GENESIS_ACCOUNTS[process.env.SOROBAN_NETWORK] ?? GENESIS_ACCOUNTS.testnet;
 
 export const loadAccount = () => {
-  // This takes the secret key from SOROBA_SECRET_KEY env-variable, so make sure you have that set.
+  // This takes the secret key from SOROBAN_SECRET_KEY env-variable, so make sure you have that set.
   exe(`stellar keys add ${process.env.SOROBAN_ACCOUNT}`);
 };
 
@@ -87,7 +87,7 @@ const bind = (contractName: string, address: string | undefined) => {
 };
 
 export const createContractImports = () => {
-  const CONTRACTS = ['loan_manager', 'pool_xlm', 'pool_usdc', 'pool_wbtc', 'pool_weth', 'pool_usdc', 'pool_eurc'];
+  const CONTRACTS = ['loan_manager', 'pool_xlm', 'pool_wbtc', 'pool_weth', 'pool_usdc', 'pool_eurc'];
   CONTRACTS.forEach(importContract);
 };
 

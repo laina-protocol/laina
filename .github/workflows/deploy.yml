@@ -24,7 +24,7 @@ jobs:
       - name: Build contracts
         run: make build
 
-      - name: Install and build
+      - name: Install and ugprade contract
         env:
           SOROBAN_NETWORK: testnet
           SOROBAN_ACCOUNT: ${{ secrets.SOROBAN_ACCOUNT }}
