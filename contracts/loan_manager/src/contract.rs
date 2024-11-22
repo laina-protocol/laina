@@ -53,7 +53,10 @@ impl LoanManager {
         liquidation_threshold: i128,
     ) -> Address {
         // Deploy the contract using the uploaded Wasm with given hash.
-        let deployed_address: Address = e.deployer().with_current_contract(salt).deploy(wasm_hash);
+        let deployed_address: Address = e
+            .deployer()
+            .with_current_contract(salt)
+            .deploy_v2(wasm_hash, ());
 
         // Add the new address to storage
         let mut pool_addresses = e
@@ -636,7 +639,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
             li.min_persistent_entry_ttl = 1_000_000;
@@ -728,7 +731,7 @@ mod tests {
     fn interest_at_max_usage() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -811,7 +814,7 @@ mod tests {
     fn interest_at_half_usage() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;

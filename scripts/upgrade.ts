@@ -14,8 +14,8 @@ console.log('######################Updating contracts ########################')
 
 // Invoke the upgrade-action of loan manager. It will upgrade its pools as well.
 const upgradeContracts = () => {
-  const managerWasmHash = readTextFile('./.soroban/contract-wasm-hash/loan_manager.txt');
-  const poolWasmHash = readTextFile('./.soroban/contract-wasm-hash/loan_pool.txt');
+  const managerWasmHash = readTextFile('./.stellar/contract-wasm-hash/loan_manager.txt');
+  const poolWasmHash = readTextFile('./.stellar/contract-wasm-hash/loan_pool.txt');
 
   exe(`stellar contract invoke \
 --id ${loanManagerAddress()} \

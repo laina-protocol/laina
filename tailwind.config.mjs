@@ -51,10 +51,12 @@ export default {
           neutral: '#000',
           '.btn-neutral:hover': {
             'background-color': '#555',
+            'border-color': '#555',
           },
           primary: '#fff',
           '.btn-primary:hover': {
             'background-color': '#aaa',
+            'border-color': '#aaa',
           },
           '.btn-ghost:hover': {
             'background-color': '#efefef',

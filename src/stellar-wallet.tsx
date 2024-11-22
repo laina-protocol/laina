@@ -5,8 +5,9 @@ import { type PropsWithChildren, createContext, useContext, useEffect, useState 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getBalances } from '@lib/horizon';
 import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
-import { isNil } from 'ramda';
 import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
+
+const WALLET_TIMEOUT_DAYS = 3;
 
 export type Wallet = {
   name: string;
@@ -54,7 +55,10 @@ export type SignTransaction = (
     networkPassphrase?: string;
     accountToSign?: string;
   },
-) => Promise<XDR_BASE64>;
+) => Promise<{
+  signedTxXdr: XDR_BASE64;
+  signerAddress?: string;
+}>;
 
 type XDR_BASE64 = string;
 
@@ -131,6 +135,30 @@ const fetchPriceData = async (token: string): Promise<bigint> => {
   }
 };
 
+interface WalletState {
+  name: string;
+  timeout: Date;
+}
+
+const storeWalletState = (state: WalletState) => {
+  localStorage.setItem('wallet-state', JSON.stringify(state));
+};
+
+const loadWalletState = (): WalletState | null => {
+  const text = localStorage.getItem('wallet-state');
+  if (!text) return null;
+
+  const { timeout, name } = JSON.parse(text);
+  return {
+    name,
+    timeout: new Date(timeout),
+  };
+};
+
+const deleteWalletState = () => {
+  localStorage.removeItem('wallet-state');
+};
+
 export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [walletBalances, setWalletBalances] = useState<BalanceRecord | null>(null);
@@ -144,28 +172,32 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       const balances = await getBalances(address);
       setWalletBalances(createBalanceRecord(balances));
       setPositions(await fetchAllPositions(address));
-      localStorage.setItem('wallet-connected', name);
+
+      const timeout = new Date();
+      timeout.setDate(timeout.getDate() + WALLET_TIMEOUT_DAYS);
+      storeWalletState({ name, timeout });
     } catch (err) {
       console.error('Loading wallet failed', err);
-      localStorage.removeItem('wallet-connected');
+      deleteWalletState();
     }
   };
 
   // Set initial wallet on load.
   // biome-ignore lint: useEffect is ass
   useEffect(() => {
-    const walletConnected = localStorage.getItem('wallet-connected');
-    if (!isNil(walletConnected)) {
-      loadWallet(walletConnected);
+    const walletState = loadWalletState();
+
+    if (walletState && new Date().getTime() < walletState.timeout.getTime()) {
+      loadWallet(walletState.name);
     }
+
     fetchAllPrices()
       .then((res) => setPrices(res))
       .catch((err) => console.error('Error fetching prices', err));
   }, []);
 
   const signTransaction: SignTransaction = async (tx, opts) => {
-    const { signedTxXdr } = await kit.signTransaction(tx, opts);
-    return signedTxXdr;
+    return kit.signTransaction(tx, opts);
   };
 
   const openConnectWalletModal = () => {
@@ -180,7 +212,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     setWallet(null);
     setWalletBalances(null);
     setPositions({});
-    localStorage.removeItem('wallet-connected');
+    deleteWalletState();
   };
 
   const refetchBalances = async () => {

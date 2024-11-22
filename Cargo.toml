@@ -6,8 +6,8 @@ resolver = "2"
 members = ["contracts/*"]
 
 [workspace.dependencies]
-soroban-sdk = "21.7.6"
-soroban-token-sdk = "21.7.6"
+soroban-sdk = "22.0.0-rc.3.2"
+soroban-token-sdk = "22.0.0-rc.3.2"
 
 [profile.release]
 opt-level = "z"

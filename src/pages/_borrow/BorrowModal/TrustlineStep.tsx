@@ -22,8 +22,8 @@ export const TrustLineStep = ({ onClose, currency, wallet, signTransaction, refe
     try {
       setIsCreating(true);
       const tx = await createAddTrustlineTransaction(wallet.address, currency);
-      const signedTx = await signTransaction(tx.toXDR());
-      await sendTransaction(signedTx);
+      const { signedTxXdr } = await signTransaction(tx.toXDR());
+      await sendTransaction(signedTxXdr);
       alert(`Succesfully created a trustline for ${ticker}!`);
     } catch (err) {
       alert('Error creating a trustline :(');
