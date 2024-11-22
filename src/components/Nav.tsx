@@ -1,20 +1,15 @@
 import type { PropsWithChildren } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useWallet } from 'src/stellar-wallet';
 import logo from '/public/laina_v3_shrinked.png';
 import { Button } from './Button';
 import Identicon from './Identicon';
 
 export default function Nav() {
-  const { pathname } = useLocation();
   const { wallet, openConnectWalletModal, disconnectWallet } = useWallet();
 
-  const isIndex = pathname === '/';
-
   return (
-    <nav
-      className={`relative mx-auto flex justify-between items-center pt-12 pb-6 px-4 max-w-full ${isIndex ? 'w-[74rem]' : 'w-[64rem]'}`}
-    >
+    <nav className="relative mx-auto flex justify-between items-center pt-12 pb-6 px-4 max-w-full w-[74rem]">
       <div>
         <Link to="/">
           <img src={logo.src} alt="logo" className="w-32" />
