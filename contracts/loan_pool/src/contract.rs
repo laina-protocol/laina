@@ -46,6 +46,8 @@ impl LoanPoolContract {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
+        Self::add_interest_to_accrual(e.clone());
+
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
@@ -66,6 +68,8 @@ impl LoanPoolContract {
     /// Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
     pub fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
+
+        Self::add_interest_to_accrual(e.clone());
 
         // Get users receivables
         let Positions { receivables, .. } = positions::read_positions(&e, &user);
@@ -107,6 +111,8 @@ impl LoanPoolContract {
         loan_manager_addr.require_auth();
         user.require_auth();
 
+        Self::add_interest_to_accrual(e.clone());
+
         let balance = pool::read_available_balance(&e);
         assert!(
             amount < balance,
@@ -134,6 +140,8 @@ impl LoanPoolContract {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
+        Self::add_interest_to_accrual(e.clone());
+
         let token_address = &pool::read_currency(&e).token_address;
         let client = token::Client::new(&e, token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
@@ -150,6 +158,8 @@ impl LoanPoolContract {
 
     pub fn withdraw_collateral(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth();
+        Self::add_interest_to_accrual(e.clone());
+
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
         assert!(amount > 0, "Amount must be positive!");
@@ -171,17 +181,11 @@ impl LoanPoolContract {
     pub fn add_interest_to_accrual(e: Env) {
         const DECIMAL: i128 = 10000000;
         const SECONDS_IN_YEAR: u64 = 31_556_926;
-        /*
-        We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
-        and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
-        Perfect calculations are impossible in real world time as we must use ledgers as our time and ledger times vary between 5-6s.
-        */
-        // TODO: we must store the init ledger for loans as loans started on different times would pay the same amount of interest on the given time.
 
         let current_timestamp = e.ledger().timestamp();
         let accrual = pool::read_accrual(&e);
         let accrual_last_update = pool::read_accrual_last_updated(&e);
-        let ledgers_since_update = current_timestamp - accrual_last_update; // Currently unused but is a placeholder for interest calculations. Now time is handled.
+        let ledgers_since_update = current_timestamp - accrual_last_update;
         let ledger_ratio: i128 =
             (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(SECONDS_IN_YEAR));
 
@@ -226,6 +230,8 @@ impl LoanPoolContract {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
 
+        Self::add_interest_to_accrual(e.clone());
+
         let amount_to_admin = if amount < unpaid_interest {
             amount / 10
         } else {
@@ -252,6 +258,8 @@ impl LoanPoolContract {
     ) {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
+
+        Self::add_interest_to_accrual(e.clone());
 
         let amount_to_admin = if amount < unpaid_interest {
             amount / 10
