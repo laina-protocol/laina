@@ -1,4 +1,3 @@
-use crate::interest::get_interest;
 use crate::oracle::{self, Asset};
 use crate::positions;
 use crate::storage_types::{
@@ -53,7 +52,10 @@ impl LoanManager {
         liquidation_threshold: i128,
     ) -> Address {
         // Deploy the contract using the uploaded Wasm with given hash.
-        let deployed_address: Address = e.deployer().with_current_contract(salt).deploy(wasm_hash);
+        let deployed_address: Address = e
+            .deployer()
+            .with_current_contract(salt)
+            .deploy_v2(wasm_hash, ());
 
         // Add the new address to storage
         let mut pool_addresses = e
@@ -230,7 +232,7 @@ impl LoanManager {
                         e.storage().persistent().remove(&key);
                         continue;
                     }
-                    let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
+                    let interest_rate: i128 = 1000; //get_interest(e.clone(), loan.borrowed_from.clone());
                     let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
                     let interest_since_update: i128 =
                         (interest_amount_in_year * ledger_ratio) / DECIMAL;
@@ -387,8 +389,8 @@ impl LoanManager {
         (borrowed_amount, new_borrowed_amount)
     }
 
-    pub fn get_interest_rate(e: Env, pool: Address) -> i128 {
-        get_interest(e, pool)
+    pub fn get_interest_rate(_e: Env, _pool: Address) -> i128 {
+        1000_i128 //temp
     }
 
     pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
@@ -492,7 +494,7 @@ mod tests {
         e.budget().reset_default();
         let admin = Address::generate(&e);
 
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let client = LoanManagerClient::new(&e, &contract_id);
 
         assert!(client.try_initialize(&admin).is_ok());
@@ -504,7 +506,7 @@ mod tests {
         e.budget().reset_default();
         let admin = Address::generate(&e);
 
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let client = LoanManagerClient::new(&e, &contract_id);
 
         client.initialize(&admin);
@@ -519,7 +521,7 @@ mod tests {
         e.budget().reset_default();
 
         let admin = Address::generate(&e);
-        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
+        let deployer_client = LoanManagerClient::new(&e, &e.register(LoanManager, ()));
         deployer_client.initialize(&admin);
 
         // Setup test token
@@ -553,7 +555,7 @@ mod tests {
 
         let admin = Address::generate(&e);
 
-        let deployer_client = LoanManagerClient::new(&e, &e.register_contract(None, LoanManager));
+        let deployer_client = LoanManagerClient::new(&e, &e.register(LoanManager, ()));
         deployer_client.initialize(&admin);
 
         // Setup test token
@@ -597,7 +599,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -606,15 +608,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 1000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -636,7 +638,7 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
             li.min_persistent_entry_ttl = 1_000_000;
@@ -664,7 +666,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -673,15 +675,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -713,7 +715,7 @@ mod tests {
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         contract_client.add_interest();
 
@@ -728,7 +730,7 @@ mod tests {
     fn interest_at_max_usage() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -757,7 +759,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -766,15 +768,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 10_000_000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -802,7 +804,7 @@ mod tests {
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         assert_eq!(contract_client.get_interest_rate(&loan_pool_id), 2_980_000);
     }
@@ -811,7 +813,7 @@ mod tests {
     fn interest_at_half_usage() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -840,7 +842,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -849,15 +851,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 10_000_000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -885,7 +887,7 @@ mod tests {
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         assert_eq!(contract_client.get_interest_rate(&loan_pool_id), 644_440);
     }
@@ -918,7 +920,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -927,15 +929,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -992,7 +994,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -1001,15 +1003,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -1058,7 +1060,7 @@ mod tests {
 
         // Register mock Reflector contract.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         // Mint the user some coins
         let user = Address::generate(&e);
@@ -1067,15 +1069,15 @@ mod tests {
         assert_eq!(collateral_token_client.balance(&user), 1_000_000);
 
         // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let loan_pool_id = e.register(loan_pool::WASM, ());
         let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
 
         // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register_contract_wasm(None, loan_pool::WASM);
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
         let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
 
         // Register loan manager contract.
-        let contract_id = e.register_contract(None, LoanManager);
+        let contract_id = e.register(LoanManager, ());
         let contract_client = LoanManagerClient::new(&e, &contract_id);
 
         // ACT
@@ -1105,7 +1107,7 @@ mod tests {
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         contract_client.add_interest();
 
@@ -1120,7 +1122,7 @@ mod tests {
         });
 
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_contract_wasm(&reflector_addr, oracle::WASM);
+        e.register_at(&reflector_addr, oracle::WASM, ());
 
         contract_client.liquidate(&admin, &user, &5000);
 

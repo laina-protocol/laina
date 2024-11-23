@@ -1,5 +1,7 @@
+use crate::interest::get_interest;
 use crate::pool::Currency;
 use crate::positions;
+use crate::storage_types::DAY_IN_LEDGERS;
 use crate::{pool, storage_types::Positions};
 
 use soroban_sdk::{contract, contractimpl, contractmeta, token, Address, BytesN, Env};
@@ -29,6 +31,8 @@ impl LoanPoolContract {
         pool::write_total_shares(&e, 0);
         pool::write_total_balance(&e, 0);
         pool::write_available_balance(&e, 0);
+        pool::write_accrual(&e, 10_000_000); // Default initial accrual value.
+        pool::write_accrual_last_updated(&e, e.ledger().sequence());
     }
 
     pub fn upgrade(e: Env, new_wasm_hash: BytesN<32>) {
@@ -165,6 +169,31 @@ impl LoanPoolContract {
         amount
     }
 
+    pub fn add_interest_to_accrual(e: Env) {
+        const DECIMAL: i128 = 10000000;
+        /*
+        We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
+        and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
+        Perfect calculations are impossible in real world time as we must use ledgers as our time and ledger times vary between 5-6s.
+        */
+        // TODO: we must store the init ledger for loans as loans started on different times would pay the same amount of interest on the given time.
+
+        let current_ledger = e.ledger().sequence();
+
+        let accrual = pool::read_accrual(&e);
+        let accrual_last_update = pool::read_accrual_last_updated(&e);
+        let ledgers_since_update: u32 = current_ledger - accrual_last_update; // Currently unused but is a placeholder for interest calculations. Now time is handled.
+        let ledger_ratio: i128 =
+            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(DAY_IN_LEDGERS * 365));
+
+        let interest_rate: i128 = get_interest(e.clone());
+        let interest_amount_in_year: i128 = (accrual * interest_rate) / DECIMAL;
+        let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
+        let new_accrual: i128 = accrual + interest_since_update;
+
+        pool::write_accrual(&e, new_accrual);
+    }
+
     /// Get user's positions in the pool
     pub fn get_user_positions(e: Env, user: Address) -> Positions {
         positions::read_positions(&e, &user)
@@ -281,7 +310,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
 
         contract_client.initialize(
@@ -307,7 +336,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
@@ -338,7 +367,7 @@ mod test {
             ticker: Symbol::new(&e, "XLM"),
         };
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         contract_client.initialize(
             &Address::generate(&e),
@@ -376,7 +405,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
@@ -410,7 +439,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 2000;
 
@@ -440,7 +469,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
@@ -476,7 +505,7 @@ mod test {
         let user2 = Address::generate(&e);
         stellar_asset.mint(&user2, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 

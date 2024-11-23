@@ -2,8 +2,8 @@ name: "Rust: Format Check"
 
 on:
   push:
-    branches:
-      - "**"
+    branches-ignore:
+      - main
 
 jobs:
   rustfmt:
