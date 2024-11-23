@@ -554,7 +554,7 @@ mod test {
         let user2 = Address::generate(&e);
         stellar_asset.mint(&user2, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 1000;
 
@@ -605,7 +605,7 @@ mod test {
         let user2 = Address::generate(&e);
         stellar_asset.mint(&user2, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 1000;
 
