@@ -182,7 +182,7 @@ impl LoanManager {
         Ok(())
     }
 
-    pub fn add_interest(e: Env, user: Address) {
+    pub fn add_interest(e: &Env, user: Address) {
         const DECIMAL: i128 = 10000000;
         let Loan {
             borrower,
@@ -194,10 +194,10 @@ impl LoanManager {
             health_factor,
             unpaid_interest,
             last_accrual,
-        } = Self::get_loan(&e, user.clone());
+        } = Self::get_loan(e, user.clone());
 
-        let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
-        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_from);
+        let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
+        let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
 
         let token_ticker = borrow_pool_client.get_currency().ticker;
         let token_collateral_ticker = collateral_pool_client.get_currency().ticker;
@@ -208,7 +208,7 @@ impl LoanManager {
         let new_borrowed_amount = borrowed_amount * interest_since_update_multiplier / DECIMAL;
 
         let new_health_factor = Self::calculate_health_factor(
-            &e,
+            e,
             token_ticker,
             new_borrowed_amount,
             token_collateral_ticker,
@@ -228,7 +228,7 @@ impl LoanManager {
             last_accrual: current_accrual,
         };
 
-        let key = (Symbol::new(&e, "Loan"), user.clone());
+        let key = (Symbol::new(e, "Loan"), user.clone());
 
         e.storage().persistent().set(&key, &updated_loan);
         e.storage().persistent().extend_ttl(
@@ -283,6 +283,8 @@ impl LoanManager {
 
     pub fn repay(e: &Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
+
+        Self::add_interest(e, user.clone());
 
         let Loan {
             borrower,
@@ -358,6 +360,8 @@ impl LoanManager {
 
     pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
         user.require_auth();
+
+        Self::add_interest(&e, borrower.clone());
 
         let Loan {
             borrower,
@@ -698,7 +702,7 @@ mod tests {
     fn repay() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
