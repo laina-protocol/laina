@@ -1,7 +1,8 @@
 name: Verify Build
 on:
   push:
-    branches: '**'
+    branches-ignore:
+      - main
 
 jobs:
   build:

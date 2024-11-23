@@ -2,7 +2,8 @@ name: Node.js
 
 on:
   push:
-    branches: ['**']
+    branches-ignore:
+      - main
 
 jobs:
 
