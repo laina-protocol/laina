@@ -36,7 +36,7 @@ fn init_contract_with_admin<'a>() -> (Env, PriceOracleContractClient<'a>, Config
         "CDXHQTB7FGRMWTLJJLNI3XPKVC6SZDB5SFGZUYDPEGQQNC4G6CKE4QRC",
     ));
 
-    env.register_contract(contract_id, PriceOracleContract);
+    env.register_at(contract_id, PriceOracleContract, ());
     let client: PriceOracleContractClient<'a> = PriceOracleContractClient::new(&env, contract_id);
 
     env.budget().reset_unlimited();

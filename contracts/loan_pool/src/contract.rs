@@ -281,7 +281,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
 
         contract_client.initialize(
@@ -307,7 +307,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
@@ -338,7 +338,7 @@ mod test {
             ticker: Symbol::new(&e, "XLM"),
         };
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         contract_client.initialize(
             &Address::generate(&e),
@@ -376,7 +376,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
@@ -410,7 +410,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 2000;
 
@@ -440,7 +440,7 @@ mod test {
         let user = Address::generate(&e);
         stellar_asset.mint(&user, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
@@ -476,7 +476,7 @@ mod test {
         let user2 = Address::generate(&e);
         stellar_asset.mint(&user2, &1000);
 
-        let contract_id = e.register_contract(None, LoanPoolContract);
+        let contract_id = e.register(LoanPoolContract, ());
         let contract_client = LoanPoolContractClient::new(&e, &contract_id);
         let amount: i128 = 100;
 
