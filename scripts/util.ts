@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
 // Load environment variables starting with PUBLIC_ into the environment,
@@ -45,17 +45,17 @@ export const installContracts = () => {
   const contractsDir = `./.stellar/contract-wasm-hash`;
   mkdirSync(contractsDir, { recursive: true });
 
-  const wasmFiles = readdirSync(`./target/wasm32-unknown-unknown/release`).filter((file) => file.endsWith('.wasm'));
-
-  wasmFiles.forEach((wasmFile) => {
-    install(`./target/wasm32-unknown-unknown/release/${wasmFile}`);
-  });
+  install('loan_manager');
+  install('loan_pool');
 };
 
 /* Install a contract */
-const install = (wasm: string) => {
+const install = (contractName: string) => {
   exe(
-    `stellar contract install --wasm ${wasm} --ignore-checks > ./.stellar/contract-wasm-hash/${filenameNoExtension(wasm)}.txt`,
+    `stellar contract install \
+--wasm ./target/wasm32-unknown-unknown/release/${contractName}.wasm \
+--ignore-checks \
+> ./.stellar/contract-wasm-hash/${contractName}.txt`,
   );
 };
 
