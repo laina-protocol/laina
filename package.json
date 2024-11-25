@@ -5,7 +5,7 @@
     "@astrojs/tailwind": "^5.1.0",
     "@creit.tech/stellar-wallets-kit": "^1.1.0",
     "@fontsource/manrope": "^5.0.21",
-    "@stellar/stellar-sdk": "^12.2.0",
+    "@stellar/stellar-sdk": "^13.0.0",
     "@types/ramda": "^0.30.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
