@@ -315,47 +315,63 @@ impl LoanManager {
         let new_borrowed_amount = borrowed_amount - amount;
         //TODO: calculate new health-factor. No need to check it relative to threshold.
 
-        if new_borrowed_amount == 0 {
-            let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
-            collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
-            e.storage().persistent().remove(&key);
+        let loan = Loan {
+            borrower,
+            borrowed_amount: new_borrowed_amount,
+            borrowed_from,
+            collateral_amount,
+            collateral_from,
+            health_factor,
+            unpaid_interest: new_unpaid_interest,
+            last_accrual,
+        };
 
-            let mut addresses: Vec<Address> = e
-                .storage()
-                .persistent()
-                .get(&LoansDataKey::Addresses)
-                .unwrap();
-
-            if let Some(index) = addresses.iter().position(|x| x == user) {
-                addresses.remove(index.try_into().unwrap())
-            } else {
-                panic!("Address not found in Addresses");
-            };
-        } else {
-            let loan = Loan {
-                borrower,
-                borrowed_amount: new_borrowed_amount,
-                borrowed_from,
-                collateral_amount,
-                collateral_from,
-                health_factor,
-                unpaid_interest: new_unpaid_interest,
-                last_accrual,
-            };
-
-            e.storage().persistent().set(&key, &loan);
-            e.storage().persistent().extend_ttl(
-                &key,
-                POSITIONS_LIFETIME_THRESHOLD,
-                POSITIONS_BUMP_AMOUNT,
-            );
-        }
+        e.storage().persistent().set(&key, &loan);
+        e.storage().persistent().extend_ttl(
+            &key,
+            POSITIONS_LIFETIME_THRESHOLD,
+            POSITIONS_BUMP_AMOUNT,
+        );
 
         (borrowed_amount, new_borrowed_amount)
     }
 
-    pub fn get_interest_rate(_e: Env, _pool: Address) -> i128 {
-        1000_i128 //temp
+    pub fn repay_and_close(e: &Env, user: Address) {
+        user.require_auth();
+
+        Self::add_interest(e, user.clone());
+
+        let Loan {
+            borrower: _,
+            borrowed_amount,
+            borrowed_from,
+            collateral_amount,
+            collateral_from,
+            health_factor: _,
+            unpaid_interest,
+            last_accrual: _,
+        } = Self::get_loan(e, user.clone());
+
+        let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
+        borrow_pool_client.repay(&user, &borrowed_amount, &unpaid_interest);
+
+        let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
+        collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
+
+        let key = (Symbol::new(e, "Loan"), user.clone());
+        e.storage().persistent().remove(&key);
+
+        let mut addresses: Vec<Address> = e
+            .storage()
+            .persistent()
+            .get(&LoansDataKey::Addresses)
+            .unwrap();
+
+        if let Some(index) = addresses.iter().position(|x| x == user) {
+            addresses.remove(index.try_into().unwrap())
+        } else {
+            panic!("Address not found in Addresses");
+        };
     }
 
     pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
