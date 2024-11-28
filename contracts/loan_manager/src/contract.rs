@@ -190,8 +190,7 @@ impl LoanManager {
             collateral_amount,
             borrowed_amount,
             collateral_from,
-            #[allow(unused_variables)]
-            health_factor,
+            health_factor: _,
             unpaid_interest,
             last_accrual,
         } = Self::get_loan(e, user.clone());
@@ -199,8 +198,15 @@ impl LoanManager {
         let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
         let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
 
-        let token_ticker = borrow_pool_client.get_currency().ticker;
-        let token_collateral_ticker = collateral_pool_client.get_currency().ticker;
+        let loan_pool::Currency {
+            ticker: token_ticker,
+            ..
+        } = borrow_pool_client.get_currency();
+
+        let loan_pool::Currency {
+            ticker: token_collateral_ticker,
+            ..
+        } = collateral_pool_client.get_currency();
 
         let current_accrual = borrow_pool_client.get_accrual();
         let interest_since_update_multiplier = current_accrual * DECIMAL / last_accrual;
