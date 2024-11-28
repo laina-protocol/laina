@@ -96,3 +96,29 @@ pub fn change_available_balance(e: &Env, amount: i128) {
 
     write_available_balance(e, amount + current_balance);
 }
+
+pub fn write_accrual(e: &Env, accrual: i128) {
+    let key = PoolDataKey::Accrual;
+
+    e.storage().persistent().set(&key, &accrual);
+    extend_persistent(e.clone(), &key);
+}
+
+pub fn read_accrual(e: &Env) -> i128 {
+    let key = PoolDataKey::Accrual;
+
+    e.storage().persistent().get(&key).unwrap()
+}
+
+pub fn write_accrual_last_updated(e: &Env, sequence: u64) {
+    let key = PoolDataKey::AccrualLastUpdate;
+
+    e.storage().persistent().set(&key, &sequence);
+    extend_persistent(e.clone(), &key);
+}
+
+pub fn read_accrual_last_updated(e: &Env) -> u64 {
+    let key = PoolDataKey::AccrualLastUpdate;
+
+    e.storage().persistent().get(&key).unwrap()
+}

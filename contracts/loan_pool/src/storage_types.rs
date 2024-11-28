@@ -43,6 +43,10 @@ pub enum PoolDataKey {
     TotalBalance,
     // Available balance of pool
     AvailableBalance,
+    // Pool interest accrual index
+    Accrual,
+    // Last update ledger of accrual
+    AccrualLastUpdate,
 }
 
 /* Persistent ttl bumper */

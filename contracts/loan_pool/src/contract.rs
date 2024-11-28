@@ -1,3 +1,4 @@
+use crate::interest::get_interest;
 use crate::pool::Currency;
 use crate::positions;
 use crate::{pool, storage_types::Positions};
@@ -29,6 +30,8 @@ impl LoanPoolContract {
         pool::write_total_shares(&e, 0);
         pool::write_total_balance(&e, 0);
         pool::write_available_balance(&e, 0);
+        pool::write_accrual(&e, 10_000_000); // Default initial accrual value.
+        pool::write_accrual_last_updated(&e, e.ledger().timestamp());
     }
 
     pub fn upgrade(e: Env, new_wasm_hash: BytesN<32>) {
@@ -42,6 +45,8 @@ impl LoanPoolContract {
     pub fn deposit(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
+
+        Self::add_interest_to_accrual(e.clone());
 
         let client = token::Client::new(&e, &pool::read_currency(&e).token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
@@ -63,6 +68,8 @@ impl LoanPoolContract {
     /// Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
     pub fn withdraw(e: Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
+
+        Self::add_interest_to_accrual(e.clone());
 
         // Get users receivables
         let Positions { receivables, .. } = positions::read_positions(&e, &user);
@@ -104,6 +111,8 @@ impl LoanPoolContract {
         loan_manager_addr.require_auth();
         user.require_auth();
 
+        Self::add_interest_to_accrual(e.clone());
+
         let balance = pool::read_available_balance(&e);
         assert!(
             amount < balance,
@@ -131,6 +140,8 @@ impl LoanPoolContract {
         user.require_auth();
         assert!(amount > 0, "Amount must be positive!");
 
+        Self::add_interest_to_accrual(e.clone());
+
         let token_address = &pool::read_currency(&e).token_address;
         let client = token::Client::new(&e, token_address);
         client.transfer(&user, &e.current_contract_address(), &amount);
@@ -147,6 +158,8 @@ impl LoanPoolContract {
 
     pub fn withdraw_collateral(e: Env, user: Address, amount: i128) -> i128 {
         user.require_auth();
+        Self::add_interest_to_accrual(e.clone());
+
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
         assert!(amount > 0, "Amount must be positive!");
@@ -163,6 +176,29 @@ impl LoanPoolContract {
         positions::decrease_positions(&e, user.clone(), receivables, liabilities, amount);
 
         amount
+    }
+
+    pub fn add_interest_to_accrual(e: Env) {
+        const DECIMAL: i128 = 10000000;
+        const SECONDS_IN_YEAR: u64 = 31_556_926;
+
+        let current_timestamp = e.ledger().timestamp();
+        let accrual = pool::read_accrual(&e);
+        let accrual_last_update = pool::read_accrual_last_updated(&e);
+        let ledgers_since_update = current_timestamp - accrual_last_update;
+        let ledger_ratio: i128 =
+            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(SECONDS_IN_YEAR));
+
+        let interest_rate: i128 = get_interest(e.clone());
+        let interest_amount_in_year: i128 = (accrual * interest_rate) / DECIMAL;
+        let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
+        let new_accrual: i128 = accrual + interest_since_update;
+
+        pool::write_accrual(&e, new_accrual);
+    }
+
+    pub fn get_accrual(e: Env) -> i128 {
+        pool::read_accrual(&e)
     }
 
     /// Get user's positions in the pool
@@ -194,6 +230,8 @@ impl LoanPoolContract {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
 
+        Self::add_interest_to_accrual(e.clone());
+
         let amount_to_admin = if amount < unpaid_interest {
             amount / 10
         } else {
@@ -220,6 +258,8 @@ impl LoanPoolContract {
     ) {
         let loan_manager_addr = pool::read_loan_manager_addr(&e);
         loan_manager_addr.require_auth();
+
+        Self::add_interest_to_accrual(e.clone());
 
         let amount_to_admin = if amount < unpaid_interest {
             amount / 10
@@ -258,7 +298,7 @@ impl LoanPoolContract {
 mod test {
     use super::*; // This imports LoanPoolContract and everything else from the parent module
     use soroban_sdk::{
-        testutils::Address as _,
+        testutils::{Address as _, Ledger},
         token::{Client as TokenClient, StellarAssetClient},
         Env, Symbol,
     };
@@ -495,5 +535,105 @@ mod test {
         let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
 
         assert_eq!(withdraw_result, (amount, amount));
+    }
+    #[test]
+    fn add_accrual_full_usage() {
+        let e = Env::default();
+        e.mock_all_auths();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.timestamp = 1;
+            li.min_persistent_entry_ttl = 10_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
+        let currency = Currency {
+            token_address: token.address(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+
+        let user2 = Address::generate(&e);
+        stellar_asset.mint(&user2, &1000);
+
+        let contract_id = e.register(LoanPoolContract, ());
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 1000;
+
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
+
+        let result: i128 = contract_client.deposit(&user, &amount);
+
+        assert_eq!(result, amount);
+
+        contract_client.borrow(&user2, &999);
+
+        e.ledger().with_mut(|li| {
+            li.timestamp = 1 + 31_556_926; // one year in seconds
+        });
+
+        contract_client.add_interest_to_accrual();
+        // value of 12980000 is expected as usage is 999/1000 and max interest rate is 30%
+        // Time in ledgers is shifted by ~one year.
+        assert_eq!(12_980_000, contract_client.get_accrual());
+    }
+    #[test]
+    fn add_accrual_half_usage() {
+        let e = Env::default();
+        e.mock_all_auths();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.timestamp = 1;
+            li.min_persistent_entry_ttl = 10_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
+        let currency = Currency {
+            token_address: token.address(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &1000);
+
+        let user2 = Address::generate(&e);
+        stellar_asset.mint(&user2, &1000);
+
+        let contract_id = e.register(LoanPoolContract, ());
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+        let amount: i128 = 1000;
+
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
+
+        let result: i128 = contract_client.deposit(&user, &amount);
+
+        assert_eq!(result, amount);
+
+        contract_client.borrow(&user2, &500);
+
+        e.ledger().with_mut(|li| {
+            li.timestamp = 1 + 31_556_926; // one year in seconds
+        });
+
+        contract_client.add_interest_to_accrual();
+        assert_eq!(10_644_440, contract_client.get_accrual());
     }
 }

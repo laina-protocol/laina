@@ -1,8 +1,7 @@
-use crate::interest::get_interest;
 use crate::oracle::{self, Asset};
 use crate::positions;
 use crate::storage_types::{
-    Loan, LoansDataKey, DAY_IN_LEDGERS, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
+    Loan, LoansDataKey, POSITIONS_BUMP_AMOUNT, POSITIONS_LIFETIME_THRESHOLD,
 };
 
 use soroban_sdk::{
@@ -153,7 +152,6 @@ impl LoanManager {
 
         let unpaid_interest = 0;
 
-        // FIXME: Currently one can call initialize multiple times to change same addresses loan
         let loan = Loan {
             borrower: user.clone(),
             borrowed_amount,
@@ -162,6 +160,7 @@ impl LoanManager {
             collateral_from,
             health_factor,
             unpaid_interest,
+            last_accrual: borrow_pool_client.get_accrual(),
         };
 
         positions::init_loan(&e, user.clone(), loan);
@@ -183,94 +182,61 @@ impl LoanManager {
         Ok(())
     }
 
-    pub fn add_interest(e: Env) {
+    pub fn add_interest(e: &Env, user: Address) {
         const DECIMAL: i128 = 10000000;
-        /*
-        We calculate interest for ledgers_between from a given APY approximation simply by dividing the rate r with ledgers in a year
-        and multiplying it with ledgers_between. This would result in slightly different total yearly interest, e.g. 12% -> 12.7% total.
-        Perfect calculations are impossible in real world time as we must use ledgers as our time and ledger times vary between 5-6s.
-        */
-        // TODO: we must store the init ledger for loans as loans started on different times would pay the same amount of interest on the given time.
+        let Loan {
+            borrower,
+            borrowed_from,
+            collateral_amount,
+            borrowed_amount,
+            collateral_from,
+            health_factor: _,
+            unpaid_interest,
+            last_accrual,
+        } = Self::get_loan(e, user.clone());
 
-        let current_ledger = e.ledger().sequence();
+        let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
+        let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
 
-        let key: LoansDataKey = LoansDataKey::LastUpdated;
-        let previous_ledger: u32 = e.storage().persistent().get(&key).unwrap_or(current_ledger); // If there is no previous ledger, use current.
+        let loan_pool::Currency {
+            ticker: token_ticker,
+            ..
+        } = borrow_pool_client.get_currency();
 
-        let ledgers_since_update: u32 = current_ledger - previous_ledger; // Currently unused but is a placeholder for interest calculations. Now time is handled.
-        let ledger_ratio: i128 =
-            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(DAY_IN_LEDGERS * 365));
+        let loan_pool::Currency {
+            ticker: token_collateral_ticker,
+            ..
+        } = collateral_pool_client.get_currency();
 
-        // Iterate over loans and add interest to capital borrowed.
-        // In the same iteration add the amount to the liabilities of the lending pool.
-        // First, lets retrieve the list of addresses with loans
-        let mut addresses: Vec<Address> = e
-            .storage()
-            .persistent()
-            .get(&LoansDataKey::Addresses)
-            .unwrap();
+        let current_accrual = borrow_pool_client.get_accrual();
+        let interest_since_update_multiplier = current_accrual * DECIMAL / last_accrual;
 
-        for user in addresses.iter() {
-            let key = (Symbol::new(&e, "Loan"), user.clone());
+        let new_borrowed_amount = borrowed_amount * interest_since_update_multiplier / DECIMAL;
 
-            match e
-                .storage()
-                .persistent()
-                .get::<(Symbol, Address), Loan>(&key)
-            {
-                None => {
-                    if let Some(index) = addresses.iter().position(|x| x == user) {
-                        addresses.remove(index.try_into().unwrap());
-                        continue;
-                    } else {
-                        panic!("Address not found in Addresses");
-                    };
-                }
-                Some(mut loan) => {
-                    let borrowed: i128 = loan.borrowed_amount;
+        let new_health_factor = Self::calculate_health_factor(
+            e,
+            token_ticker,
+            new_borrowed_amount,
+            token_collateral_ticker,
+            collateral_amount,
+        );
 
-                    if borrowed == 0 {
-                        e.storage().persistent().remove(&key);
-                        continue;
-                    }
-                    let interest_rate: i128 = get_interest(e.clone(), loan.borrowed_from.clone());
-                    let interest_amount_in_year: i128 = (borrowed * interest_rate) / DECIMAL;
-                    let interest_since_update: i128 =
-                        (interest_amount_in_year * ledger_ratio) / DECIMAL;
-                    let new_borrowed: i128 = borrowed + interest_since_update;
-                    // Insert the new value to the loan_map
-                    loan.borrowed_amount = new_borrowed;
-                    // Get updated health_factor
-                    let collateral_pool_client = loan_pool::Client::new(&e, &loan.collateral_from);
-                    let borrow_pool_client = loan_pool::Client::new(&e, &loan.borrowed_from);
+        let new_unpaid_interest = unpaid_interest + (new_borrowed_amount - borrowed_amount);
 
-                    let token_currency = borrow_pool_client.get_currency();
-                    let collateral_currency = collateral_pool_client.get_currency();
-                    loan.health_factor = Self::calculate_health_factor(
-                        &e,
-                        token_currency.ticker,
-                        new_borrowed,
-                        collateral_currency.ticker,
-                        loan.collateral_amount,
-                    );
-                    // It now calls reflector for each address. This is safe but might end up being costly
-                    // Set it to storage
-                    loan.unpaid_interest += interest_since_update;
-                    e.storage().persistent().set(&key, &loan);
-                    e.storage().persistent().extend_ttl(
-                        &key,
-                        POSITIONS_LIFETIME_THRESHOLD,
-                        POSITIONS_BUMP_AMOUNT,
-                    );
-                    // TODO: this should also invoke the pools and update the amounts lended to liabilities.
-                    let borrowed_from = loan.borrowed_from;
-                    let borrow_pool_client = loan_pool::Client::new(&e, &borrowed_from);
-                    borrow_pool_client.increase_liabilities(&user, &interest_since_update);
-                }
-            }
-        }
+        let updated_loan = Loan {
+            borrower,
+            borrowed_from,
+            collateral_amount,
+            borrowed_amount: new_borrowed_amount,
+            collateral_from,
+            health_factor: new_health_factor,
+            unpaid_interest: new_unpaid_interest,
+            last_accrual: current_accrual,
+        };
 
-        e.storage().persistent().set(&key, &current_ledger);
+        let key = (Symbol::new(e, "Loan"), user.clone());
+
+        e.storage().persistent().set(&key, &updated_loan);
         e.storage().persistent().extend_ttl(
             &key,
             POSITIONS_LIFETIME_THRESHOLD,
@@ -324,6 +290,8 @@ impl LoanManager {
     pub fn repay(e: &Env, user: Address, amount: i128) -> (i128, i128) {
         user.require_auth();
 
+        Self::add_interest(e, user.clone());
+
         let Loan {
             borrower,
             borrowed_amount,
@@ -332,6 +300,7 @@ impl LoanManager {
             collateral_from,
             health_factor,
             unpaid_interest,
+            last_accrual,
         } = Self::get_loan(e, user.clone());
 
         assert!(
@@ -352,50 +321,69 @@ impl LoanManager {
         let new_borrowed_amount = borrowed_amount - amount;
         //TODO: calculate new health-factor. No need to check it relative to threshold.
 
-        if new_borrowed_amount == 0 {
-            let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
-            collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
-            e.storage().persistent().remove(&key);
+        let loan = Loan {
+            borrower,
+            borrowed_amount: new_borrowed_amount,
+            borrowed_from,
+            collateral_amount,
+            collateral_from,
+            health_factor,
+            unpaid_interest: new_unpaid_interest,
+            last_accrual,
+        };
 
-            let mut addresses: Vec<Address> = e
-                .storage()
-                .persistent()
-                .get(&LoansDataKey::Addresses)
-                .unwrap();
-
-            if let Some(index) = addresses.iter().position(|x| x == user) {
-                addresses.remove(index.try_into().unwrap())
-            } else {
-                panic!("Address not found in Addresses");
-            };
-        } else {
-            let loan = Loan {
-                borrower,
-                borrowed_amount: new_borrowed_amount,
-                borrowed_from,
-                collateral_amount,
-                collateral_from,
-                health_factor,
-                unpaid_interest: new_unpaid_interest,
-            };
-
-            e.storage().persistent().set(&key, &loan);
-            e.storage().persistent().extend_ttl(
-                &key,
-                POSITIONS_LIFETIME_THRESHOLD,
-                POSITIONS_BUMP_AMOUNT,
-            );
-        }
+        e.storage().persistent().set(&key, &loan);
+        e.storage().persistent().extend_ttl(
+            &key,
+            POSITIONS_LIFETIME_THRESHOLD,
+            POSITIONS_BUMP_AMOUNT,
+        );
 
         (borrowed_amount, new_borrowed_amount)
     }
 
-    pub fn get_interest_rate(e: Env, pool: Address) -> i128 {
-        get_interest(e, pool)
+    pub fn repay_and_close(e: &Env, user: Address) {
+        user.require_auth();
+
+        Self::add_interest(e, user.clone());
+
+        let Loan {
+            borrower: _,
+            borrowed_amount,
+            borrowed_from,
+            collateral_amount,
+            collateral_from,
+            health_factor: _,
+            unpaid_interest,
+            last_accrual: _,
+        } = Self::get_loan(e, user.clone());
+
+        let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
+        borrow_pool_client.repay(&user, &borrowed_amount, &unpaid_interest);
+
+        let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
+        collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
+
+        let key = (Symbol::new(e, "Loan"), user.clone());
+        e.storage().persistent().remove(&key);
+
+        let mut addresses: Vec<Address> = e
+            .storage()
+            .persistent()
+            .get(&LoansDataKey::Addresses)
+            .unwrap();
+
+        if let Some(index) = addresses.iter().position(|x| x == user) {
+            addresses.remove(index.try_into().unwrap())
+        } else {
+            panic!("Address not found in Addresses");
+        };
     }
 
     pub fn liquidate(e: Env, user: Address, borrower: Address, amount: i128) -> (i128, i128, i128) {
         user.require_auth();
+
+        Self::add_interest(&e, borrower.clone());
 
         let Loan {
             borrower,
@@ -405,6 +393,7 @@ impl LoanManager {
             collateral_amount,
             health_factor: _,
             unpaid_interest,
+            last_accrual,
         } = Self::get_loan(&e, borrower);
 
         let key = (Symbol::new(&e, "Loan"), borrower.clone());
@@ -463,6 +452,7 @@ impl LoanManager {
             collateral_amount: collateral_amount - collateral_amount_bonus,
             health_factor: new_health_factor,
             unpaid_interest, // Temp
+            last_accrual,
         };
 
         e.storage().persistent().set(&key, &new_loan);
@@ -642,7 +632,8 @@ mod tests {
         e.budget().reset_unlimited();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
-            li.min_persistent_entry_ttl = 1_000_000;
+            li.timestamp = 1;
+            li.min_persistent_entry_ttl = 10_000_000;
             li.min_temp_entry_ttl = 1_000_000;
             li.max_entry_ttl = 1_000_001;
         });
@@ -690,7 +681,7 @@ mod tests {
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
         loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
-        loan_pool_client.deposit(&admin, &1_000_000);
+        loan_pool_client.deposit(&admin, &10_001);
 
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
@@ -702,7 +693,7 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 10_000);
         assert_eq!(collateral_token_client.balance(&user), 900_000);
 
-        contract_client.add_interest();
+        contract_client.add_interest(&user);
 
         // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
         assert_eq!(user_loan.borrowed_amount, 10_000);
@@ -712,192 +703,28 @@ mod tests {
         // Move time
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000 + 100_000;
+            li.timestamp = 1 + 31_556_926;
         });
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
         e.register_at(&reflector_addr, oracle::WASM, ());
 
-        contract_client.add_interest();
+        loan_pool_client.add_interest_to_accrual();
+        contract_client.add_interest(&user);
 
         let user_loan = contract_client.get_loan(&user);
 
-        assert_eq!(user_loan.borrowed_amount, 10_003);
-        assert_eq!(user_loan.health_factor, 99_970_008);
+        assert_eq!(user_loan.borrowed_amount, 12_998);
+        assert_eq!(user_loan.health_factor, 76_934_913);
         assert_eq!(user_loan.collateral_amount, 100_000);
-    }
-
-    #[test]
-    fn interest_at_max_usage() {
-        // ARRANGE
-        let e = Env::default();
-        e.budget().reset_unlimited();
-        e.mock_all_auths_allowing_non_root_auth();
-        e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000;
-            li.min_persistent_entry_ttl = 1_000_000;
-            li.min_temp_entry_ttl = 1_000_000;
-            li.max_entry_ttl = 1_000_001;
-        });
-
-        let admin = Address::generate(&e);
-        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
-        loan_asset.mint(&admin, &1_000_000);
-        let loan_currency = loan_pool::Currency {
-            token_address: loan_token.address(),
-            ticker: Symbol::new(&e, "XLM"),
-        };
-
-        let admin2 = Address::generate(&e);
-        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
-        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
-        let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token.address(),
-            ticker: Symbol::new(&e, "USDC"),
-        };
-
-        // Register mock Reflector contract.
-        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_at(&reflector_addr, oracle::WASM, ());
-
-        // Mint the user some coins
-        let user = Address::generate(&e);
-        collateral_asset.mint(&user, &10_000_000);
-
-        assert_eq!(collateral_token_client.balance(&user), 10_000_000);
-
-        // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register(loan_pool::WASM, ());
-        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
-
-        // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register(loan_pool::WASM, ());
-        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
-
-        // Register loan manager contract.
-        let contract_id = e.register(LoanManager, ());
-        let contract_client = LoanManagerClient::new(&e, &contract_id);
-
-        // ACT
-        // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
-        loan_pool_client.deposit(&admin, &1_000_000);
-
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
-
-        // Create a loan.
-        contract_client.create_loan(
-            &user,
-            &999_000,
-            &loan_pool_id,
-            &10_000_000,
-            &collateral_pool_id,
-        );
-
-        contract_client.add_interest();
-
-        // Move time
-        e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000 + 100_000;
-        });
-
-        // A new instance of reflector mock needs to be created, they only live for one ledger.
-        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_at(&reflector_addr, oracle::WASM, ());
-
-        assert_eq!(contract_client.get_interest_rate(&loan_pool_id), 2_980_000);
-    }
-
-    #[test]
-    fn interest_at_half_usage() {
-        // ARRANGE
-        let e = Env::default();
-        e.budget().reset_unlimited();
-        e.mock_all_auths_allowing_non_root_auth();
-        e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000;
-            li.min_persistent_entry_ttl = 1_000_000;
-            li.min_temp_entry_ttl = 1_000_000;
-            li.max_entry_ttl = 1_000_001;
-        });
-
-        let admin = Address::generate(&e);
-        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
-        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
-        loan_asset.mint(&admin, &1_000_000);
-        let loan_currency = loan_pool::Currency {
-            token_address: loan_token.address(),
-            ticker: Symbol::new(&e, "XLM"),
-        };
-
-        let admin2 = Address::generate(&e);
-        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
-        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
-        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
-        let collateral_currency = loan_pool::Currency {
-            token_address: collateral_token.address(),
-            ticker: Symbol::new(&e, "USDC"),
-        };
-
-        // Register mock Reflector contract.
-        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_at(&reflector_addr, oracle::WASM, ());
-
-        // Mint the user some coins
-        let user = Address::generate(&e);
-        collateral_asset.mint(&user, &10_000_000);
-
-        assert_eq!(collateral_token_client.balance(&user), 10_000_000);
-
-        // Set up a loan pool with funds for borrowing.
-        let loan_pool_id = e.register(loan_pool::WASM, ());
-        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
-
-        // Set up a loan_pool for the collaterals.
-        let collateral_pool_id = e.register(loan_pool::WASM, ());
-        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
-
-        // Register loan manager contract.
-        let contract_id = e.register(LoanManager, ());
-        let contract_client = LoanManagerClient::new(&e, &contract_id);
-
-        // ACT
-        // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
-        loan_pool_client.deposit(&admin, &1_000_000);
-
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
-
-        // Create a loan.
-        contract_client.create_loan(
-            &user,
-            &500_000,
-            &loan_pool_id,
-            &10_000_000,
-            &collateral_pool_id,
-        );
-
-        contract_client.add_interest();
-
-        // Move time
-        e.ledger().with_mut(|li| {
-            li.sequence_number = 100_000 + 100_000;
-        });
-
-        // A new instance of reflector mock needs to be created, they only live for one ledger.
-        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
-        e.register_at(&reflector_addr, oracle::WASM, ());
-
-        assert_eq!(contract_client.get_interest_rate(&loan_pool_id), 644_440);
     }
 
     #[test]
     fn repay() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -1036,6 +863,7 @@ mod tests {
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
+            li.timestamp = 1;
             li.min_persistent_entry_ttl = 1_000_000;
             li.min_temp_entry_ttl = 1_000_000;
             li.max_entry_ttl = 1_000_001;
@@ -1084,7 +912,7 @@ mod tests {
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
         loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
-        loan_pool_client.deposit(&admin, &900_000);
+        loan_pool_client.deposit(&admin, &10_001);
 
         collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
 
@@ -1095,7 +923,7 @@ mod tests {
 
         assert_eq!(user_loan.borrowed_amount, 10_000);
 
-        contract_client.add_interest();
+        contract_client.add_interest(&user);
 
         // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
         assert_eq!(user_loan.borrowed_amount, 10_000);
@@ -1104,18 +932,20 @@ mod tests {
         // Move time
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000 + 100_000;
+            li.timestamp = 1 + 31_556_926;
         });
 
         // A new instance of reflector mock needs to be created, they only live for one ledger.
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
         e.register_at(&reflector_addr, oracle::WASM, ());
 
-        contract_client.add_interest();
+        loan_pool_client.add_interest_to_accrual();
+        contract_client.add_interest(&user);
 
         let user_loan = contract_client.get_loan(&user);
 
-        assert_eq!(user_loan.borrowed_amount, 10_003);
-        assert_eq!(user_loan.health_factor, 11_997_400);
+        assert_eq!(user_loan.borrowed_amount, 12_998);
+        assert_eq!(user_loan.health_factor, 9_232_958);
         assert_eq!(user_loan.collateral_amount, 12_001);
 
         e.ledger().with_mut(|li| {
@@ -1129,8 +959,8 @@ mod tests {
 
         let user_loan = contract_client.get_loan(&user);
 
-        assert_eq!(user_loan.borrowed_amount, 5_003);
-        assert_eq!(user_loan.health_factor, 13_493_903);
+        assert_eq!(user_loan.borrowed_amount, 7_998);
+        assert_eq!(user_loan.health_factor, 8_440_860);
         assert_eq!(user_loan.collateral_amount, 6_751);
         e.budget().print();
     }

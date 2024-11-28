@@ -18,6 +18,7 @@ pub struct Loan {
     pub collateral_from: Address,
     pub health_factor: i128,
     pub unpaid_interest: i128,
+    pub last_accrual: i128,
 }
 
 #[derive(Clone)]
