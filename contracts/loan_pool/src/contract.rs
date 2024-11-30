@@ -1,4 +1,4 @@
-use crate::interest::get_interest;
+use crate::interest::{self, get_interest};
 use crate::pool::Currency;
 use crate::positions;
 use crate::{pool, storage_types::Positions};
@@ -217,6 +217,10 @@ impl LoanPoolContract {
 
     pub fn get_currency(e: Env) -> Currency {
         pool::read_currency(&e)
+    }
+
+    pub fn get_interest(e: Env) -> i128 {
+        interest::get_interest(e)
     }
 
     pub fn increase_liabilities(e: Env, user: Address, amount: i128) {

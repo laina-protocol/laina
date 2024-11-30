@@ -1,7 +1,7 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
 import { isBalanceZero } from '@lib/converters';
-import { formatAmount, toDollarsFormatted } from '@lib/formatting';
+import { formatAPY, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
@@ -17,6 +17,7 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
 
   const { wallet, walletBalances, prices } = useWallet();
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
+  const [poolAPR, setPoolAPR] = useState<bigint | null>(null);
 
   const price = prices?.[ticker];
 
@@ -25,6 +26,22 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
   const balance: Balance | undefined = walletBalances?.[ticker];
 
   const isPoor = !balance?.trustLine || isBalanceZero(balance.balanceLine.balance);
+
+  const fetchPoolAPR = useCallback(async () => {
+    if (!contractClient) return;
+
+    try {
+      const { result } = await contractClient.get_interest();
+      setPoolAPR(result);
+    } catch (error) {
+      console.error('Error fetching APR data', error);
+    }
+  }, [contractClient]);
+
+  const formatPoolAPY = useCallback((apr: bigint | null) => {
+    if (apr === null) return <Loading size="xs" />;
+    return formatAPY(apr);
+  }, []);
 
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!contractClient) return;
@@ -44,12 +61,18 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
 
   useEffect(() => {
     // Fetch contract data immediately and set an interval to run every 6 seconds
-    fetchAvailableContractBalance();
-    const intervalId = setInterval(fetchAvailableContractBalance, 6000);
+    function fetch() {
+      fetchAvailableContractBalance();
+      fetchPoolAPR();
+    }
+
+    fetch();
+
+    const intervalId = setInterval(fetch, 6000);
 
     // Cleanup function to clear the interval on component unmount
     return () => clearInterval(intervalId);
-  }, [fetchAvailableContractBalance]); // Now dependent on the memoized function
+  }, [fetchAvailableContractBalance, fetchPoolAPR]); // Now dependent on the memoized function
 
   const openModal = () => {
     const modalEl = document.getElementById(modalId) as HTMLDialogElement;
@@ -79,7 +102,7 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">1.23%</p>
+        <p className="text-xl font-semibold leading-6">{formatPoolAPY(poolAPR)}</p>
       </td>
 
       <td className="pr-0">
