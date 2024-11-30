@@ -46,3 +46,11 @@ export const formatCentAmount = (cents: bigint): string => {
   }
   return `$${(Number(cents) / 100).toFixed(1)} `;
 };
+
+export const formatAPR = (apr: bigint): string => {
+  return `${(Number(apr) / 100_000).toFixed(2)} %`;
+};
+
+export const formatAPY = (apr: bigint): string => {
+  return `${((0.9 * Number(apr)) / 100_000).toFixed(2)} %`;
+};

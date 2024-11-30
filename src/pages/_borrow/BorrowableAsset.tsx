@@ -5,6 +5,7 @@ import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { isBalanceZero } from '@lib/converters';
+import { formatAPR } from '@lib/formatting';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { useWallet } from 'src/stellar-wallet';
 import { BorrowModal } from './BorrowModal/BorrowModal';
@@ -20,6 +21,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
 
   const { wallet, walletBalances } = useWallet();
 
+  const [poolAPR, setPoolAPR] = useState<bigint | null>(null);
   const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
   const [totalSuppliedPrice, setTotalSuppliedPrice] = useState<bigint | null>(null);
 
@@ -32,6 +34,11 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
 
   const borrowDisabled = !wallet || !isCollateral || !totalSupplied;
 
+  const formatPoolAPR = useCallback((apr: bigint | null) => {
+    if (apr === null) return <Loading size="xs" />;
+    return formatAPR(apr);
+  }, []);
+
   const fetchAvailableContractBalance = useCallback(async () => {
     if (!contractClient) return;
 
@@ -42,6 +49,17 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
       console.error('Error fetching contract data:', error);
     }
   }, [contractClient]); // Dependency on loanPoolContract
+
+  const fetchPoolAPR = useCallback(async () => {
+    if (!contractClient) return;
+
+    try {
+      const { result } = await contractClient.get_interest();
+      setPoolAPR(result);
+    } catch (error) {
+      console.error('Error fetching APR data', error);
+    }
+  }, [contractClient]);
 
   const formatSuppliedAmount = useCallback((amount: bigint | null) => {
     if (amount === BigInt(0)) return '0';
@@ -94,11 +112,12 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
     // Fetch contract data immediately and set an interval to run every 6 seconds
     fetchAvailableContractBalance();
     fetchPriceData();
+    fetchPoolAPR();
     const intervalId = setInterval(fetchAvailableContractBalance, 6000);
 
     // Cleanup function to clear the interval on component unmount
     return () => clearInterval(intervalId);
-  }, [fetchAvailableContractBalance, fetchPriceData]); // Now dependent on the memoized function
+  }, [fetchAvailableContractBalance, fetchPriceData, fetchPoolAPR]); // Now dependent on the memoized function
 
   const openModal = () => {
     const modalEl = document.getElementById(modalId) as HTMLDialogElement;
@@ -134,7 +153,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">1.61%</p>
+        <p className="text-xl font-semibold leading-6">{formatPoolAPR(poolAPR)}</p>
       </td>
 
       <td>
