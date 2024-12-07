@@ -3,11 +3,11 @@ import { useState } from 'react';
 
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
-import { useWallet } from 'src/stellar-wallet';
 
 export interface AssetsModalProps {
   modalId: string;

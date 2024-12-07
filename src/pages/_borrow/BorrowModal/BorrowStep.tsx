@@ -1,13 +1,13 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
+import { type BalanceRecord, type PriceRecord, type Wallet, useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
-import { type BalanceRecord, type PriceRecord, type Wallet, useWallet } from 'src/stellar-wallet';
 
 const HEALTH_FACTOR_AUTO_THRESHOLD = 1.65;
 const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;

@@ -1,9 +1,10 @@
+import { useState } from 'react';
+
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import type { SignTransaction, Wallet } from '@contexts/wallet-context';
 import { createAddTrustlineTransaction, sendTransaction } from '@lib/horizon';
-import { useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import type { SignTransaction, Wallet } from 'src/stellar-wallet';
 
 export interface TrustLineStepProps {
   onClose: () => void;

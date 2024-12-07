@@ -1,5 +1,5 @@
+import { useWallet } from '@contexts/wallet-context';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { useWallet } from 'src/stellar-wallet';
 import { BorrowStep } from './BorrowStep';
 import { TrustLineStep } from './TrustlineStep';
 

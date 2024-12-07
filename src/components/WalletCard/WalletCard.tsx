@@ -1,8 +1,8 @@
 import { Loading } from '@components/Loading';
+import { type PositionsRecord, type PriceRecord, useWallet } from '@contexts/wallet-context';
 import { formatCentAmount, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
-import { type PositionsRecord, type PriceRecord, useWallet } from 'src/stellar-wallet';
 import { Button } from '../Button';
 import { Card } from '../Card';
 import Identicon from '../Identicon';
