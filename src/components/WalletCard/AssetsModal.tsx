@@ -1,5 +1,6 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
@@ -55,7 +56,8 @@ interface TableRowProps {
 }
 
 const TableRow = ({ receivables, ticker }: TableRowProps) => {
-  const { wallet, prices, signTransaction, refetchBalances } = useWallet();
+  const { wallet, signTransaction, refetchBalances } = useWallet();
+  const { prices } = usePools();
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   if (receivables === 0n) return null;

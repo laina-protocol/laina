@@ -1,10 +1,10 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { usePools } from '@contexts/pool-context';
 import { type Balance, useWallet } from '@contexts/wallet-context';
 import { isBalanceZero } from '@lib/converters';
 import { formatAPY, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
-import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { DepositModal } from './DepositModal';
 
@@ -13,11 +13,11 @@ export interface LendableAssetProps {
 }
 
 export const LendableAsset = ({ currency }: LendableAssetProps) => {
-  const { icon, name, ticker, contractClient } = currency;
+  const { icon, name, ticker } = currency;
 
-  const { wallet, walletBalances, prices } = useWallet();
-  const [totalSupplied, setTotalSupplied] = useState<bigint | null>(null);
-  const [poolAPR, setPoolAPR] = useState<bigint | null>(null);
+  const { wallet, walletBalances } = useWallet();
+  const { prices, pools, refetchPools } = usePools();
+  const pool = pools?.[ticker];
 
   const price = prices?.[ticker];
 
@@ -27,53 +27,6 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
 
   const isPoor = !balance?.trustLine || isBalanceZero(balance.balanceLine.balance);
 
-  const fetchPoolAPR = useCallback(async () => {
-    if (!contractClient) return;
-
-    try {
-      const { result } = await contractClient.get_interest();
-      setPoolAPR(result);
-    } catch (error) {
-      console.error('Error fetching APR data', error);
-    }
-  }, [contractClient]);
-
-  const formatPoolAPY = useCallback((apr: bigint | null) => {
-    if (apr === null) return <Loading size="xs" />;
-    return formatAPY(apr);
-  }, []);
-
-  const fetchAvailableContractBalance = useCallback(async () => {
-    if (!contractClient) return;
-
-    try {
-      const { result } = await contractClient.get_contract_balance();
-      setTotalSupplied(result);
-    } catch (error) {
-      console.error('Error fetching contract data:', error);
-    }
-  }, [contractClient]); // Dependency on loanPoolContract
-
-  const formatSuppliedAmount = useCallback((amount: bigint | null) => {
-    if (amount === null) return <Loading size="xs" />;
-    return formatAmount(amount);
-  }, []);
-
-  useEffect(() => {
-    // Fetch contract data immediately and set an interval to run every 6 seconds
-    function fetch() {
-      fetchAvailableContractBalance();
-      fetchPoolAPR();
-    }
-
-    fetch();
-
-    const intervalId = setInterval(fetch, 6000);
-
-    // Cleanup function to clear the interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [fetchAvailableContractBalance, fetchPoolAPR]); // Now dependent on the memoized function
-
   const openModal = () => {
     const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.showModal();
@@ -82,7 +35,7 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
   const closeModal = () => {
     const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.close();
-    fetchAvailableContractBalance();
+    refetchPools();
   };
 
   return (
@@ -97,12 +50,14 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">{formatSuppliedAmount(totalSupplied)}</p>
-        <p>{!isNil(price) && !isNil(totalSupplied) && toDollarsFormatted(price, totalSupplied)}</p>
+        <p className="text-xl font-semibold leading-6">
+          {pool ? formatAmount(pool.totalBalance) : <Loading size="xs" />}
+        </p>
+        <p>{!isNil(price) && !isNil(pool) && toDollarsFormatted(price, pool.totalBalance)}</p>
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">{formatPoolAPY(poolAPR)}</p>
+        <p className="text-xl font-semibold leading-6">{pool ? formatAPY(pool.apr) : <Loading size="xs" />}</p>
       </td>
 
       <td className="pr-0">

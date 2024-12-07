@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { formatAmount, toDollarsFormatted } from '@lib/formatting';
@@ -57,7 +58,8 @@ interface TableRowProps {
 }
 
 const TableRow = ({ liabilities, ticker }: TableRowProps) => {
-  const { wallet, prices, signTransaction, refetchBalances } = useWallet();
+  const { wallet, signTransaction, refetchBalances } = useWallet();
+  const { prices } = usePools();
   const [isRepaying, setIsRepaying] = useState(false);
 
   if (liabilities === 0n) return null;

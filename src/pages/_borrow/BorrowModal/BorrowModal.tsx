@@ -1,3 +1,4 @@
+import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { BorrowStep } from './BorrowStep';
@@ -12,7 +13,8 @@ export interface BorrowModalProps {
 
 export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: BorrowModalProps) => {
   const { name, ticker } = currency;
-  const { wallet, walletBalances, signTransaction, refetchBalances, prices } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
+  const { prices } = usePools();
 
   const closeModal = () => {
     refetchBalances();
