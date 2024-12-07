@@ -8,7 +8,7 @@ import LandingPage from '@pages/_landing/LandingPage';
 import LendPage from '@pages/_lend/LendPage';
 import LiquidatePage from '@pages/_liquidate/LiquidatePage';
 import WelcomePage from '@pages/_welcome/WelcomePage';
-import { WalletProvider } from './stellar-wallet';
+import { WalletProvider } from '@contexts/wallet-context';
 
 const PageWrapper = () => {
   return (

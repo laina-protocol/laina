@@ -1,11 +1,11 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { useWallet } from '@contexts/wallet-context';
 import { formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import { useState } from 'react';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
-import { useWallet } from 'src/stellar-wallet';
 
 export interface AssetsModalProps {
   modalId: string;

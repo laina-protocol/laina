@@ -3,11 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { isBalanceZero } from '@lib/converters';
 import { formatAPR } from '@lib/formatting';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { useWallet } from 'src/stellar-wallet';
 import { BorrowModal } from './BorrowModal/BorrowModal';
 
 interface BorrowableAssetCardProps {
@@ -29,8 +29,8 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
   const isCollateral = !walletBalances
     ? false
     : Object.entries(walletBalances)
-        .filter(([t, _b]) => t !== ticker)
-        .some(([_t, b]) => b.trustLine && !isBalanceZero(b.balanceLine.balance));
+      .filter(([t, _b]) => t !== ticker)
+      .some(([_t, b]) => b.trustLine && !isBalanceZero(b.balanceLine.balance));
 
   const borrowDisabled = !wallet || !isCollateral || !totalSupplied;
 
@@ -159,7 +159,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
       <td>
         {borrowDisabled ? (
           <div className="tooltip" data-tip={tooltip}>
-            <Button disabled={true} onClick={() => {}}>
+            <Button disabled={true} onClick={() => { }}>
               Borrow
             </Button>
           </div>

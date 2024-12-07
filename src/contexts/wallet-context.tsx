@@ -5,7 +5,7 @@ import { type PropsWithChildren, createContext, useContext, useEffect, useState 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getBalances } from '@lib/horizon';
 import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
-import { CURRENCY_BINDINGS_ARR } from './currency-bindings';
+import { CURRENCY_BINDINGS_ARR } from '../currency-bindings';
 
 const WALLET_TIMEOUT_DAYS = 3;
 
@@ -67,9 +67,9 @@ const Context = createContext<WalletContext>({
   walletBalances: null,
   positions: {},
   prices: null,
-  openConnectWalletModal: () => {},
-  disconnectWallet: () => {},
-  refetchBalances: () => {},
+  openConnectWalletModal: () => { },
+  disconnectWallet: () => { },
+  refetchBalances: () => { },
   signTransaction: () => Promise.reject(),
 });
 

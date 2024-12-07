@@ -1,11 +1,11 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
+import { useWallet } from '@contexts/wallet-context';
 import { Loading } from '@components/Loading';
 import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, toCents } from '@lib/formatting';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { useWallet } from 'src/stellar-wallet';
 
 export interface DepositModalProps {
   modalId: string;

@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
-import { useWallet } from 'src/stellar-wallet';
+import { useWallet } from '@contexts/wallet-context';
 import logo from '/public/laina_v3_shrinked.png';
 import { Button } from './Button';
 import Identicon from './Identicon';

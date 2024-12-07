@@ -1,11 +1,11 @@
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
+import { type Balance, useWallet } from '@contexts/wallet-context';
 import { isBalanceZero } from '@lib/converters';
 import { formatAPY, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
 import { useCallback, useEffect, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { type Balance, useWallet } from 'src/stellar-wallet';
 import { DepositModal } from './DepositModal';
 
 export interface LendableAssetProps {
@@ -108,7 +108,7 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
       <td className="pr-0">
         {isPoor ? (
           <div className="tooltip" data-tip={!wallet ? 'Connect a wallet first' : 'Not enough funds'}>
-            <Button disabled={true} onClick={() => {}}>
+            <Button disabled={true} onClick={() => { }}>
               Deposit
             </Button>
           </div>
