@@ -32,7 +32,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   if (!pools || !prices || !walletBalances) return null;
 
-  const { apr, availableBalance } = pools[ticker];
+  const { annualInterestRate, availableBalance } = pools[ticker];
 
   const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
     ({ ticker }) => ticker,
@@ -146,7 +146,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
         collateral, causing you to lose some of your collateral.
       </p>
       <p className="my-4">The interest rate changes as the amount of assets borrowed from the pools changes.</p>
-      <p className="my-4">The annual interest rate is currently {formatAPR(apr)}.</p>
+      <p className="my-4">The annual interest rate is currently {formatAPR(annualInterestRate)}.</p>
 
       <p className="font-bold mb-2 mt-6">Amount to borrow</p>
       <CryptoAmountSelector

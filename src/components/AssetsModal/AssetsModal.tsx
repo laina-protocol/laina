@@ -53,12 +53,12 @@ const AssetsModal = ({ modalId, onClose }: AssetsModalProps) => {
         ) : (
           <WithdrawView ticker={tickerToWithdraw} onBack={handleBackClicked} onSuccess={handleWithdrawSuccess} />
         )}
-        <form method="dialog" className="modal-backdrop">
-          <button type="button" onClick={handleClose}>
-            close
-          </button>
-        </form>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
+      </form>
     </dialog>
   );
 };

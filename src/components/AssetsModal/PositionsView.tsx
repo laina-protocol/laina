@@ -80,7 +80,7 @@ const TableRow = ({ receivables, ticker, onWithdraw }: TableRowProps) => {
         <p className="text-lg font-semibold leading-5">{formatAmount(receivables)}</p>
         <p className="text-base">{!isNil(price) && toDollarsFormatted(price, receivables)}</p>
       </td>
-      <td className="text-lg font-semibold">{pool && formatAPY(pool.apr)}</td>
+      <td className="text-lg font-semibold">{pool && formatAPY(pool.annualInterestRate)}</td>
       <td>
         <Button onClick={handleWithdrawClick}>Withdraw</Button>
       </td>

@@ -57,7 +57,9 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">{pool ? formatAPY(pool.apr) : <Loading size="xs" />}</p>
+        <p className="text-xl font-semibold leading-6">
+          {pool ? formatAPY(pool.annualInterestRate) : <Loading size="xs" />}
+        </p>
       </td>
 
       <td className="pr-0">

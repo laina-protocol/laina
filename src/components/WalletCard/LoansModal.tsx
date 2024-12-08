@@ -104,7 +104,7 @@ const TableRow = ({ liabilities, ticker }: TableRowProps) => {
         <p className="text-lg font-semibold leading-5">{formatAmount(liabilities)}</p>
         <p className="text-base">{!isNil(price) && toDollarsFormatted(price, liabilities)}</p>
       </td>
-      <td className="text-lg font-semibold">{pool ? formatAPR(pool.apr) : null}</td>
+      <td className="text-lg font-semibold">{pool ? formatAPR(pool.annualInterestRate) : null}</td>
       <td>
         {isRepaying ? (
           <Button disabled>
