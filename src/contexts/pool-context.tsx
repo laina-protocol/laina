@@ -11,7 +11,8 @@ export type PriceRecord = {
 export type PoolState = {
   totalBalance: bigint;
   availableBalance: bigint;
-  apr: bigint;
+  totalShares: bigint;
+  annualInterestRate: bigint;
 };
 
 export type PoolRecord = {
@@ -51,14 +52,6 @@ const fetchPriceData = async (ticker: string): Promise<bigint> => {
   }
 };
 
-const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => {
-  const { contractClient } = CURRENCY_BINDINGS[ticker];
-  const { result: totalBalance } = await contractClient.get_contract_balance();
-  const { result: availableBalance } = await contractClient.get_available_balance();
-  const { result: apr } = await contractClient.get_interest();
-  return { totalBalance, availableBalance, apr };
-};
-
 const fetchPools = async (): Promise<PoolRecord> => {
   const [XLM, wBTC, wETH, USDC, EURC] = await Promise.all([
     fetchPoolState('XLM'),
@@ -68,6 +61,17 @@ const fetchPools = async (): Promise<PoolRecord> => {
     fetchPoolState('EURC'),
   ]);
   return { XLM, wBTC, wETH, USDC, EURC };
+};
+
+const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => {
+  const { contractClient } = CURRENCY_BINDINGS[ticker];
+  const { result } = await contractClient.get_pool_state();
+  return {
+    totalBalance: result.total_balance,
+    availableBalance: result.available_balance,
+    totalShares: result.total_shares,
+    annualInterestRate: result.annual_interest_rate,
+  };
 };
 
 export const PoolProvider = ({ children }: PropsWithChildren) => {

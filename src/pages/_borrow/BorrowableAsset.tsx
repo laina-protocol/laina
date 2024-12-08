@@ -70,7 +70,9 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">{pool ? formatAPR(pool.apr) : <Loading size="xs" />}</p>
+        <p className="text-xl font-semibold leading-6">
+          {pool ? formatAPR(pool.annualInterestRate) : <Loading size="xs" />}
+        </p>
       </td>
 
       <td>

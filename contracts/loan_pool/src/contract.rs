@@ -1,3 +1,4 @@
+use crate::dto::PoolState;
 use crate::interest::{self, get_interest};
 use crate::pool::Currency;
 use crate::positions;
@@ -221,6 +222,15 @@ impl LoanPoolContract {
 
     pub fn get_interest(e: Env) -> i128 {
         interest::get_interest(e)
+    }
+
+    pub fn get_pool_state(e: Env) -> PoolState {
+        PoolState {
+            total_balance: pool::read_total_balance(&e),
+            available_balance: pool::read_available_balance(&e),
+            total_shares: pool::read_total_shares(&e),
+            annual_interest_rate: interest::get_interest(e),
+        }
     }
 
     pub fn increase_liabilities(e: Env, user: Address, amount: i128) {

@@ -73,8 +73,8 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
   return (
     <dialog id={modalId} className="modal">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg mb-8">Deposit {name}</h3>
+      <div className="modal-box p-10">
+        <h3 className="font-bold text-xl mb-8">Deposit {name}</h3>
 
         <p className="text-lg mb-2">Amount to deposit</p>
         <CryptoAmountSelector
