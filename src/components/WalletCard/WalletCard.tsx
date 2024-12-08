@@ -1,3 +1,4 @@
+import AssetsModal from '@components/AssetsModal/AssetsModal';
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { type PositionsRecord, type PriceRecord, useWallet } from '@contexts/wallet-context';
@@ -7,7 +8,6 @@ import { isNil } from 'ramda';
 import { Button } from '../Button';
 import { Card } from '../Card';
 import Identicon from '../Identicon';
-import AssetsModal from './AssetsModal';
 import LoansModal from './LoansModal';
 
 const ASSET_MODAL_ID = 'assets-modal';
