@@ -1,10 +1,11 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
-import { type BalanceRecord, type PriceRecord, type Wallet, useWallet } from '@contexts/wallet-context';
+import { usePools } from '@contexts/pool-context';
+import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, to7decimals } from '@lib/converters';
-import { SCALAR_7, fromCents, toCents } from '@lib/formatting';
+import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
@@ -17,20 +18,21 @@ const HEALTH_FACTOR_EXCELLENT_THRESHOLD = 2.0;
 export interface BorrowStepProps {
   onClose: () => void;
   currency: CurrencyBinding;
-  totalSupplied: bigint;
-  wallet: Wallet;
-  walletBalances: BalanceRecord;
-  prices: PriceRecord;
 }
 
-export const BorrowStep = ({ onClose, currency, totalSupplied, wallet, walletBalances, prices }: BorrowStepProps) => {
+export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
-  const { signTransaction } = useWallet();
+  const { signTransaction, wallet, walletBalances } = useWallet();
+  const { pools, prices } = usePools();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [loanAmount, setLoanAmount] = useState<string>('0');
   const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>('XLM');
   const [collateralAmount, setCollateralAmount] = useState<string>('0');
+
+  if (!pools || !prices || !walletBalances) return null;
+
+  const { apr, availableBalance } = pools[ticker];
 
   const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
     ({ ticker }) => ticker,
@@ -49,9 +51,6 @@ export const BorrowStep = ({ onClose, currency, totalSupplied, wallet, walletBal
 
   const healthFactor =
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
-
-  // TODO: get this from the contract.
-  const interestRate = '7.5%';
 
   const handleCancel = () => {
     setLoanAmount('0');
@@ -124,7 +123,7 @@ export const BorrowStep = ({ onClose, currency, totalSupplied, wallet, walletBal
   const isBorrowDisabled =
     !isTrustline || loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
-  const maxLoan = (totalSupplied / 10_000_000n).toString();
+  const maxLoan = (availableBalance / 10_000_000n).toString();
 
   const maxCollateral = getIntegerPart(collateralBalance.trustLine ? collateralBalance.balanceLine.balance : '0');
 
@@ -147,7 +146,7 @@ export const BorrowStep = ({ onClose, currency, totalSupplied, wallet, walletBal
         collateral, causing you to lose some of your collateral.
       </p>
       <p className="my-4">The interest rate changes as the amount of assets borrowed from the pools changes.</p>
-      <p className="my-4">The annual interest rate is currently {interestRate}.</p>
+      <p className="my-4">The annual interest rate is currently {formatAPR(apr)}.</p>
 
       <p className="font-bold mb-2 mt-6">Amount to borrow</p>
       <CryptoAmountSelector

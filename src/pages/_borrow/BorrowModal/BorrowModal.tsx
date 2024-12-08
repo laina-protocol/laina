@@ -1,4 +1,3 @@
-import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import type { CurrencyBinding } from 'src/currency-bindings';
 import { BorrowStep } from './BorrowStep';
@@ -8,45 +7,27 @@ export interface BorrowModalProps {
   modalId: string;
   onClose: () => void;
   currency: CurrencyBinding;
-  totalSupplied: bigint;
 }
 
-export const BorrowModal = ({ modalId, onClose, currency, totalSupplied }: BorrowModalProps) => {
+export const BorrowModal = ({ modalId, onClose, currency }: BorrowModalProps) => {
   const { name, ticker } = currency;
-  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
-  const { prices } = usePools();
+  const { walletBalances, refetchBalances } = useWallet();
 
   const closeModal = () => {
     refetchBalances();
     onClose();
   };
 
-  // Modal is impossible to open before the wallet is loaded.
-  if (!wallet || !walletBalances || !prices) return null;
-
-  const isTrustline = walletBalances[ticker].trustLine;
+  const isTrustline = walletBalances?.[ticker].trustLine;
 
   return (
     <dialog id={modalId} className="modal">
       <div className="modal-box w-full max-w-full md:w-[700px] p-10">
         <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
         {!isTrustline ? (
-          <TrustLineStep
-            onClose={closeModal}
-            currency={currency}
-            wallet={wallet}
-            signTransaction={signTransaction}
-            refetchBalances={refetchBalances}
-          />
+          <TrustLineStep onClose={closeModal} currency={currency} />
         ) : (
-          <BorrowStep
-            onClose={closeModal}
-            currency={currency}
-            totalSupplied={totalSupplied}
-            wallet={wallet}
-            walletBalances={walletBalances}
-            prices={prices}
-          />
+          <BorrowStep onClose={closeModal} currency={currency} />
         )}
       </div>
       {/* Invisible backdrop that closes the modal on click */}

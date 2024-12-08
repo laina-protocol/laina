@@ -84,9 +84,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
           <Button onClick={openModal}>Borrow</Button>
         )}
       </td>
-      {!isNil(pool) && (
-        <BorrowModal modalId={modalId} onClose={closeModal} currency={currency} totalSupplied={pool.availableBalance} />
-      )}
+      {!isNil(pool) && <BorrowModal modalId={modalId} onClose={closeModal} currency={currency} />}
     </tr>
   );
 };

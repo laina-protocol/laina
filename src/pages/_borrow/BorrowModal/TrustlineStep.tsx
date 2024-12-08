@@ -2,22 +2,23 @@ import { useState } from 'react';
 
 import { Button } from '@components/Button';
 import { Loading } from '@components/Loading';
-import type { SignTransaction, Wallet } from '@contexts/wallet-context';
+import { useWallet } from '@contexts/wallet-context';
 import { createAddTrustlineTransaction, sendTransaction } from '@lib/horizon';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
 export interface TrustLineStepProps {
   onClose: () => void;
   currency: CurrencyBinding;
-  wallet: Wallet;
-  signTransaction: SignTransaction;
-  refetchBalances: () => void;
 }
 
-export const TrustLineStep = ({ onClose, currency, wallet, signTransaction, refetchBalances }: TrustLineStepProps) => {
+export const TrustLineStep = ({ onClose, currency }: TrustLineStepProps) => {
   const { name, ticker } = currency;
+  const { wallet, signTransaction, refetchBalances } = useWallet();
 
   const [isCreating, setIsCreating] = useState(false);
+
+  // Modal is impossible to open without a wallet connection.
+  if (!wallet) return null;
 
   const handleAddTrustlineClick = async () => {
     try {
