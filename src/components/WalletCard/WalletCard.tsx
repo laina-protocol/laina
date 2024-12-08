@@ -1,8 +1,9 @@
 import { Loading } from '@components/Loading';
+import { usePools } from '@contexts/pool-context';
+import { type PositionsRecord, type PriceRecord, useWallet } from '@contexts/wallet-context';
 import { formatCentAmount, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
-import { type PositionsRecord, type PriceRecord, useWallet } from 'src/stellar-wallet';
 import { Button } from '../Button';
 import { Card } from '../Card';
 import Identicon from '../Identicon';
@@ -13,7 +14,8 @@ const ASSET_MODAL_ID = 'assets-modal';
 const LOANS_MODAL_ID = 'loans-modal';
 
 const WalletCard = () => {
-  const { wallet, openConnectWalletModal, positions, prices } = useWallet();
+  const { wallet, openConnectWalletModal, positions } = useWallet();
+  const { prices } = usePools();
 
   if (!wallet) {
     return (

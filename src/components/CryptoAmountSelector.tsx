@@ -1,9 +1,9 @@
+import { useWallet } from '@contexts/wallet-context';
 import { isBalanceZero } from '@lib/converters';
 import { formatCentAmount } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import type { ChangeEvent } from 'react';
-import { useWallet } from 'src/stellar-wallet';
 import { Button } from './Button';
 
 export interface CryptoAmountSelectorProps {

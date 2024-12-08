@@ -1,11 +1,12 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
+import { usePools } from '@contexts/pool-context';
+import { useWallet } from '@contexts/wallet-context';
 import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, toCents } from '@lib/formatting';
 import { type ChangeEvent, useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { useWallet } from 'src/stellar-wallet';
 
 export interface DepositModalProps {
   modalId: string;
@@ -16,7 +17,8 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { contractClient, name, ticker } = currency;
 
-  const { wallet, walletBalances, prices, signTransaction, refetchBalances } = useWallet();
+  const { wallet, walletBalances, signTransaction, refetchBalances } = useWallet();
+  const { prices } = usePools();
   const [isDepositing, setIsDepositing] = useState(false);
   const [amount, setAmount] = useState('0');
 

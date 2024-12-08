@@ -3,12 +3,13 @@ import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import Footer from '@components/Footer';
 import Nav from '@components/Nav';
+import { PoolProvider } from '@contexts/pool-context';
+import { WalletProvider } from '@contexts/wallet-context';
 import BorrowPage from '@pages/_borrow/BorrowPage';
 import LandingPage from '@pages/_landing/LandingPage';
 import LendPage from '@pages/_lend/LendPage';
 import LiquidatePage from '@pages/_liquidate/LiquidatePage';
 import WelcomePage from '@pages/_welcome/WelcomePage';
-import { WalletProvider } from './stellar-wallet';
 
 const PageWrapper = () => {
   return (
@@ -39,7 +40,9 @@ const App = () => {
   return (
     <React.StrictMode>
       <WalletProvider>
-        <RouterProvider router={router} />
+        <PoolProvider>
+          <RouterProvider router={router} />
+        </PoolProvider>
       </WalletProvider>
     </React.StrictMode>
   );
