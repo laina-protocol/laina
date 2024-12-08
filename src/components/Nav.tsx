@@ -25,9 +25,9 @@ export default function Nav() {
         <Button onClick={openConnectWalletModal}>Connect wallet</Button>
       ) : (
         <div className="dropdown dropdown-end">
-          <div tabIndex={0} role="button">
+          <button tabIndex={0} type="button">
             <Identicon address={wallet.address} />
-          </div>
+          </button>
           <ul className="dropdown-content rounded-box bg-white mt-1 mr-1 w-64 z-[1] p-4 shadow">
             <li className="px-8 py-4">
               <p className="font-semibold">{wallet.displayName}</p>
