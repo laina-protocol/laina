@@ -55,11 +55,25 @@ interface TableRowProps {
 const TableRow = ({ receivables, ticker, onWithdraw }: TableRowProps) => {
   const { prices, pools } = usePools();
 
+  /* Pointti on siis se et receivablesiin ei lisätä korkoa.
+   * Korko lisätään vaan total balanceen.
+   * Ni sit jos käyttäjä on deponnu 100 ja sil on 100 sharea.
+   * Jos hän on ainut käyttäjä ja poolis totalsharet on silloin myös 100,
+   * mut total balance on noussu koron takia 120 niin käyttäjä saa 100/100*120=120 */
+
   if (receivables === 0n) return null;
 
   const { icon, name } = CURRENCY_BINDINGS[ticker];
   const price = prices?.[ticker];
   const pool = pools?.[ticker];
+
+  if (!pool) {
+    console.warn('PoolState is not loaded');
+    return null;
+  }
+
+  // FIXME: Doesn't add interest
+  const shares = (receivables * pool.totalShares) / pool.totalBalance;
 
   const handleWithdrawClick = () => onWithdraw(ticker);
 
@@ -77,8 +91,8 @@ const TableRow = ({ receivables, ticker, onWithdraw }: TableRowProps) => {
         </div>
       </td>
       <td>
-        <p className="text-lg font-semibold leading-5">{formatAmount(receivables)}</p>
-        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, receivables)}</p>
+        <p className="text-lg font-semibold leading-5">{formatAmount(shares)}</p>
+        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, shares)}</p>
       </td>
       <td className="text-lg font-semibold">{pool && formatAPY(pool.annualInterestRate)}</td>
       <td>
