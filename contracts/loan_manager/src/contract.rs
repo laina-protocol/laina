@@ -24,6 +24,7 @@ const REFLECTOR_ADDRESS: &str = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5O
 pub enum Error {
     AlreadyInitialized = 1,
     LoanAlreadyExists = 2,
+    AdminNotFound = 3,
 }
 
 #[contract]
@@ -57,8 +58,11 @@ impl LoanManager {
             .with_current_contract(salt)
             .deploy_v2(wasm_hash, ());
 
+        let admin: Address = e.storage().persistent().get(&LoansDataKey::Admin).unwrap();
+        admin.require_auth();
+
         // Add the new address to storage
-        let mut pool_addresses = e
+        let mut pool_addresses: Vec<Address> = e
             .storage()
             .persistent()
             .get(&LoansDataKey::PoolAddresses)
@@ -85,24 +89,31 @@ impl LoanManager {
     }
 
     /// Upgrade deployed loan pools and the loan manager WASM.
-    pub fn upgrade(e: Env, new_manager_wasm_hash: BytesN<32>, new_pool_wasm_hash: BytesN<32>) {
-        let admin: Address = e.storage().persistent().get(&LoansDataKey::Admin).unwrap();
-        admin.require_auth();
+    pub fn upgrade(
+        e: Env,
+        new_manager_wasm_hash: BytesN<32>,
+        new_pool_wasm_hash: BytesN<32>,
+    ) -> Result<(), Error> {
+        let admin: Option<Address> = e.storage().persistent().get(&LoansDataKey::Admin);
+        if let Some(admin) = admin {
+            admin.require_auth();
+            e.storage()
+                .persistent()
+                .get(&LoansDataKey::PoolAddresses)
+                .unwrap_or(vec![&e])
+                .iter()
+                .for_each(|pool| {
+                    let pool_client = loan_pool::Client::new(&e, &pool);
+                    pool_client.upgrade(&new_pool_wasm_hash);
+                });
 
-        // Upgrade the loan pools.
-        e.storage()
-            .persistent()
-            .get(&LoansDataKey::PoolAddresses)
-            .unwrap_or(vec![&e])
-            .iter()
-            .for_each(|pool| {
-                let pool_client = loan_pool::Client::new(&e, &pool);
-                pool_client.upgrade(&new_pool_wasm_hash);
-            });
+            e.deployer()
+                .update_current_contract_wasm(new_manager_wasm_hash);
 
-        // Upgrade the loan manager.
-        e.deployer()
-            .update_current_contract_wasm(new_manager_wasm_hash);
+            Ok(())
+        } else {
+            Err(Error::AdminNotFound)
+        }
     }
 
     /// Initialize a new loan
