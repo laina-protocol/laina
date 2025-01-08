@@ -4,7 +4,7 @@ import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { getIntegerPart, to7decimals } from '@lib/converters';
+import { getIntegerPart, isBalanceZero, to7decimals } from '@lib/converters';
 import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
@@ -27,16 +27,21 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [loanAmount, setLoanAmount] = useState<string>('0');
-  const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>('XLM');
+
+  const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
+    ({ ticker }) => ticker,
+  );
+  const initialCollateral = collateralOptions.find((t) => {
+    const balance = walletBalances?.[t];
+    return balance?.trustLine && !isBalanceZero(balance.balanceLine.balance);
+  });
+
+  const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>(initialCollateral ?? 'XLM');
   const [collateralAmount, setCollateralAmount] = useState<string>('0');
 
   if (!pools || !prices || !walletBalances) return null;
 
   const { annualInterestRate, availableBalance } = pools[ticker];
-
-  const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
-    ({ ticker }) => ticker,
-  );
 
   const loanBalance = walletBalances[ticker];
   const collateralBalance = walletBalances[collateralTicker];

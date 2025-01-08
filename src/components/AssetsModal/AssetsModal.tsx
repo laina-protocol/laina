@@ -20,7 +20,7 @@ type WithdrawAlert = {
 
 const AssetsModal = ({ modalId, onClose }: AssetsModalProps) => {
   const [tickerToWithdraw, setTickerToWithdraw] = useState<SupportedCurrency | null>(null);
-  const [alert, setAlert] = useState<WithdrawAlert | null>({ ticker: 'XLM', amount: '20', kind: 'success' });
+  const [alert, setAlert] = useState<WithdrawAlert | null>(null);
 
   const handleBackClicked = () => setTickerToWithdraw(null);
 
