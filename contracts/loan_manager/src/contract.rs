@@ -208,6 +208,7 @@ impl LoanManager {
             ..
         } = collateral_pool_client.get_currency();
 
+        borrow_pool_client.add_interest_to_accrual();
         let current_accrual = borrow_pool_client.get_accrual();
         let interest_since_update_multiplier = current_accrual * DECIMAL / last_accrual;
 
@@ -693,8 +694,6 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 10_000);
         assert_eq!(collateral_token_client.balance(&user), 900_000);
 
-        contract_client.add_interest(&user);
-
         // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
         assert_eq!(user_loan.borrowed_amount, 10_000);
         assert_eq!(user_loan.health_factor, 100_000_000);
@@ -710,7 +709,6 @@ mod tests {
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
         e.register_at(&reflector_addr, oracle::WASM, ());
 
-        loan_pool_client.add_interest_to_accrual();
         contract_client.add_interest(&user);
 
         let user_loan = contract_client.get_loan(&user);
@@ -799,7 +797,7 @@ mod tests {
     fn repay_more_than_borrowed() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
+        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -939,7 +937,6 @@ mod tests {
         let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
         e.register_at(&reflector_addr, oracle::WASM, ());
 
-        loan_pool_client.add_interest_to_accrual();
         contract_client.add_interest(&user);
 
         let user_loan = contract_client.get_loan(&user);
