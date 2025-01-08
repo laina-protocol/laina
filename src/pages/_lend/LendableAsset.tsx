@@ -1,4 +1,5 @@
 import { Button } from '@components/Button';
+import { StellarExpertLink } from '@components/Link';
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { type Balance, useWallet } from '@contexts/wallet-context';
@@ -13,7 +14,7 @@ export interface LendableAssetProps {
 }
 
 export const LendableAsset = ({ currency }: LendableAssetProps) => {
-  const { icon, name, ticker } = currency;
+  const { icon, name, ticker, issuerName, contractId } = currency;
 
   const { wallet, walletBalances } = useWallet();
   const { prices, pools, refetchPools } = usePools();
@@ -45,8 +46,13 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
       </td>
 
       <td>
-        <h2 className="font-semibold text-2xl leading-6 mt-3 tracking-tight">{name}</h2>
-        <span>{ticker}</span>
+        <h2 className="font-semibold text-2xl mt-3 tracking-tight">{name}</h2>
+        <StellarExpertLink contractId={contractId} text="View pool contract" />
+      </td>
+
+      <td>
+        <h2 className="text-xl font-semibold mt-3 leading-6">{ticker}</h2>
+        <span>{issuerName}</span>
       </td>
 
       <td>
