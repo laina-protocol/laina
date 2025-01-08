@@ -6,7 +6,7 @@ import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { formatAmount, toDollarsFormatted } from '@lib/formatting';
+import { formatAPR, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
@@ -26,8 +26,8 @@ const LoansModal = ({ modalId, onClose }: AssetsModalProps) => {
             <tr>
               <th className="w-20" />
               <th>Asset</th>
-              <th>Amount</th>
-              <th>Value</th>
+              <th>Balance</th>
+              <th>APR</th>
               <th />
             </tr>
           </thead>
@@ -59,13 +59,14 @@ interface TableRowProps {
 
 const TableRow = ({ liabilities, ticker }: TableRowProps) => {
   const { wallet, signTransaction, refetchBalances } = useWallet();
-  const { prices } = usePools();
+  const { prices, pools } = usePools();
   const [isRepaying, setIsRepaying] = useState(false);
 
   if (liabilities === 0n) return null;
 
   const { icon, name } = CURRENCY_BINDINGS[ticker];
   const price = prices?.[ticker];
+  const pool = pools?.[ticker];
 
   const handleWithdrawClick = async () => {
     if (!wallet) return;
@@ -99,8 +100,11 @@ const TableRow = ({ liabilities, ticker }: TableRowProps) => {
           <p className="text-base">{ticker}</p>
         </div>
       </td>
-      <td className="text-lg font-semibold">{formatAmount(liabilities)}</td>
-      <td className="text-lg font-semibold">{!isNil(price) && toDollarsFormatted(price, liabilities)}</td>
+      <td>
+        <p className="text-lg font-semibold leading-5">{formatAmount(liabilities)}</p>
+        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, liabilities)}</p>
+      </td>
+      <td className="text-lg font-semibold">{pool ? formatAPR(pool.annualInterestRate) : null}</td>
       <td>
         {isRepaying ? (
           <Button disabled>

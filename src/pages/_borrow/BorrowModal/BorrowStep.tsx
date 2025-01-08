@@ -4,7 +4,7 @@ import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { getIntegerPart, to7decimals } from '@lib/converters';
+import { getIntegerPart, isBalanceZero, to7decimals } from '@lib/converters';
 import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
@@ -27,16 +27,21 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [loanAmount, setLoanAmount] = useState<string>('0');
-  const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>('XLM');
-  const [collateralAmount, setCollateralAmount] = useState<string>('0');
-
-  if (!pools || !prices || !walletBalances) return null;
-
-  const { apr, availableBalance } = pools[ticker];
 
   const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
     ({ ticker }) => ticker,
   );
+  const initialCollateral = collateralOptions.find((t) => {
+    const balance = walletBalances?.[t];
+    return balance?.trustLine && !isBalanceZero(balance.balanceLine.balance);
+  });
+
+  const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>(initialCollateral ?? 'XLM');
+  const [collateralAmount, setCollateralAmount] = useState<string>('0');
+
+  if (!pools || !prices || !walletBalances) return null;
+
+  const { annualInterestRate, availableBalance } = pools[ticker];
 
   const loanBalance = walletBalances[ticker];
   const collateralBalance = walletBalances[collateralTicker];
@@ -146,7 +151,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
         collateral, causing you to lose some of your collateral.
       </p>
       <p className="my-4">The interest rate changes as the amount of assets borrowed from the pools changes.</p>
-      <p className="my-4">The annual interest rate is currently {formatAPR(apr)}.</p>
+      <p className="my-4">The annual interest rate is currently {formatAPR(annualInterestRate)}.</p>
 
       <p className="font-bold mb-2 mt-6">Amount to borrow</p>
       <CryptoAmountSelector

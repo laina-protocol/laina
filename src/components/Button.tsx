@@ -8,7 +8,7 @@ export interface ButtonProps {
   className?: string;
 }
 
-export type ButtonVariant = 'black' | 'white' | 'ghost' | 'outline';
+export type ButtonVariant = 'black' | 'white' | 'outline' | 'ghost' | 'ghost-dark';
 
 const buttonStyle = (variant: ButtonVariant) => {
   return `btn ${getButtonVariant(variant)} font-semibold text-base rounded-full px-8 py-2`;
@@ -20,10 +20,12 @@ const getButtonVariant = (variant: ButtonVariant): string => {
       return 'btn-neutral text-white';
     case 'white':
       return 'btn-primary';
-    case 'ghost':
-      return 'btn-ghost';
     case 'outline':
       return 'btn-outline';
+    case 'ghost':
+      return 'btn-ghost hover:bg-grey-light';
+    case 'ghost-dark':
+      return 'btn-ghost';
   }
 };
 
@@ -35,6 +37,23 @@ export const Button = ({
   children,
 }: PropsWithChildren<ButtonProps>) => (
   <button type="button" onClick={onClick} disabled={disabled} className={`${buttonStyle(variant)} ${className}`}>
+    {children}
+  </button>
+);
+
+export const CircleButton = ({
+  onClick,
+  variant = 'black',
+  disabled = false,
+  className = '',
+  children,
+}: PropsWithChildren<ButtonProps>) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={`btn btn-circle text-base ${getButtonVariant(variant)} ${className}`}
+  >
     {children}
   </button>
 );

@@ -58,9 +58,6 @@ export default {
             'background-color': '#aaa',
             'border-color': '#aaa',
           },
-          '.btn-ghost:hover': {
-            'background-color': '#efefef',
-          },
         },
       },
     ],
