@@ -32,14 +32,8 @@ const Context = createContext<PoolContext>({
 });
 
 const fetchAllPrices = async (): Promise<PriceRecord> => {
-  const [XLM, wBTC, wETH, USDC, EURC] = await Promise.all([
-    fetchPriceData('XLM'),
-    fetchPriceData('BTC'),
-    fetchPriceData('ETH'),
-    fetchPriceData('USDC'),
-    fetchPriceData('EURC'),
-  ]);
-  return { XLM, wBTC, wETH, USDC, EURC };
+  const [XLM, USDC, EURC] = await Promise.all([fetchPriceData('XLM'), fetchPriceData('USDC'), fetchPriceData('EURC')]);
+  return { XLM, USDC, EURC };
 };
 
 const fetchPriceData = async (ticker: string): Promise<bigint> => {
@@ -53,14 +47,8 @@ const fetchPriceData = async (ticker: string): Promise<bigint> => {
 };
 
 const fetchPools = async (): Promise<PoolRecord> => {
-  const [XLM, wBTC, wETH, USDC, EURC] = await Promise.all([
-    fetchPoolState('XLM'),
-    fetchPoolState('wBTC'),
-    fetchPoolState('wETH'),
-    fetchPoolState('USDC'),
-    fetchPoolState('EURC'),
-  ]);
-  return { XLM, wBTC, wETH, USDC, EURC };
+  const [XLM, USDC, EURC] = await Promise.all([fetchPoolState('XLM'), fetchPoolState('USDC'), fetchPoolState('EURC')]);
+  return { XLM, USDC, EURC };
 };
 
 const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => {
