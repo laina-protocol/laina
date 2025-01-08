@@ -195,6 +195,8 @@ impl LoanPoolContract {
         let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
         let new_accrual: i128 = accrual + interest_since_update;
 
+        pool::write_accrual_last_updated(&e, current_timestamp);
+
         pool::write_accrual(&e, new_accrual);
     }
 
@@ -599,6 +601,9 @@ mod test {
         contract_client.add_interest_to_accrual();
         // value of 12980000 is expected as usage is 999/1000 and max interest rate is 30%
         // Time in ledgers is shifted by ~one year.
+        assert_eq!(12_980_000, contract_client.get_accrual());
+
+        contract_client.add_interest_to_accrual();
         assert_eq!(12_980_000, contract_client.get_accrual());
     }
     #[test]
