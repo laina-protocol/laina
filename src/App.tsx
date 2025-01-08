@@ -8,7 +8,6 @@ import { WalletProvider } from '@contexts/wallet-context';
 import BorrowPage from '@pages/_borrow/BorrowPage';
 import LandingPage from '@pages/_landing/LandingPage';
 import LendPage from '@pages/_lend/LendPage';
-import LiquidatePage from '@pages/_liquidate/LiquidatePage';
 import WelcomePage from '@pages/_welcome/WelcomePage';
 
 const PageWrapper = () => {
@@ -31,7 +30,6 @@ const router = createBrowserRouter([
       { path: 'laina', element: <WelcomePage /> },
       { path: 'lend', element: <LendPage /> },
       { path: 'borrow', element: <BorrowPage /> },
-      { path: 'liquidate', element: <LiquidatePage /> },
     ],
   },
 ]);

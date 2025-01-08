@@ -9,7 +9,6 @@ import { BorrowableAsset } from './BorrowableAsset';
 const links = [
   { to: '/lend', label: 'Lend' },
   { to: '/borrow', label: 'Borrow' },
-  { to: '/liquidate', label: 'Liquidate' },
 ];
 
 const BorrowPage = () => (
