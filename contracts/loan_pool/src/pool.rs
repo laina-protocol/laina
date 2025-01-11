@@ -19,6 +19,8 @@ pub enum Error {
     AvailableBalance = 6,
     Accrual = 7,
     AccrualLastUpdated = 8,
+    OverOrUnderFlow = 9,
+    NegativeDeposit = 10,
 }
 
 pub fn write_loan_manager_addr(e: &Env, loan_manager_addr: Address) {
@@ -82,7 +84,12 @@ pub fn read_total_shares(e: &Env) -> Result<i128, Error> {
 pub fn change_total_shares(e: &Env, amount: i128) -> Result<(), Error> {
     let current_balance = read_total_shares(e)?;
 
-    write_total_shares(e, amount + current_balance);
+    write_total_shares(
+        e,
+        amount
+            .checked_add(current_balance)
+            .ok_or(Error::OverOrUnderFlow)?,
+    );
     Ok(())
 }
 
@@ -106,7 +113,12 @@ pub fn read_total_balance(e: &Env) -> Result<i128, Error> {
 pub fn change_total_balance(e: &Env, amount: i128) -> Result<(), Error> {
     let current_balance = read_total_balance(e)?;
 
-    write_total_balance(e, amount + current_balance);
+    write_total_balance(
+        e,
+        amount
+            .checked_add(current_balance)
+            .ok_or(Error::OverOrUnderFlow)?,
+    );
     Ok(())
 }
 
@@ -130,7 +142,12 @@ pub fn read_available_balance(e: &Env) -> Result<i128, Error> {
 pub fn change_available_balance(e: &Env, amount: i128) -> Result<(), Error> {
     let current_balance = read_available_balance(e)?;
 
-    write_available_balance(e, amount + current_balance);
+    write_available_balance(
+        e,
+        amount
+            .checked_add(current_balance)
+            .ok_or(Error::OverOrUnderFlow)?,
+    );
     Ok(())
 }
 

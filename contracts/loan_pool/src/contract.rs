@@ -2,9 +2,12 @@ use crate::dto::PoolState;
 use crate::interest::{self, get_interest};
 use crate::pool::{Currency, Error};
 use crate::positions;
+use crate::storage_types::PoolDataKey;
 use crate::{pool, storage_types::Positions};
 
-use soroban_sdk::{contract, contractimpl, contractmeta, token, Address, BytesN, Env};
+use soroban_sdk::{
+    contract, contractimpl, contractmeta, symbol_short, token, Address, BytesN, Env,
+};
 
 // Metadata that is added on to the WASM custom section
 contractmeta!(
@@ -46,27 +49,29 @@ impl LoanPoolContract {
     /// Deposits token. Also, mints pool shares for the "user" Identifier.
     pub fn deposit(e: Env, user: Address, amount: i128) -> Result<i128, Error> {
         user.require_auth();
-        assert!(amount > 0, "Amount must be positive!");
+        if amount <= 0 {
+            Err(Error::NegativeDeposit)
+        } else {
+            Self::add_interest_to_accrual(e.clone())?;
 
-        Self::add_interest_to_accrual(e.clone())?;
+            let token_address = pool::read_currency(&e)?.token_address;
 
-        let token_address = pool::read_currency(&e)?.token_address;
+            let client = token::Client::new(&e, &token_address);
+            client.transfer(&user, &e.current_contract_address(), &amount);
 
-        let client = token::Client::new(&e, &token_address);
-        client.transfer(&user, &e.current_contract_address(), &amount);
+            pool::change_available_balance(&e, amount)?;
+            pool::change_total_shares(&e, amount)?;
+            pool::change_total_balance(&e, amount)?;
 
-        pool::change_available_balance(&e, amount)?;
-        pool::change_total_shares(&e, amount)?;
-        pool::change_total_balance(&e, amount)?;
+            // Increase users position in pool as they deposit
+            // as this is deposit amount is added to receivables and
+            // liabilities & collateral stays intact
+            let liabilities: i128 = 0; // temp test param
+            let collateral: i128 = 0; // temp test param
+            positions::increase_positions(&e, user.clone(), amount, liabilities, collateral)?;
 
-        // Increase users position in pool as they deposit
-        // as this is deposit amount is added to receivables and
-        // liabilities & collateral stays intact
-        let liabilities: i128 = 0; // temp test param
-        let collateral: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), amount, liabilities, collateral);
-
-        Ok(amount)
+            Ok(amount)
+        }
     }
 
     /// Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
@@ -87,15 +92,15 @@ impl LoanPoolContract {
         assert!(amount <= available_balance);
 
         // TODO: Decrease AvailableBalance
-        pool::change_available_balance(&e, -amount)?;
+        pool::change_available_balance(&e, amount.checked_neg().ok_or(Error::OverOrUnderFlow)?)?;
         // TODO: Decrease TotalShares - Positions should have shares if we use them
         // TODO: Decrease TotalBalance
-        pool::change_total_balance(&e, -amount)?;
+        pool::change_total_balance(&e, amount.checked_neg().ok_or(Error::OverOrUnderFlow)?)?;
 
         // Decrease users position in pool as they withdraw
         let liabilities: i128 = 0;
         let collateral: i128 = 0;
-        positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral);
+        positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral)?;
 
         // Transfer tokens from pool to user
         let token_address = &pool::read_currency(&e)?.token_address;
@@ -124,14 +129,14 @@ impl LoanPoolContract {
             "Borrowed amount has to be less than available balance!"
         ); // Check that there is enough available balance
 
-        pool::change_available_balance(&e, -amount)?;
+        pool::change_available_balance(&e, amount.checked_neg().ok_or(Error::OverOrUnderFlow)?)?;
 
         // Increase users position in pool as they deposit
         // as this is debt amount is added to liabilities and
         // collateral & receivables stays intact
         let collateral: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, amount, collateral);
+        positions::increase_positions(&e, user.clone(), receivables, amount, collateral)?;
 
         let token_address = &pool::read_currency(&e)?.token_address;
         let client = token::Client::new(&e, token_address);
@@ -156,7 +161,7 @@ impl LoanPoolContract {
         // liabilities & receivables stays intact
         let liabilities: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount);
+        positions::increase_positions(&e, user.clone(), receivables, liabilities, amount)?;
 
         Ok(amount)
     }
@@ -178,7 +183,7 @@ impl LoanPoolContract {
         // liabilities & receivables stays intact
         let liabilities: i128 = 0; // temp test param
         let receivables: i128 = 0; // temp test param
-        positions::decrease_positions(&e, user.clone(), receivables, liabilities, amount);
+        positions::decrease_positions(&e, user.clone(), receivables, liabilities, amount)?;
 
         Ok(amount)
     }
@@ -190,18 +195,41 @@ impl LoanPoolContract {
         let current_timestamp = e.ledger().timestamp();
         let accrual = pool::read_accrual(&e)?;
         let accrual_last_update = pool::read_accrual_last_updated(&e)?;
-        let ledgers_since_update = current_timestamp - accrual_last_update;
-        let ledger_ratio: i128 =
-            (i128::from(ledgers_since_update) * DECIMAL) / (i128::from(SECONDS_IN_YEAR));
+        let ledgers_since_update = current_timestamp
+            .checked_sub(accrual_last_update)
+            .ok_or(Error::OverOrUnderFlow)?;
+        let ledger_ratio: i128 = (i128::from(ledgers_since_update))
+            .checked_mul(DECIMAL)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_div(i128::from(SECONDS_IN_YEAR))
+            .ok_or(Error::OverOrUnderFlow)?;
 
         let interest_rate: i128 = get_interest(e.clone())?;
-        let interest_amount_in_year: i128 = (accrual * interest_rate) / DECIMAL;
-        let interest_since_update: i128 = (interest_amount_in_year * ledger_ratio) / DECIMAL;
-        let new_accrual: i128 = accrual + interest_since_update;
+        let interest_amount_in_year: i128 = accrual
+            .checked_mul(interest_rate)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_div(DECIMAL)
+            .ok_or(Error::OverOrUnderFlow)?;
+        let interest_since_update: i128 = interest_amount_in_year
+            .checked_mul(ledger_ratio)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_div(DECIMAL)
+            .ok_or(Error::OverOrUnderFlow)?;
+        let new_accrual: i128 = accrual
+            .checked_add(interest_since_update)
+            .ok_or(Error::OverOrUnderFlow)?;
 
         pool::write_accrual_last_updated(&e, current_timestamp);
+        e.events().publish(
+            (PoolDataKey::AccrualLastUpdate, symbol_short!("updated")),
+            current_timestamp,
+        );
 
         pool::write_accrual(&e, new_accrual);
+        e.events().publish(
+            (PoolDataKey::Accrual, symbol_short!("updated")),
+            new_accrual,
+        );
         Ok(())
     }
 
@@ -231,20 +259,28 @@ impl LoanPoolContract {
         interest::get_interest(e)
     }
 
-    pub fn get_pool_state(e: Env) -> PoolState {
-        PoolState {
-            total_balance: pool::read_total_balance(&e),
-            available_balance: pool::read_available_balance(&e),
-            total_shares: pool::read_total_shares(&e),
-            annual_interest_rate: interest::get_interest(e),
-        }
+    pub fn get_pool_state(e: Env) -> Result<PoolState, Error> {
+        Ok(PoolState {
+            total_balance: pool::read_total_balance(&e)?,
+            available_balance: pool::read_available_balance(&e)?,
+            total_shares: pool::read_total_shares(&e)?,
+            annual_interest_rate: interest::get_interest(e)?,
+        })
     }
 
     pub fn increase_liabilities(e: Env, user: Address, amount: i128) -> Result<(), Error> {
         let loan_manager_addr = pool::read_loan_manager_addr(&e)?;
         loan_manager_addr.require_auth();
 
-        positions::increase_positions(&e, user, 0, amount, 0);
+        positions::increase_positions(&e, user.clone(), 0, amount, 0)?;
+        e.events().publish(
+            (
+                PoolDataKey::Positions(user),
+                symbol_short!("liab"),
+                symbol_short!("incr"),
+            ),
+            amount,
+        );
         Ok(())
     }
 
@@ -260,13 +296,15 @@ impl LoanPoolContract {
             unpaid_interest / 10
         };
 
-        let amount_to_pool = amount - amount_to_admin;
+        let amount_to_pool = amount
+            .checked_sub(amount_to_admin)
+            .ok_or(Error::OverOrUnderFlow)?;
 
         let client = token::Client::new(&e, &pool::read_currency(&e)?.token_address);
         client.transfer(&user, &e.current_contract_address(), &amount_to_pool);
         client.transfer(&user, &loan_manager_addr, &amount_to_admin);
 
-        positions::decrease_positions(&e, user, 0, amount, 0);
+        positions::decrease_positions(&e, user, 0, amount, 0)?;
         pool::change_available_balance(&e, amount)?;
         pool::change_total_balance(&e, amount)?;
         Ok(())
@@ -290,13 +328,15 @@ impl LoanPoolContract {
             unpaid_interest / 10
         };
 
-        let amount_to_pool = amount - amount_to_admin;
+        let amount_to_pool = amount
+            .checked_sub(amount_to_admin)
+            .ok_or(Error::OverOrUnderFlow)?;
 
         let client = token::Client::new(&e, &pool::read_currency(&e)?.token_address);
         client.transfer(&user, &e.current_contract_address(), &amount_to_pool);
         client.transfer(&user, &loan_manager_addr, &amount_to_admin);
 
-        positions::decrease_positions(&e, loan_owner, 0, amount, 0);
+        positions::decrease_positions(&e, loan_owner, 0, amount, 0)?;
         pool::change_available_balance(&e, amount)?;
         pool::change_total_balance(&e, amount)?;
         Ok(())
@@ -314,7 +354,7 @@ impl LoanPoolContract {
         let client = token::Client::new(&e, &pool::read_currency(&e)?.token_address);
         client.transfer(&e.current_contract_address(), &user, &amount_collateral);
 
-        positions::decrease_positions(&e, loan_owner, 0, 0, amount_collateral);
+        positions::decrease_positions(&e, loan_owner, 0, 0, amount_collateral)?;
         Ok(())
     }
 }
