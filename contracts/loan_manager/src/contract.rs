@@ -109,26 +109,26 @@ impl LoanManager {
         new_manager_wasm_hash: BytesN<32>,
         new_pool_wasm_hash: BytesN<32>,
     ) -> Result<(), Error> {
-        let admin: Option<Address> = e.storage().persistent().get(&LoansDataKey::Admin);
-        if let Some(admin) = admin {
-            admin.require_auth();
-            e.storage()
-                .persistent()
-                .get(&LoansDataKey::PoolAddresses)
-                .unwrap_or(vec![&e])
-                .iter()
-                .for_each(|pool| {
-                    let pool_client = loan_pool::Client::new(&e, &pool);
-                    pool_client.upgrade(&new_pool_wasm_hash);
-                });
+        let admin: Address = e
+            .storage()
+            .persistent()
+            .get(&LoansDataKey::Admin)
+            .ok_or(Error::AdminNotFound)?;
+        admin.require_auth();
+        e.storage()
+            .persistent()
+            .get(&LoansDataKey::PoolAddresses)
+            .unwrap_or(vec![&e])
+            .iter()
+            .for_each(|pool| {
+                let pool_client = loan_pool::Client::new(&e, &pool);
+                pool_client.upgrade(&new_pool_wasm_hash);
+            });
 
-            e.deployer()
-                .update_current_contract_wasm(new_manager_wasm_hash);
+        e.deployer()
+            .update_current_contract_wasm(new_manager_wasm_hash);
 
-            Ok(())
-        } else {
-            Err(Error::AdminNotFound)
-        }
+        Ok(())
     }
 
     /// Initialize a new loan
