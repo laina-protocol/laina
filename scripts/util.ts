@@ -72,8 +72,6 @@ export const loanManagerAddress = (): string =>
 export const createContractBindings = () => {
   bind('loan_manager', process.env.CONTRACT_ID_LOAN_MANAGER);
   bind('pool_xlm', process.env.CONTRACT_ID_POOL_XLM);
-  bind('pool_wbtc', process.env.CONTRACT_ID_POOL_WBTC);
-  bind('pool_weth', process.env.CONTRACT_ID_POOL_WETH);
   bind('pool_usdc', process.env.CONTRACT_ID_POOL_USDC);
   bind('pool_eurc', process.env.CONTRACT_ID_POOL_EURC);
 };
@@ -87,7 +85,7 @@ const bind = (contractName: string, address: string | undefined) => {
 };
 
 export const createContractImports = () => {
-  const CONTRACTS = ['loan_manager', 'pool_xlm', 'pool_wbtc', 'pool_weth', 'pool_usdc', 'pool_eurc'];
+  const CONTRACTS = ['loan_manager', 'pool_xlm', 'pool_usdc', 'pool_eurc'];
   CONTRACTS.forEach(importContract);
 };
 

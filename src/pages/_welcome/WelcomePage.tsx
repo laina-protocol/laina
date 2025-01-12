@@ -3,7 +3,6 @@ import { Card } from '@components/Card';
 import WalletCard from '@components/WalletCard/WalletCard';
 import BorrowIcon from '@images/icons/borrow.svg';
 import LendIcon from '@images/icons/lend.svg';
-import LiquidateIcon from '@images/icons/liquidate.svg';
 
 const WelcomePage = () => (
   <div className="my-14">
@@ -23,13 +22,6 @@ const WelcomePage = () => (
         content="Loan assets from lending pools against a collateral you deposit."
         to="/borrow"
         buttonText="Borrow"
-      />
-      <InfoCard
-        icon={LiquidateIcon.src}
-        title="Liquidate Loans"
-        content="Liquidate undercollateralized loans to earn rewards."
-        to="/liquidate"
-        buttonText="Liquidate"
       />
     </div>
   </div>
