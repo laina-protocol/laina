@@ -27,11 +27,11 @@ const PositionsView = ({ onClose, onWithdraw }: PositionsViewProps) => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(positions).map(([ticker, { receivables }]) => (
+          {Object.entries(positions).map(([ticker, { receivable_shares }]) => (
             <TableRow
               key={ticker}
               ticker={ticker as SupportedCurrency}
-              receivables={receivables}
+              receivables={receivable_shares}
               onWithdraw={onWithdraw}
             />
           ))}

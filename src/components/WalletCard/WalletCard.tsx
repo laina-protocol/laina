@@ -130,9 +130,9 @@ type ValueObj = {
 
 const calculateTotalValue = (prices: PriceRecord, positions: PositionsRecord): ValueObj => {
   return Object.entries(positions).reduce(
-    (acc, [ticker, { receivables, liabilities }]) => {
+    (acc, [ticker, { receivable_shares, liabilities }]) => {
       const price = prices[ticker as SupportedCurrency];
-      acc.receivablesCents += toCents(price, receivables);
+      acc.receivablesCents += toCents(price, receivable_shares);
       acc.liabilitiesCents += toCents(price, liabilities);
       return acc;
     },
