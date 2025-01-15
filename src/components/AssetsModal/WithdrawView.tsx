@@ -29,9 +29,9 @@ const WithdrawView = ({ ticker, onBack, onSuccess }: WithdrawViewProps) => {
     throw Error('Unexpectedly opened WithdrawView without balance');
   }
 
-  const { receivables } = positions[ticker];
+  const { receivable_shares } = positions[ticker];
 
-  const max = (receivables / SCALAR_7).toString();
+  const max = (receivable_shares / SCALAR_7).toString();
 
   const handleAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setAmount(ev.target.value);
