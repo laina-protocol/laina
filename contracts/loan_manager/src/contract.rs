@@ -571,8 +571,6 @@ mod tests {
     #[test]
     fn initialize() {
         let e = Env::default();
-        // e.budget().reset_default();
-        e.cost_estimate();
         let admin = Address::generate(&e);
 
         let contract_id = e.register(LoanManager, ());
