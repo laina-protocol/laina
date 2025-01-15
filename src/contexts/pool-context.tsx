@@ -58,9 +58,9 @@ const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => 
   if (result.isOk()) {
     const value = result.unwrap();
     return {
-      totalBalance: value.total_balance,
-      availableBalance: value.available_balance,
-      totalShares: value.total_shares,
+      totalBalance: value.total_balance_tokens,
+      availableBalance: value.available_balance_tokens,
+      totalShares: value.total_balance_shares,
       annualInterestRate: value.annual_interest_rate,
     };
   }

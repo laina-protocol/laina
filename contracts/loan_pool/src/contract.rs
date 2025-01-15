@@ -75,39 +75,64 @@ impl LoanPoolContract {
     }
 
     /// Transfers share tokens back, burns them and gives corresponding amount of tokens back to user. Returns amount of tokens withdrawn
-    pub fn withdraw(e: Env, user: Address, amount: i128) -> Result<(i128, i128), Error> {
+    pub fn withdraw(e: Env, user: Address, amount: i128) -> Result<PoolState, Error> {
         user.require_auth();
 
         Self::add_interest_to_accrual(e.clone())?;
 
         // Get users receivables
-        let Positions { receivables, .. } = positions::read_positions(&e, &user);
+        let Positions {
+            receivable_shares, ..
+        } = positions::read_positions(&e, &user);
 
         // Check that user is not trying to move more than receivables (TODO: also include collateral?)
-        assert!(
-            amount <= receivables,
-            "Amount can not be greater than receivables!"
-        );
-        let available_balance = Self::get_available_balance(e.clone())?;
-        assert!(amount <= available_balance);
+        if amount > receivable_shares {
+            return Err(Error::WithdrawIsNegative);
+        }
 
-        // TODO: Decrease AvailableBalance
-        pool::change_available_balance(&e, amount.checked_neg().ok_or(Error::OverOrUnderFlow)?)?;
-        // TODO: Decrease TotalShares - Positions should have shares if we use them
-        // TODO: Decrease TotalBalance
-        pool::change_total_balance(&e, amount.checked_neg().ok_or(Error::OverOrUnderFlow)?)?;
+        let available_balance_tokens = Self::get_available_balance(e.clone())?;
+        if amount > available_balance_tokens {
+            return Err(Error::WithdrawOverBalance);
+        }
+        let total_balance_shares = Self::get_total_balance_shares(e.clone())?;
+        let total_balance_tokens = Self::get_contract_balance(e.clone())?;
+        let shares_to_decrease = amount
+            .checked_mul(total_balance_shares)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_div(total_balance_tokens)
+            .ok_or(Error::OverOrUnderFlow)?;
 
-        // Decrease users position in pool as they withdraw
+        let new_available_balance_tokens = pool::change_available_balance(
+            &e,
+            amount.checked_neg().ok_or(Error::OverOrUnderFlow)?,
+        )?;
+        let new_total_balance_tokens =
+            pool::change_total_balance(&e, amount.checked_neg().ok_or(Error::OverOrUnderFlow)?)?;
+        let new_total_balance_shares = pool::change_total_shares(&e, shares_to_decrease)?;
         let liabilities: i128 = 0;
         let collateral: i128 = 0;
-        positions::decrease_positions(&e, user.clone(), amount, liabilities, collateral)?;
+        positions::decrease_positions(
+            &e,
+            user.clone(),
+            shares_to_decrease,
+            liabilities,
+            collateral,
+        )?;
 
         // Transfer tokens from pool to user
         let token_address = &pool::read_currency(&e)?.token_address;
         let client = token::Client::new(&e, token_address);
         client.transfer(&e.current_contract_address(), &user, &amount);
 
-        Ok((amount, amount))
+        let new_annual_interest_rate = Self::get_interest(e.clone())?;
+
+        let pool_state = PoolState {
+            total_balance_tokens: new_total_balance_tokens,
+            available_balance_tokens: new_available_balance_tokens,
+            total_balance_shares: new_total_balance_shares,
+            annual_interest_rate: new_annual_interest_rate,
+        };
+        Ok(pool_state)
     }
 
     /// Borrow tokens from the pool
@@ -247,6 +272,10 @@ impl LoanPoolContract {
         pool::read_total_balance(&e)
     }
 
+    pub fn get_total_balance_shares(e: Env) -> Result<i128, Error> {
+        pool::read_total_shares(&e)
+    }
+
     pub fn get_available_balance(e: Env) -> Result<i128, Error> {
         pool::read_available_balance(&e)
     }
@@ -261,9 +290,9 @@ impl LoanPoolContract {
 
     pub fn get_pool_state(e: Env) -> Result<PoolState, Error> {
         Ok(PoolState {
-            total_balance: pool::read_total_balance(&e)?,
-            available_balance: pool::read_available_balance(&e)?,
-            total_shares: pool::read_total_shares(&e)?,
+            total_balance_tokens: pool::read_total_balance(&e)?,
+            available_balance_tokens: pool::read_available_balance(&e)?,
+            total_balance_shares: pool::read_total_shares(&e)?,
             annual_interest_rate: interest::get_interest(e)?,
         })
     }
@@ -529,7 +558,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "Amount can not be greater than receivables!")]
+    #[should_panic(expected = "Error(Contract, #12)")]
     fn withdraw_more_than_balance() {
         let e = Env::default();
         e.mock_all_auths();
@@ -597,9 +626,9 @@ mod test {
 
         contract_client.borrow(&user2, &500);
 
-        let withdraw_result: (i128, i128) = contract_client.withdraw(&user, &amount);
+        let withdraw_result = contract_client.withdraw(&user, &amount);
 
-        assert_eq!(withdraw_result, (amount, amount));
+        assert_eq!(withdraw_result, contract_client.get_pool_state());
     }
     #[test]
     fn add_accrual_full_usage() {

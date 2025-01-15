@@ -21,6 +21,8 @@ pub enum Error {
     AccrualLastUpdated = 8,
     OverOrUnderFlow = 9,
     NegativeDeposit = 10,
+    WithdrawOverBalance = 11,
+    WithdrawIsNegative = 12,
 }
 
 pub fn write_loan_manager_addr(e: &Env, loan_manager_addr: Address) {
@@ -65,14 +67,14 @@ pub fn write_liquidation_threshold(e: &Env, threshold: i128) {
 }
 
 pub fn write_total_shares(e: &Env, amount: i128) {
-    let key: PoolDataKey = PoolDataKey::TotalShares;
+    let key: PoolDataKey = PoolDataKey::TotalBalanceShares;
 
     e.storage().persistent().set(&key, &amount);
     extend_persistent(e.clone(), &key);
 }
 
 pub fn read_total_shares(e: &Env) -> Result<i128, Error> {
-    let key: PoolDataKey = PoolDataKey::TotalBalance;
+    let key: PoolDataKey = PoolDataKey::TotalBalanceTokens;
 
     if let Some(total_shares) = e.storage().persistent().get(&key) {
         total_shares
@@ -81,27 +83,25 @@ pub fn read_total_shares(e: &Env) -> Result<i128, Error> {
     }
 }
 
-pub fn change_total_shares(e: &Env, amount: i128) -> Result<(), Error> {
+pub fn change_total_shares(e: &Env, amount: i128) -> Result<i128, Error> {
     let current_balance = read_total_shares(e)?;
 
-    write_total_shares(
-        e,
-        amount
-            .checked_add(current_balance)
-            .ok_or(Error::OverOrUnderFlow)?,
-    );
-    Ok(())
+    let new_amount = amount
+        .checked_add(current_balance)
+        .ok_or(Error::OverOrUnderFlow)?;
+    write_total_shares(e, new_amount);
+    Ok(new_amount)
 }
 
 pub fn write_total_balance(e: &Env, amount: i128) {
-    let key: PoolDataKey = PoolDataKey::TotalBalance;
+    let key: PoolDataKey = PoolDataKey::TotalBalanceTokens;
 
     e.storage().persistent().set(&key, &amount);
     extend_persistent(e.clone(), &key);
 }
 
 pub fn read_total_balance(e: &Env) -> Result<i128, Error> {
-    let key: PoolDataKey = PoolDataKey::TotalBalance;
+    let key: PoolDataKey = PoolDataKey::TotalBalanceTokens;
 
     if let Some(total_balance) = e.storage().persistent().get(&key) {
         total_balance
@@ -110,27 +110,25 @@ pub fn read_total_balance(e: &Env) -> Result<i128, Error> {
     }
 }
 
-pub fn change_total_balance(e: &Env, amount: i128) -> Result<(), Error> {
+pub fn change_total_balance(e: &Env, amount: i128) -> Result<i128, Error> {
     let current_balance = read_total_balance(e)?;
 
-    write_total_balance(
-        e,
-        amount
-            .checked_add(current_balance)
-            .ok_or(Error::OverOrUnderFlow)?,
-    );
-    Ok(())
+    let new_amount = amount
+        .checked_add(current_balance)
+        .ok_or(Error::OverOrUnderFlow)?;
+    write_total_balance(e, new_amount);
+    Ok(new_amount)
 }
 
 pub fn write_available_balance(e: &Env, amount: i128) {
-    let key: PoolDataKey = PoolDataKey::AvailableBalance;
+    let key: PoolDataKey = PoolDataKey::AvailableBalanceTokens;
 
     e.storage().persistent().set(&key, &amount);
     extend_persistent(e.clone(), &key);
 }
 
 pub fn read_available_balance(e: &Env) -> Result<i128, Error> {
-    let key: PoolDataKey = PoolDataKey::AvailableBalance;
+    let key: PoolDataKey = PoolDataKey::AvailableBalanceTokens;
 
     if let Some(available_balance) = e.storage().persistent().get(&key) {
         available_balance
@@ -139,16 +137,14 @@ pub fn read_available_balance(e: &Env) -> Result<i128, Error> {
     }
 }
 
-pub fn change_available_balance(e: &Env, amount: i128) -> Result<(), Error> {
+pub fn change_available_balance(e: &Env, amount: i128) -> Result<i128, Error> {
     let current_balance = read_available_balance(e)?;
 
-    write_available_balance(
-        e,
-        amount
-            .checked_add(current_balance)
-            .ok_or(Error::OverOrUnderFlow)?,
-    );
-    Ok(())
+    let new_amount = amount
+        .checked_add(current_balance)
+        .ok_or(Error::OverOrUnderFlow)?;
+    write_available_balance(e, new_amount);
+    Ok(new_amount)
 }
 
 pub fn write_accrual(e: &Env, accrual: i128) {
@@ -168,11 +164,13 @@ pub fn read_accrual(e: &Env) -> Result<i128, Error> {
     }
 }
 
-pub fn write_accrual_last_updated(e: &Env, sequence: u64) {
+pub fn write_accrual_last_updated(e: &Env, sequence: u64) -> u64 {
     let key = PoolDataKey::AccrualLastUpdate;
 
     e.storage().persistent().set(&key, &sequence);
     extend_persistent(e.clone(), &key);
+
+    sequence
 }
 
 pub fn read_accrual_last_updated(e: &Env) -> Result<u64, Error> {
