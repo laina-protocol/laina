@@ -571,7 +571,6 @@ mod tests {
     #[test]
     fn initialize() {
         let e = Env::default();
-        e.budget().reset_default();
         let admin = Address::generate(&e);
 
         let contract_id = e.register(LoanManager, ());
@@ -583,7 +582,6 @@ mod tests {
     #[test]
     fn cannot_re_initialize() {
         let e = Env::default();
-        e.budget().reset_default();
         let admin = Address::generate(&e);
 
         let contract_id = e.register(LoanManager, ());
@@ -598,7 +596,6 @@ mod tests {
     fn deploy_pool() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
         e.mock_all_auths();
 
         let admin = Address::generate(&e);
@@ -631,7 +628,6 @@ mod tests {
     fn upgrade_manager_and_pool() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
         e.mock_all_auths();
 
         let admin = Address::generate(&e);
@@ -656,7 +652,6 @@ mod tests {
     fn create_loan() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_default();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -719,7 +714,6 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
-        e.budget().reset_unlimited();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
             li.timestamp = 1;
@@ -811,7 +805,6 @@ mod tests {
     fn repay() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -886,7 +879,6 @@ mod tests {
     fn repay_more_than_borrowed() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_unlimited();
         e.mock_all_auths_allowing_non_root_auth();
 
         let admin = Address::generate(&e);
@@ -945,8 +937,6 @@ mod tests {
     fn liquidate() {
         // ARRANGE
         let e = Env::default();
-        e.budget().reset_unlimited();
-        e.budget().print();
         e.mock_all_auths_allowing_non_root_auth();
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000;
@@ -1048,6 +1038,5 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 7_998);
         assert_eq!(user_loan.health_factor, 8_440_860);
         assert_eq!(user_loan.collateral_amount, 6_751);
-        e.budget().print();
     }
 }
