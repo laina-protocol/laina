@@ -1,4 +1,5 @@
 use crate::pool;
+use crate::pool::Error;
 use soroban_sdk::Env;
 
 #[allow(dead_code)]
@@ -10,25 +11,56 @@ pub const PANIC_BASE_RATE: i128 = -17_000_000;
 
 #[allow(dead_code, unused_variables)]
 
-pub fn get_interest(e: Env) -> i128 {
+pub fn get_interest(e: Env) -> Result<i128, Error> {
     const PANIC_RATES_THRESHOLD: i128 = 90_000_000;
-    let available = pool::read_available_balance(&e);
-    let total = pool::read_total_balance(&e);
+    let available = pool::read_available_balance(&e)?;
+    let total = pool::read_total_balance(&e)?;
 
     if total > 0 {
-        let slope_before_panic =
-            (INTEREST_RATE_AT_PANIC - BASE_INTEREST_RATE) * 10_000_000 / PANIC_RATES_THRESHOLD;
-        let slope_after_panic = (MAX_INTEREST_RATE - INTEREST_RATE_AT_PANIC) * 10_000_000
-            / (100_000_000 - PANIC_RATES_THRESHOLD);
+        let slope_before_panic = (INTEREST_RATE_AT_PANIC
+            .checked_sub(BASE_INTEREST_RATE)
+            .ok_or(Error::OverOrUnderFlow)?)
+        .checked_mul(10_000_000)
+        .ok_or(Error::OverOrUnderFlow)?
+        .checked_div(PANIC_RATES_THRESHOLD)
+        .ok_or(Error::OverOrUnderFlow)?;
 
-        let ratio_of_balances = ((total - available) * 100_000_000) / total; // correct
+        let slope_after_panic = (MAX_INTEREST_RATE
+            .checked_sub(INTEREST_RATE_AT_PANIC)
+            .ok_or(Error::OverOrUnderFlow)?)
+        .checked_mul(10_000_000)
+        .ok_or(Error::OverOrUnderFlow)?
+        .checked_div(
+            100_000_000_i128
+                .checked_sub(PANIC_RATES_THRESHOLD)
+                .ok_or(Error::OverOrUnderFlow)?,
+        )
+        .ok_or(Error::OverOrUnderFlow)?;
+
+        let ratio_of_balances = ((total.checked_sub(available).ok_or(Error::OverOrUnderFlow)?)
+            .checked_mul(100_000_000)
+            .ok_or(Error::OverOrUnderFlow)?)
+        .checked_div(total)
+        .ok_or(Error::OverOrUnderFlow)?;
 
         if ratio_of_balances < PANIC_RATES_THRESHOLD {
-            (slope_before_panic * ratio_of_balances) / 10_000_000 + BASE_INTEREST_RATE
+            Ok((slope_before_panic
+                .checked_mul(ratio_of_balances)
+                .ok_or(Error::OverOrUnderFlow)?)
+            .checked_div(10_000_000)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_add(BASE_INTEREST_RATE)
+            .ok_or(Error::OverOrUnderFlow)?)
         } else {
-            (slope_after_panic * ratio_of_balances) / 10_000_000 + PANIC_BASE_RATE
+            Ok((slope_after_panic
+                .checked_mul(ratio_of_balances)
+                .ok_or(Error::OverOrUnderFlow)?)
+            .checked_div(10_000_000)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_add(PANIC_BASE_RATE)
+            .ok_or(Error::OverOrUnderFlow)?)
         }
     } else {
-        BASE_INTEREST_RATE
+        Ok(BASE_INTEREST_RATE)
     }
 }

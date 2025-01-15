@@ -37,13 +37,14 @@ const fetchAllPrices = async (): Promise<PriceRecord> => {
 };
 
 const fetchPriceData = async (ticker: string): Promise<bigint> => {
-  try {
-    const { result } = await loanManagerClient.get_price({ token: ticker });
-    return result;
-  } catch (error) {
-    console.error(`Error fetching price data: for ${ticker}`, error);
-    return 0n;
+  const { result } = await loanManagerClient.get_price({ token: ticker });
+  if (result.isOk()) {
+    const value = result.unwrap();
+    return value;
   }
+  const error = result.unwrapErr();
+  console.error('Error: ', error);
+  return 0n;
 };
 
 const fetchPools = async (): Promise<PoolRecord> => {
@@ -54,11 +55,22 @@ const fetchPools = async (): Promise<PoolRecord> => {
 const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => {
   const { contractClient } = CURRENCY_BINDINGS[ticker];
   const { result } = await contractClient.get_pool_state();
+  if (result.isOk()) {
+    const value = result.unwrap();
+    return {
+      totalBalance: value.total_balance,
+      availableBalance: value.available_balance,
+      totalShares: value.total_shares,
+      annualInterestRate: value.annual_interest_rate,
+    };
+  }
+  const error = result.unwrapErr();
+  console.error('Error: ', error);
   return {
-    totalBalance: result.total_balance,
-    availableBalance: result.available_balance,
-    totalShares: result.total_shares,
-    annualInterestRate: result.annual_interest_rate,
+    totalBalance: 0n,
+    availableBalance: 0n,
+    totalShares: 0n,
+    annualInterestRate: 0n,
   };
 };
 

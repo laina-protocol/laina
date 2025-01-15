@@ -1,3 +1,4 @@
+use crate::pool::Error;
 use crate::storage_types::{extend_persistent, PoolDataKey, Positions};
 use soroban_sdk::{Address, Env, IntoVal, Val};
 
@@ -38,7 +39,7 @@ pub fn increase_positions(
     receivables: i128,
     liabilities: i128,
     collateral: i128,
-) {
+) -> Result<(), Error> {
     let positions = read_positions(e, &addr);
 
     let receivables_now: i128 = positions.receivables;
@@ -47,10 +48,17 @@ pub fn increase_positions(
     write_positions(
         e,
         addr,
-        receivables_now + receivables,
-        liabilities_now + liabilities,
-        collateral_now + collateral,
+        receivables_now
+            .checked_add(receivables)
+            .ok_or(Error::OverOrUnderFlow)?,
+        liabilities_now
+            .checked_add(liabilities)
+            .ok_or(Error::OverOrUnderFlow)?,
+        collateral_now
+            .checked_add(collateral)
+            .ok_or(Error::OverOrUnderFlow)?,
     );
+    Ok(())
 }
 
 pub fn decrease_positions(
@@ -59,7 +67,7 @@ pub fn decrease_positions(
     receivables: i128,
     liabilities: i128,
     collateral: i128,
-) {
+) -> Result<(), Error> {
     let positions = read_positions(e, &addr);
 
     // TODO: Might need to use get rather than get_unchecked and convert from Option<V> to V
@@ -79,8 +87,15 @@ pub fn decrease_positions(
     write_positions(
         e,
         addr,
-        receivables_now - receivables,
-        liabilities_now - liabilities,
-        collateral_now - collateral,
+        receivables_now
+            .checked_sub(receivables)
+            .ok_or(Error::OverOrUnderFlow)?,
+        liabilities_now
+            .checked_sub(liabilities)
+            .ok_or(Error::OverOrUnderFlow)?,
+        collateral_now
+            .checked_sub(collateral)
+            .ok_or(Error::OverOrUnderFlow)?,
     );
+    Ok(())
 }
