@@ -10,7 +10,7 @@ pub fn read_positions(e: &Env, addr: &Address) -> Positions {
         positions
     } else {
         Positions {
-            receivables: 0,
+            receivable_shares: 0,
             liabilities: 0,
             collateral: 0,
         }
@@ -21,7 +21,7 @@ fn write_positions(e: &Env, addr: Address, receivables: i128, liabilities: i128,
     let key: PoolDataKey = PoolDataKey::Positions(addr);
 
     let positions: Positions = Positions {
-        receivables,
+        receivable_shares: receivables,
         liabilities,
         collateral,
     };
@@ -42,7 +42,7 @@ pub fn increase_positions(
 ) -> Result<(), Error> {
     let positions = read_positions(e, &addr);
 
-    let receivables_now: i128 = positions.receivables;
+    let receivables_now: i128 = positions.receivable_shares;
     let liabilities_now: i128 = positions.liabilities;
     let collateral_now = positions.collateral;
     write_positions(
@@ -71,7 +71,7 @@ pub fn decrease_positions(
     let positions = read_positions(e, &addr);
 
     // TODO: Might need to use get rather than get_unchecked and convert from Option<V> to V
-    let receivables_now = positions.receivables;
+    let receivables_now = positions.receivable_shares;
     let liabilities_now = positions.liabilities;
     let collateral_now = positions.collateral;
 

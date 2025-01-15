@@ -21,7 +21,7 @@ pub struct PoolConfig {
 #[contracttype]
 pub struct Positions {
     // struct names under 9 characters are marginally more efficient. Need to think if we value marginal efficiency over readibility
-    pub receivables: i128,
+    pub receivable_shares: i128,
     pub liabilities: i128,
     pub collateral: i128,
 }
@@ -38,11 +38,11 @@ pub enum PoolDataKey {
     // Users positions in the pool
     Positions(Address),
     // Total amount of shares in circulation
-    TotalShares,
+    TotalBalanceShares,
     // Total balance of pool
-    TotalBalance,
+    TotalBalanceTokens,
     // Available balance of pool
-    AvailableBalance,
+    AvailableBalanceTokens,
     // Pool interest accrual index
     Accrual,
     // Last update ledger of accrual
