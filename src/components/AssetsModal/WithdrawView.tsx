@@ -17,13 +17,19 @@ export interface WithdrawViewProps {
 const WithdrawView = ({ ticker, onBack, onSuccess }: WithdrawViewProps) => {
   const { name, contractClient } = CURRENCY_BINDINGS[ticker];
   const { positions, wallet, signTransaction } = useWallet();
-  const { prices } = usePools();
+  const { pools, prices } = usePools();
   const [amount, setAmount] = useState('0');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
+  const pool = pools?.[ticker];
   const price = prices?.[ticker];
 
   const valueCents = price ? toCents(price, BigInt(amount) * SCALAR_7) : undefined;
+
+  if (!pool) {
+    console.warn('PoolState is not loaded');
+    return null;
+  }
 
   if (!positions[ticker]) {
     throw Error('Unexpectedly opened WithdrawView without balance');
@@ -31,7 +37,9 @@ const WithdrawView = ({ ticker, onBack, onSuccess }: WithdrawViewProps) => {
 
   const { receivable_shares } = positions[ticker];
 
-  const max = (receivable_shares / SCALAR_7).toString();
+  const totalBalance = (receivable_shares * pool.totalBalance) / pool.totalShares;
+
+  const max = (totalBalance / SCALAR_7).toString();
 
   const handleAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setAmount(ev.target.value);

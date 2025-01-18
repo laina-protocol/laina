@@ -31,7 +31,7 @@ const PositionsView = ({ onClose, onWithdraw }: PositionsViewProps) => {
             <TableRow
               key={ticker}
               ticker={ticker as SupportedCurrency}
-              receivables={receivable_shares}
+              receivableShares={receivable_shares}
               onWithdraw={onWithdraw}
             />
           ))}
@@ -47,15 +47,15 @@ const PositionsView = ({ onClose, onWithdraw }: PositionsViewProps) => {
 };
 
 interface TableRowProps {
-  receivables: bigint;
+  receivableShares: bigint;
   ticker: SupportedCurrency;
   onWithdraw: (ticker: SupportedCurrency) => void;
 }
 
-const TableRow = ({ receivables, ticker, onWithdraw }: TableRowProps) => {
+const TableRow = ({ receivableShares, ticker, onWithdraw }: TableRowProps) => {
   const { prices, pools } = usePools();
 
-  if (receivables === 0n) return null;
+  if (receivableShares === 0n) return null;
 
   const { icon, name } = CURRENCY_BINDINGS[ticker];
   const price = prices?.[ticker];
@@ -66,7 +66,7 @@ const TableRow = ({ receivables, ticker, onWithdraw }: TableRowProps) => {
     return null;
   }
 
-  const shares = (pool.totalShares / receivables) * pool.totalBalance;
+  const totalBalance = (receivableShares * pool.totalBalance) / pool.totalShares;
 
   const handleWithdrawClick = () => onWithdraw(ticker);
 
@@ -84,8 +84,8 @@ const TableRow = ({ receivables, ticker, onWithdraw }: TableRowProps) => {
         </div>
       </td>
       <td>
-        <p className="text-lg font-semibold leading-5">{formatAmount(shares)}</p>
-        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, shares)}</p>
+        <p className="text-lg font-semibold leading-5">{formatAmount(totalBalance)}</p>
+        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, totalBalance)}</p>
       </td>
       <td className="text-lg font-semibold">{pool && formatAPY(pool.annualInterestRate)}</td>
       <td>
