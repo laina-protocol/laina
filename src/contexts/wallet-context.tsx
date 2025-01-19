@@ -104,8 +104,6 @@ const createBalanceRecord = (balances: StellarSdk.Horizon.HorizonApi.BalanceLine
     },
     {
       XLM: { trustLine: false },
-      wBTC: { trustLine: false },
-      wETH: { trustLine: false },
       USDC: { trustLine: false },
       EURC: { trustLine: false },
     } as BalanceRecord,

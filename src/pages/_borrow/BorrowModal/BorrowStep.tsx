@@ -41,7 +41,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   if (!pools || !prices || !walletBalances) return null;
 
-  const { annualInterestRate, availableBalance } = pools[ticker];
+  const { annualInterestRate, availableBalanceTokens } = pools[ticker];
 
   const loanBalance = walletBalances[ticker];
   const collateralBalance = walletBalances[collateralTicker];
@@ -128,7 +128,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const isBorrowDisabled =
     !isTrustline || loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
-  const maxLoan = (availableBalance / 10_000_000n).toString();
+  const maxLoan = (availableBalanceTokens / 10_000_000n).toString();
 
   const maxCollateral = getIntegerPart(collateralBalance.trustLine ? collateralBalance.balanceLine.balance : '0');
 

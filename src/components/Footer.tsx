@@ -26,11 +26,14 @@ interface IconProps {
 
 const SocialLink = ({ href, text, Icon }: { href: string; text: string; Icon: ComponentType<IconProps> }) => {
   return (
-    <span className="flex flex-row items-center my-1">
-      <Icon className="text-white hover:text-grey mr-2" size={32} />
-      <a className="text-lg text-white cursor-pointer hover:underline" href={href} target="_blank" rel="noreferrer">
-        {text}
-      </a>
-    </span>
+    <a
+      className="text-lg text-white cursor-pointer flex flex-row w-max my-1 hover:text-grey"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
+      <Icon className="mr-2" size={32} />
+      {text}
+    </a>
   );
 };

@@ -32,7 +32,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
         .filter(([t, _b]) => t !== ticker)
         .some(([_t, b]) => b.trustLine && !isBalanceZero(b.balanceLine.balance));
 
-  const borrowDisabled = !wallet || !isCollateral || !pool || pool.availableBalance === 0n;
+  const borrowDisabled = !wallet || !isCollateral || !pool || pool.availableBalanceTokens === 0n;
 
   const openModal = () => {
     const modalEl = document.getElementById(modalId) as HTMLDialogElement;
@@ -46,7 +46,7 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
 
   const tooltip = useMemo(() => {
     if (!pool) return 'The pool is loading';
-    if (pool.availableBalance === 0n) return 'the pool has no assets to borrow';
+    if (pool.availableBalanceTokens === 0n) return 'the pool has no assets to borrow';
     if (!wallet) return 'Connect a wallet first';
     if (!isCollateral) return 'Another token needed for the collateral';
     return 'Something odd happened.';
@@ -70,9 +70,9 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
 
       <td>
         <p className="text-xl font-semibold mt-3 leading-6">
-          {pool ? formatAmount(pool.availableBalance) : <Loading size="xs" />}
+          {pool ? formatAmount(pool.availableBalanceTokens) : <Loading size="xs" />}
         </p>
-        <p>{pool && price ? toDollarsFormatted(price, pool.availableBalance) : null}</p>
+        <p>{pool && price ? toDollarsFormatted(price, pool.availableBalanceTokens) : null}</p>
       </td>
 
       <td>
