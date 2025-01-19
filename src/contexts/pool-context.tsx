@@ -9,9 +9,9 @@ export type PriceRecord = {
 };
 
 export type PoolState = {
-  totalBalance: bigint;
-  availableBalance: bigint;
-  totalShares: bigint;
+  totalBalanceTokens: bigint;
+  totalBalanceShares: bigint;
+  availableBalanceTokens: bigint;
   annualInterestRate: bigint;
 };
 
@@ -58,18 +58,18 @@ const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => 
   if (result.isOk()) {
     const value = result.unwrap();
     return {
-      totalBalance: value.total_balance_tokens,
-      availableBalance: value.available_balance_tokens,
-      totalShares: value.total_balance_shares,
+      totalBalanceTokens: value.total_balance_tokens,
+      totalBalanceShares: value.total_balance_shares,
+      availableBalanceTokens: value.available_balance_tokens,
       annualInterestRate: value.annual_interest_rate,
     };
   }
   const error = result.unwrapErr();
   console.error('Error: ', error);
   return {
-    totalBalance: 0n,
-    availableBalance: 0n,
-    totalShares: 0n,
+    totalBalanceTokens: 0n,
+    totalBalanceShares: 0n,
+    availableBalanceTokens: 0n,
     annualInterestRate: 0n,
   };
 };

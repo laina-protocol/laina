@@ -66,7 +66,7 @@ const TableRow = ({ receivableShares, ticker, onWithdraw }: TableRowProps) => {
     return null;
   }
 
-  const totalBalance = (receivableShares * pool.totalBalance) / pool.totalShares;
+  const totalBalance = (receivableShares * pool.totalBalanceTokens) / pool.totalBalanceShares;
 
   const handleWithdrawClick = () => onWithdraw(ticker);
 

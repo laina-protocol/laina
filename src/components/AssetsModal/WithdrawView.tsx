@@ -37,7 +37,7 @@ const WithdrawView = ({ ticker, onBack, onSuccess }: WithdrawViewProps) => {
 
   const { receivable_shares } = positions[ticker];
 
-  const totalBalance = (receivable_shares * pool.totalBalance) / pool.totalShares;
+  const totalBalance = (receivable_shares * pool.totalBalanceTokens) / pool.totalBalanceShares;
 
   const max = (totalBalance / SCALAR_7).toString();
 
