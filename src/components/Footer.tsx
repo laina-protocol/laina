@@ -27,7 +27,7 @@ interface IconProps {
 const SocialLink = ({ href, text, Icon }: { href: string; text: string; Icon: ComponentType<IconProps> }) => {
   return (
     <a
-      className="text-lg text-white cursor-pointer flex flex-row my-1 hover:text-grey"
+      className="text-lg text-white cursor-pointer flex flex-row w-max my-1 hover:text-grey"
       href={href}
       target="_blank"
       rel="noreferrer"
