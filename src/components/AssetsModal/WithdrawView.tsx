@@ -67,6 +67,7 @@ const WithdrawView = ({ ticker, onBack, onSuccess }: WithdrawViewProps) => {
       console.error('Error withdrawing', err);
       alert('Error withdrawing');
     }
+    setIsWithdrawing(false);
   };
 
   return (

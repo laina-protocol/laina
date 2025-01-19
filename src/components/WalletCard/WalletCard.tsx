@@ -1,14 +1,14 @@
 import AssetsModal from '@components/AssetsModal/AssetsModal';
+import { Button } from '@components/Button';
+import { Card } from '@components/Card';
+import Identicon from '@components/Identicon';
 import { Loading } from '@components/Loading';
+import LoansModal from '@components/LoansModal/LoansModal';
 import { usePools } from '@contexts/pool-context';
 import { type PositionsRecord, type PriceRecord, useWallet } from '@contexts/wallet-context';
 import { formatCentAmount, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
-import { Button } from '../Button';
-import { Card } from '../Card';
-import Identicon from '../Identicon';
-import LoansModal from './LoansModal';
 
 const ASSET_MODAL_ID = 'assets-modal';
 const LOANS_MODAL_ID = 'loans-modal';
