@@ -28,7 +28,7 @@ export type PoolContext = {
 const Context = createContext<PoolContext>({
   prices: null,
   pools: null,
-  refetchPools: () => {},
+  refetchPools: () => { },
 });
 
 const fetchAllPrices = async (): Promise<PriceRecord> => {
@@ -57,6 +57,7 @@ const fetchPoolState = async (ticker: SupportedCurrency): Promise<PoolState> => 
   const { result } = await contractClient.get_pool_state();
   if (result.isOk()) {
     const value = result.unwrap();
+    console.log(value);
     return {
       totalBalanceTokens: value.total_balance_tokens,
       totalBalanceShares: value.total_balance_shares,

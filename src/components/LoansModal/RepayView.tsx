@@ -67,7 +67,7 @@ const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
 
     loanManagerClient.options.publicKey = wallet.address;
 
-    const tx = await loanManagerClient.repay_and_close({ user: wallet.address });
+    const tx = await loanManagerClient.repay_and_close({ user: wallet.address, max_allowed_amount: (BigInt(liabilities) * BigInt(5) / BigInt(100)) + BigInt(liabilities) });
     try {
       await tx.signAndSend({ signTransaction });
       onSuccess(ticker, max);

@@ -339,6 +339,43 @@ impl LoanPoolContract {
         Ok(())
     }
 
+    pub fn repay_and_close(
+        e: Env,
+        user: Address,
+        borrowed_amount: i128,
+        max_allowed_amount: i128,
+        unpaid_interest: i128,
+    ) -> Result<(), Error> {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e)?;
+        loan_manager_addr.require_auth();
+
+        Self::add_interest_to_accrual(e.clone())?;
+
+        let amount_to_admin = if borrowed_amount < unpaid_interest {
+            max_allowed_amount / 10
+        } else {
+            unpaid_interest / 10
+        };
+
+        let amount_to_user = max_allowed_amount
+            .checked_sub(borrowed_amount)
+            .ok_or(Error::OverOrUnderFlow)?;
+
+        let client = token::Client::new(&e, &pool::read_currency(&e)?.token_address);
+        client.transfer(&user, &e.current_contract_address(), &max_allowed_amount);
+        client.transfer(
+            &e.current_contract_address(),
+            &loan_manager_addr,
+            &amount_to_admin,
+        );
+        client.transfer(&e.current_contract_address(), &user, &amount_to_user);
+
+        positions::decrease_positions(&e, user, 0, borrowed_amount, 0)?;
+        pool::change_available_balance(&e, borrowed_amount)?;
+        pool::change_total_balance(&e, borrowed_amount)?;
+        Ok(())
+    }
+
     pub fn liquidate(
         e: Env,
         user: Address,

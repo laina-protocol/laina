@@ -191,24 +191,6 @@ impl LoanManager {
 
         positions::init_loan(&e, user.clone(), loan);
 
-        let key = LoansDataKey::Addresses;
-
-        // Update the list of addresses with loans
-        let mut addresses: Vec<Address> = e.storage().persistent().get(&key).unwrap_or(vec![&e]);
-
-        if !addresses.contains(&user) {
-            addresses.push_back(user);
-        }
-        e.storage().persistent().set(&key, &addresses);
-        e.storage().persistent().extend_ttl(
-            &key,
-            POSITIONS_LIFETIME_THRESHOLD,
-            POSITIONS_BUMP_AMOUNT,
-        );
-        e.events().publish(
-            (LoansDataKey::Addresses, symbol_short!("updated")),
-            addresses,
-        );
         Ok(())
     }
 
@@ -412,7 +394,11 @@ impl LoanManager {
         Ok((borrowed_amount, new_borrowed_amount))
     }
 
-    pub fn repay_and_close(e: &Env, user: Address) -> Result<(), Error> {
+    pub fn repay_and_close(
+        e: &Env,
+        user: Address,
+        max_allowed_amount: i128,
+    ) -> Result<i128, Error> {
         user.require_auth();
 
         Self::add_interest(e, user.clone())?;
@@ -429,27 +415,19 @@ impl LoanManager {
         } = Self::get_loan(e, user.clone());
 
         let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
-        borrow_pool_client.repay(&user, &borrowed_amount, &unpaid_interest);
+        borrow_pool_client.repay_and_close(
+            &user,
+            &borrowed_amount,
+            &max_allowed_amount,
+            &unpaid_interest,
+        );
 
         let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
         collateral_pool_client.withdraw_collateral(&user, &collateral_amount);
 
         let key = (Symbol::new(e, "Loan"), user.clone());
         e.storage().persistent().remove(&key);
-
-        let mut addresses: Vec<Address> = e
-            .storage()
-            .persistent()
-            .get(&LoansDataKey::Addresses)
-            .ok_or(Error::AddressNotFound)?;
-
-        if let Some(index) = addresses.iter().position(|x| x == user) {
-            addresses.remove(index.try_into().unwrap()) // unsafe unwrap, but this might've been
-                                                        // for migration anyways?
-        } else {
-            panic!("Address not found in Addresses");
-        };
-        Ok(())
+        Ok(borrowed_amount)
     }
 
     pub fn liquidate(
@@ -872,6 +850,96 @@ mod tests {
         assert_eq!(user_loan.borrowed_amount, 900);
 
         assert_eq!((900, 800), contract_client.repay(&user, &100));
+    }
+
+    #[test]
+    fn repay_and_close() {
+        // ARRANGE
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.timestamp = 1;
+            li.min_persistent_entry_ttl = 1_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
+
+        let admin = Address::generate(&e);
+        let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
+        let loan_asset = StellarAssetClient::new(&e, &loan_token.address());
+        let loan_token_client = TokenClient::new(&e, &loan_token.address());
+        loan_asset.mint(&admin, &1_000_000);
+        let loan_currency = loan_pool::Currency {
+            token_address: loan_token.address(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let admin2 = Address::generate(&e);
+        let collateral_token = e.register_stellar_asset_contract_v2(admin2.clone());
+        let collateral_asset = StellarAssetClient::new(&e, &collateral_token.address());
+        let collateral_token_client = TokenClient::new(&e, &collateral_token.address());
+        let collateral_currency = loan_pool::Currency {
+            token_address: collateral_token.address(),
+            ticker: Symbol::new(&e, "USDC"),
+        };
+
+        // Register mock Reflector contract.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_at(&reflector_addr, oracle::WASM, ());
+
+        // Mint the user some coins
+        let user = Address::generate(&e);
+        loan_asset.mint(&user, &50);
+        collateral_asset.mint(&user, &1_000_000);
+
+        assert_eq!(collateral_token_client.balance(&user), 1_000_000);
+
+        // Set up a loan pool with funds for borrowing.
+        let loan_pool_id = e.register(loan_pool::WASM, ());
+        let loan_pool_client = loan_pool::Client::new(&e, &loan_pool_id);
+
+        // Set up a loan_pool for the collaterals.
+        let collateral_pool_id = e.register(loan_pool::WASM, ());
+        let collateral_pool_client = loan_pool::Client::new(&e, &collateral_pool_id);
+
+        // Register loan manager contract.
+        let contract_id = e.register(LoanManager, ());
+        let contract_client = LoanManagerClient::new(&e, &contract_id);
+
+        // ACT
+        // Initialize the loan pool and deposit some of the admin's funds.
+        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.deposit(&admin, &1_000_000);
+
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+
+        // Create a loan.
+        contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
+
+        // Move in time
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + 100_000;
+            li.timestamp = 1 + 31_556_926;
+        });
+
+        // ASSERT
+        // A new instance of reflector mock needs to be created, they only live for one ledger.
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_at(&reflector_addr, oracle::WASM, ());
+
+        assert_eq!(loan_token_client.balance(&user), 1_050);
+        assert_eq!(collateral_token_client.balance(&user), 900_000);
+
+        let user_loan = contract_client.get_loan(&user);
+
+        assert_eq!(user_loan.borrowed_amount, 1_000);
+        assert_eq!(user_loan.collateral_amount, 100_000);
+
+        assert_eq!(
+            1020,
+            contract_client.repay_and_close(&user, &(user_loan.borrowed_amount + 45))
+        );
     }
 
     #[test]
