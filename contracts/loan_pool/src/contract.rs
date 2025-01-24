@@ -334,8 +334,46 @@ impl LoanPoolContract {
         client.transfer(&user, &loan_manager_addr, &amount_to_admin);
 
         positions::decrease_positions(&e, user, 0, amount, 0)?;
-        pool::change_available_balance(&e, amount)?;
-        pool::change_total_balance(&e, amount)?;
+        pool::change_available_balance(&e, amount - amount_to_admin)?;
+        pool::change_total_balance(&e, unpaid_interest - amount_to_admin)?;
+        Ok(())
+    }
+
+    pub fn repay_and_close(
+        e: Env,
+        user: Address,
+        borrowed_amount: i128,
+        max_allowed_amount: i128,
+        unpaid_interest: i128,
+    ) -> Result<(), Error> {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e)?;
+        loan_manager_addr.require_auth();
+
+        Self::add_interest_to_accrual(e.clone())?;
+
+        let amount_to_admin = if borrowed_amount < unpaid_interest {
+            borrowed_amount / 10
+        } else {
+            unpaid_interest / 10
+        };
+
+        let amount_to_user = max_allowed_amount
+            .checked_sub(borrowed_amount)
+            .ok_or(Error::OverOrUnderFlow)?;
+
+        let client = token::Client::new(&e, &pool::read_currency(&e)?.token_address);
+        client.transfer(&user, &e.current_contract_address(), &max_allowed_amount);
+        client.transfer(
+            &e.current_contract_address(),
+            &loan_manager_addr,
+            &amount_to_admin,
+        );
+        client.transfer(&e.current_contract_address(), &user, &amount_to_user);
+
+        let user_liabilities = positions::read_positions(&e, &user).liabilities;
+        positions::decrease_positions(&e, user, 0, user_liabilities, 0)?;
+        pool::change_available_balance(&e, borrowed_amount - amount_to_admin)?;
+        pool::change_total_balance(&e, unpaid_interest - amount_to_admin)?;
         Ok(())
     }
 
@@ -525,6 +563,42 @@ mod test {
         assert_eq!(result, amount);
 
         contract_client.withdraw(&user, &amount);
+    }
+
+    #[test]
+    fn repay_and_close() {
+        let e = Env::default();
+        e.mock_all_auths_allowing_non_root_auth();
+
+        let admin = Address::generate(&e);
+        let token = e.register_stellar_asset_contract_v2(admin.clone());
+        let stellar_asset = StellarAssetClient::new(&e, &token.address());
+        let currency = Currency {
+            token_address: token.address(),
+            ticker: Symbol::new(&e, "XLM"),
+        };
+
+        let user = Address::generate(&e);
+        stellar_asset.mint(&user, &2000);
+
+        let contract_id = e.register(LoanPoolContract, ());
+        let contract_client = LoanPoolContractClient::new(&e, &contract_id);
+
+        contract_client.initialize(
+            &Address::generate(&e),
+            &currency,
+            &TEST_LIQUIDATION_THRESHOLD,
+        );
+
+        let borrowed_amount = 1000_i128;
+        let max_allowed_amount = 1050_i128;
+        let unpaid_interest = 20_i128;
+        contract_client.repay_and_close(
+            &user,
+            &borrowed_amount,
+            &max_allowed_amount,
+            &unpaid_interest,
+        );
     }
 
     #[test]
