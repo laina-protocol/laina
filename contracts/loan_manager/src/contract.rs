@@ -394,7 +394,7 @@ impl LoanManager {
         Ok((borrowed_amount, new_borrowed_amount))
     }
 
-    pub fn repay_and_close(
+    pub fn repay_and_close_manager(
         e: &Env,
         user: Address,
         max_allowed_amount: i128,
@@ -784,6 +784,13 @@ mod tests {
         // ARRANGE
         let e = Env::default();
         e.mock_all_auths_allowing_non_root_auth();
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000;
+            li.timestamp = 1;
+            li.min_persistent_entry_ttl = 1_000_000;
+            li.min_temp_entry_ttl = 1_000_000;
+            li.max_entry_ttl = 1_000_001;
+        });
 
         let admin = Address::generate(&e);
         let loan_token = e.register_stellar_asset_contract_v2(admin.clone());
@@ -836,6 +843,15 @@ mod tests {
         // Create a loan.
         contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
 
+        // Move in time
+        e.ledger().with_mut(|li| {
+            li.sequence_number = 100_000 + 100_000;
+            li.timestamp = 1 + 31_556_926;
+        });
+
+        let reflector_addr = Address::from_string(&String::from_str(&e, REFLECTOR_ADDRESS));
+        e.register_at(&reflector_addr, oracle::WASM, ());
+
         // ASSERT
         assert_eq!(loan_token_client.balance(&user), 1_000);
         assert_eq!(collateral_token_client.balance(&user), 900_000);
@@ -847,9 +863,12 @@ mod tests {
 
         contract_client.repay(&user, &100);
         let user_loan = contract_client.get_loan(&user);
-        assert_eq!(user_loan.borrowed_amount, 900);
+        assert_eq!(user_loan.borrowed_amount, 920);
 
-        assert_eq!((900, 800), contract_client.repay(&user, &100));
+        assert_eq!((920, 820), contract_client.repay(&user, &100));
+        assert_eq!(999198, loan_pool_client.get_available_balance());
+        assert_eq!(1000018, loan_pool_client.get_contract_balance());
+        assert_eq!(1000000, loan_pool_client.get_total_balance_shares());
     }
 
     #[test]
@@ -938,8 +957,12 @@ mod tests {
 
         assert_eq!(
             1020,
-            contract_client.repay_and_close(&user, &(user_loan.borrowed_amount + 45))
+            contract_client.repay_and_close_manager(&user, &(user_loan.borrowed_amount + 45))
         );
+
+        assert_eq!(1000018, loan_pool_client.get_available_balance());
+        assert_eq!(1000018, loan_pool_client.get_contract_balance());
+        assert_eq!(1000000, loan_pool_client.get_total_balance_shares());
     }
 
     #[test]

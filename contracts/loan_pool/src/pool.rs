@@ -74,7 +74,7 @@ pub fn write_total_shares(e: &Env, amount: i128) {
 }
 
 pub fn read_total_shares(e: &Env) -> Result<i128, Error> {
-    let key: PoolDataKey = PoolDataKey::TotalBalanceTokens;
+    let key: PoolDataKey = PoolDataKey::TotalBalanceShares;
 
     if let Some(total_shares) = e.storage().persistent().get(&key) {
         total_shares
