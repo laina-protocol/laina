@@ -44,7 +44,7 @@ export const formatCentAmount = (cents: bigint): string => {
   if (cents > TEN_K_CENTS) {
     return `$${(Number(cents) / 100_000).toFixed(2)} K`;
   }
-  return `$${(Number(cents) / 100).toFixed(1)} `;
+  return `$${(Number(cents) / 100).toFixed(2)} `;
 };
 
 export const formatAPR = (apr: bigint): string => {

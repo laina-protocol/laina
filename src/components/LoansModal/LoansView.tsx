@@ -1,42 +1,43 @@
 import { Button } from '@components/Button';
+import { CompactHealthFactor } from '@components/HealthFactor';
+import { Loading } from '@components/Loading';
+import { type Loan, useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
-import { useWallet } from '@contexts/wallet-context';
-import { formatAPR, formatAmount, toDollarsFormatted } from '@lib/formatting';
-import type { SupportedCurrency } from 'currencies';
+import { formatAPR, formatAmount, toCents, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
 interface LoansViewProps {
   onClose: () => void;
-  onRepay: (ticker: SupportedCurrency) => void;
+  onRepay: (loan: Loan) => void;
 }
 
 const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
-  const { positions } = useWallet();
+  const { loans } = useLoans();
   return (
     <>
       <h3 className="text-xl font-bold tracking-tight mb-8">My Loans</h3>
-      <table className="table">
-        <thead className="text-base text-grey">
-          <tr>
-            <th className="w-20" />
-            <th>Asset</th>
-            <th>Balance</th>
-            <th>APR</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(positions).map(([ticker, { liabilities }]) => (
-            <TableRow
-              key={ticker}
-              ticker={ticker as SupportedCurrency}
-              liabilities={liabilities}
-              onRepay={() => onRepay(ticker as SupportedCurrency)}
-            />
-          ))}
-        </tbody>
-      </table>
+      {isNil(loans) && <Loading />}
+      {loans && loans.length === 0 && <p className="text-base">You have no loans.</p>}
+      {loans && loans.length > 0 && (
+        <table className="table">
+          <thead className="text-base text-grey">
+            <tr>
+              <th className="w-20" />
+              <th>Borrowed</th>
+              <th>Collateral</th>
+              <th>Health</th>
+              <th>APR</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {loans.map((loan) => (
+              <TableRow key={loan.borrowedTicker} loan={loan} onRepay={onRepay} />
+            ))}
+          </tbody>
+        </table>
+      )}
       <div className="modal-action">
         <Button variant="ghost" className="ml-auto" onClick={onClose}>
           Close
@@ -47,40 +48,56 @@ const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
 };
 
 interface TableRowProps {
-  liabilities: bigint;
-  ticker: SupportedCurrency;
-  onRepay: () => void;
+  loan: Loan;
+  onRepay: (loan: Loan) => void;
 }
 
-const TableRow = ({ liabilities, ticker, onRepay }: TableRowProps) => {
+const TableRow = ({ loan, onRepay }: TableRowProps) => {
+  const { borrowedAmount, unpaidInterest, collateralAmount, borrowedTicker, collateralTicker } = loan;
   const { prices, pools } = usePools();
 
-  if (liabilities === 0n) return null;
+  const loanTotal = borrowedAmount + unpaidInterest;
 
-  const { icon, name } = CURRENCY_BINDINGS[ticker];
-  const price = prices?.[ticker];
-  const pool = pools?.[ticker];
+  const loanPrice = prices?.[borrowedTicker];
+  const collateralPrice = prices?.[collateralTicker];
+
+  const pool = pools?.[borrowedTicker];
+
+  const handleRepayClicked = () => onRepay(loan);
+
+  const loanAmountCents = loanPrice ? toCents(loanPrice, borrowedAmount) : undefined;
+  const collateralAmountCents = collateralPrice ? toCents(collateralPrice, collateralAmount) : undefined;
+
+  const healthFactor =
+    loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
   return (
-    <tr key={ticker}>
+    <tr key={borrowedTicker} className="text-base">
       <td>
         <div className="h-12 w-12">
-          <img src={icon} alt="" />
+          <img src={CURRENCY_BINDINGS[borrowedTicker].icon} alt="" />
         </div>
       </td>
       <td>
         <div>
-          <p className="text-lg font-semibold leading-5">{name}</p>
-          <p className="text-base">{ticker}</p>
+          <p>
+            {formatAmount(loanTotal)} {borrowedTicker}
+          </p>
+          <p className="text-grey-dark">{loanPrice && toDollarsFormatted(loanPrice, loanTotal)}</p>
         </div>
       </td>
       <td>
-        <p className="text-lg font-semibold leading-5">{formatAmount(liabilities)}</p>
-        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, liabilities)}</p>
+        <p>
+          {formatAmount(collateralAmount)} {collateralTicker}
+        </p>
+        <p className="text-grey-dark">{collateralPrice && toDollarsFormatted(collateralPrice, collateralAmount)}</p>
       </td>
-      <td className="text-lg font-semibold">{pool ? formatAPR(pool.annualInterestRate) : null}</td>
       <td>
-        <Button onClick={onRepay}>Repay</Button>
+        <CompactHealthFactor value={healthFactor} />
+      </td>
+      <td>{pool ? formatAPR(pool.annualInterestRate) : null}</td>
+      <td>
+        <Button onClick={handleRepayClicked}>Repay</Button>
       </td>
     </tr>
   );

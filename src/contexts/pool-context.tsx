@@ -1,7 +1,6 @@
-import { type PropsWithChildren, createContext, useCallback, useContext, useEffect, useState } from 'react';
-
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import type { SupportedCurrency } from 'currencies';
+import { type PropsWithChildren, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
 export type PriceRecord = {

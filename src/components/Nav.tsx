@@ -1,9 +1,9 @@
+import { Button } from '@components/Button';
+import Identicon from '@components/Identicon';
 import { useWallet } from '@contexts/wallet-context';
 import type { PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '/public/laina_v3_shrinked.png';
-import { Button } from './Button';
-import Identicon from './Identicon';
 
 export default function Nav() {
   const { wallet, openConnectWalletModal, disconnectWallet } = useWallet();

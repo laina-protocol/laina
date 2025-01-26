@@ -3,6 +3,7 @@ import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import Footer from '@components/Footer';
 import Nav from '@components/Nav';
+import { LoansProvider } from '@contexts/loan-context';
 import { PoolProvider } from '@contexts/pool-context';
 import { WalletProvider } from '@contexts/wallet-context';
 import BorrowPage from '@pages/_borrow/BorrowPage';
@@ -39,7 +40,9 @@ const App = () => {
     <React.StrictMode>
       <WalletProvider>
         <PoolProvider>
-          <RouterProvider router={router} />
+          <LoansProvider>
+            <RouterProvider router={router} />
+          </LoansProvider>
         </PoolProvider>
       </WalletProvider>
     </React.StrictMode>
