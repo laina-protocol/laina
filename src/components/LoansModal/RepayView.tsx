@@ -1,40 +1,38 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
-import { useLoans } from '@contexts/loan-context';
+import { type Loan, useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { SCALAR_7, toCents } from '@lib/formatting';
+import { SCALAR_7, formatAPR, formatAmount, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
 interface RepayViewProps {
-  ticker: SupportedCurrency;
+  loan: Loan;
   onBack: () => void;
   onSuccess: (ticker: SupportedCurrency, amount: string) => void;
+  onFullSuccess: (ticker: SupportedCurrency) => void;
 }
 
-const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
-  const { name } = CURRENCY_BINDINGS[ticker];
-  const { wallet, signTransaction, positions, refetchBalances } = useWallet();
-  const { prices } = usePools();
+const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) => {
+  const { borrowedAmount, borrowedTicker, collateralAmount, collateralTicker, unpaidInterest } = loan;
+  const { name } = CURRENCY_BINDINGS[borrowedTicker];
+  const { wallet, signTransaction, refetchBalances } = useWallet();
+  const { prices, pools } = usePools();
   const { refetchLoans } = useLoans();
   const [amount, setAmount] = useState('0');
   const [isRepaying, setIsRepaying] = useState(false);
   const [isRepayingAll, setIsRepayingAll] = useState(false);
 
-  if (!positions[ticker]) {
-    throw Error('Unexpectedly opened RepayView without balance');
-  }
-
-  const price = prices?.[ticker];
+  const loanBalance = borrowedAmount + unpaidInterest;
+  const apr = pools?.[borrowedTicker]?.annualInterestRate;
+  const price = prices?.[borrowedTicker];
   const valueCents = price ? toCents(price, BigInt(amount) * SCALAR_7) : undefined;
 
-  const { liabilities } = positions[ticker];
-
-  const max = (liabilities / SCALAR_7).toString();
+  const max = (loanBalance / SCALAR_7).toString();
 
   const handleAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setAmount(ev.target.value);
@@ -54,7 +52,7 @@ const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
     const tx = await loanManagerClient.repay({ user: wallet.address, amount: BigInt(amount) * SCALAR_7 });
     try {
       await tx.signAndSend({ signTransaction });
-      onSuccess(ticker, amount);
+      onSuccess(borrowedTicker, amount);
     } catch (err) {
       console.error('Error repaying', err);
       alert('Error repaying');
@@ -73,11 +71,12 @@ const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
 
     const tx = await loanManagerClient.repay_and_close_manager({
       user: wallet.address,
-      max_allowed_amount: (BigInt(liabilities) * BigInt(5)) / BigInt(100) + BigInt(liabilities), // +5% to liabilities. TEMPORARY hard-coded solution for max allowance.
+      // +5% to liabilities. TEMPORARY hard-coded solution for max allowance.
+      max_allowed_amount: (BigInt(loanBalance) * BigInt(5)) / BigInt(100) + BigInt(loanBalance),
     });
     try {
       await tx.signAndSend({ signTransaction });
-      onSuccess(ticker, max);
+      onFullSuccess(borrowedTicker);
     } catch (err) {
       console.error('Error repaying', err);
       alert('Error repaying');
@@ -89,13 +88,23 @@ const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
 
   return (
     <>
-      <h3 className="text-xl font-bold tracking-tight mb-8">Repay {name}</h3>
-      <p>Select the amount to repay</p>
+      <h3 className="text-xl font-bold tracking-tight">Repay {name}</h3>
+      <p className="my-4">
+        Repay some or all of your loan. Repaying the loan in full will return the collateral back to you.
+      </p>
+      {apr && <p className="mb-4">The annual interest rate is currently {formatAPR(apr)}.</p>}
+      <p>
+        Borrowed amount: {formatAmount(loanBalance)} {borrowedTicker}
+      </p>
+      <p>
+        Collateral: {formatAmount(collateralAmount)} {collateralTicker}
+      </p>
+      <p className="font-bold mb-2 mt-6">Select the amount to repay</p>
       <CryptoAmountSelector
         max={max}
         value={amount}
         valueCents={valueCents}
-        ticker={ticker}
+        ticker={borrowedTicker}
         onChange={handleAmountChange}
         onSelectMaximum={handleSelectMax}
       />

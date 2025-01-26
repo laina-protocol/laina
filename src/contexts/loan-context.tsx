@@ -30,8 +30,8 @@ export const LoansProvider = ({ children }: PropsWithChildren) => {
 
   // TODO: add support for having more than 1 loan
   const refetchLoans = useCallback(async () => {
+    setLoans(null);
     if (!wallet) {
-      setLoans(null);
       return;
     }
     loanManagerClient.options.publicKey = wallet.address;

@@ -4,13 +4,12 @@ import { Loading } from '@components/Loading';
 import { type Loan, useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { formatAPR, formatAmount, toCents, toDollarsFormatted } from '@lib/formatting';
-import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
 interface LoansViewProps {
   onClose: () => void;
-  onRepay: (ticker: SupportedCurrency) => void;
+  onRepay: (loan: Loan) => void;
 }
 
 const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
@@ -50,7 +49,7 @@ const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
 
 interface TableRowProps {
   loan: Loan;
-  onRepay: (ticker: SupportedCurrency) => void;
+  onRepay: (loan: Loan) => void;
 }
 
 const TableRow = ({ loan, onRepay }: TableRowProps) => {
@@ -64,7 +63,7 @@ const TableRow = ({ loan, onRepay }: TableRowProps) => {
 
   const pool = pools?.[borrowedTicker];
 
-  const handleRepayClicked = () => onRepay(borrowedTicker);
+  const handleRepayClicked = () => onRepay(loan);
 
   const loanAmountCents = loanPrice ? toCents(loanPrice, borrowedAmount) : undefined;
   const collateralAmountCents = collateralPrice ? toCents(collateralPrice, collateralAmount) : undefined;

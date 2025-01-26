@@ -1,5 +1,6 @@
 import { Success } from '@components/Alert';
 import { CircleButton } from '@components/Button';
+import type { Loan } from '@contexts/loan-context';
 import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import { useState } from 'react';
@@ -12,44 +13,64 @@ export interface LoansModalProps {
   onClose: () => void;
 }
 
-type RepayAlert = {
-  kind: 'success';
-  ticker: SupportedCurrency;
-  amount: string;
-};
+type RepayAlert =
+  | {
+      kind: 'success';
+      ticker: SupportedCurrency;
+      amount: string;
+    }
+  | {
+      kind: 'full-success';
+      ticker: SupportedCurrency;
+    };
 
 const LoansModal = ({ modalId, onClose }: LoansModalProps) => {
-  const [tickerToRepay, setTickerToRepay] = useState<SupportedCurrency | null>(null);
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [alert, setAlert] = useState<RepayAlert | null>(null);
 
-  const handleBackClicked = () => setTickerToRepay(null);
+  const handleBackClicked = () => setSelectedLoan(null);
 
   const handleClose = () => {
-    setTickerToRepay(null);
+    setSelectedLoan(null);
     setAlert(null);
     onClose();
   };
 
   const handleRepaySuccess = (ticker: SupportedCurrency, amount: string) => {
-    setTickerToRepay(null);
+    setSelectedLoan(null);
     setAlert({ kind: 'success', ticker, amount });
+  };
+
+  const handleRepayFullSuccess = (ticker: SupportedCurrency) => {
+    setSelectedLoan(null);
+    setAlert({ kind: 'full-success', ticker });
   };
 
   const handleAlertClose = () => setAlert(null);
 
-  const handleRepayClicked = (ticker: SupportedCurrency) => {
+  const handleRepayClicked = (loan: Loan) => {
     setAlert(null);
-    setTickerToRepay(ticker);
+    setSelectedLoan(loan);
   };
 
   return (
     <dialog id={modalId} className="modal">
       <div className="modal-box w-full max-w-full md:w-[800px] flex flex-col">
-        {alert ? <RepaySuccessAlert onClose={handleAlertClose} ticker={alert.ticker} amount={alert.amount} /> : null}
-        {isNil(tickerToRepay) ? (
+        {alert && alert.kind === 'success' ? (
+          <RepaySuccessAlert onClose={handleAlertClose} ticker={alert.ticker} amount={alert.amount} />
+        ) : null}
+        {alert && alert.kind === 'full-success' ? (
+          <FullRepaySuccessAlert onClose={handleAlertClose} ticker={alert.ticker} />
+        ) : null}
+        {isNil(selectedLoan) ? (
           <LoansView onClose={handleClose} onRepay={handleRepayClicked} />
         ) : (
-          <RepayView ticker={tickerToRepay} onBack={handleBackClicked} onSuccess={handleRepaySuccess} />
+          <RepayView
+            loan={selectedLoan}
+            onBack={handleBackClicked}
+            onSuccess={handleRepaySuccess}
+            onFullSuccess={handleRepayFullSuccess}
+          />
         )}
       </div>
       <form method="dialog" className="modal-backdrop">
@@ -70,8 +91,17 @@ type RepaySuccessAlertProps = {
 const RepaySuccessAlert = ({ ticker, amount, onClose }: RepaySuccessAlertProps) => (
   <Success className="mb-8">
     <span>
-      Successfully Repaid {amount} {ticker}
+      Successfully repaid {amount} {ticker}
     </span>
+    <CircleButton onClick={onClose} variant="ghost-dark">
+      <CloseIcon size="1.4rem" />
+    </CircleButton>
+  </Success>
+);
+
+const FullRepaySuccessAlert = ({ ticker, onClose }: { ticker: SupportedCurrency; onClose: VoidFunction }) => (
+  <Success className="mb-8">
+    <span>Successfully repaid all of the borrowed {ticker}</span>
     <CircleButton onClick={onClose} variant="ghost-dark">
       <CloseIcon size="1.4rem" />
     </CircleButton>
