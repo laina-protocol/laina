@@ -1,9 +1,10 @@
 import { Button } from '@components/Button';
+import { CompactHealthFactor } from '@components/HealthFactor';
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { formatAPR, formatAmount, toDollarsFormatted } from '@lib/formatting';
+import { formatAPR, formatAmount, toCents, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { useEffect, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_BY_ADDRESS, type PoolAddress } from 'src/currency-bindings';
@@ -22,8 +23,9 @@ const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
         <thead className="text-base text-grey">
           <tr>
             <th className="w-20" />
-            <th>Asset</th>
+            <th>Borrowed</th>
             <th>Collateral</th>
+            <th>Health</th>
             <th>APR</th>
             <th />
           </tr>
@@ -92,8 +94,14 @@ const TableRow = ({ loan, onRepay }: TableRowProps) => {
 
   const handleRepayClicked = () => onRepay(borrowedTicker);
 
+  const loanAmountCents = loanPrice ? toCents(loanPrice, borrowedAmount) : undefined;
+  const collateralAmountCents = collateralPrice ? toCents(collateralPrice, collateralAmount) : undefined;
+
+  const healthFactor =
+    loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
+
   return (
-    <tr key={borrowedTicker}>
+    <tr key={borrowedTicker} className="text-base">
       <td>
         <div className="h-12 w-12">
           <img src={CURRENCY_BINDINGS[borrowedTicker].icon} alt="" />
@@ -101,21 +109,22 @@ const TableRow = ({ loan, onRepay }: TableRowProps) => {
       </td>
       <td>
         <div>
-          <p className="text-lg font-semibold leading-5">
-            {formatAmount(loanTotal)}
-            {borrowedTicker}
+          <p>
+            {formatAmount(loanTotal)} {borrowedTicker}
           </p>
-          <p className="text-base">{loanPrice && toDollarsFormatted(loanPrice, loanTotal)}</p>
+          <p className="text-grey-dark">{loanPrice && toDollarsFormatted(loanPrice, loanTotal)}</p>
         </div>
       </td>
       <td>
-        <p className="text-lg font-semibold leading-5">
-          {formatAmount(collateralAmount)}
-          {collateralTicker}
+        <p>
+          {formatAmount(collateralAmount)} {collateralTicker}
         </p>
-        <p className="text-base">{collateralPrice && toDollarsFormatted(collateralPrice, collateralAmount)}</p>
+        <p className="text-grey-dark">{collateralPrice && toDollarsFormatted(collateralPrice, collateralAmount)}</p>
       </td>
-      <td className="text-lg font-semibold">{pool ? formatAPR(pool.annualInterestRate) : null}</td>
+      <td>
+        <CompactHealthFactor value={healthFactor} />
+      </td>
+      <td>{pool ? formatAPR(pool.annualInterestRate) : null}</td>
       <td>
         <Button onClick={handleRepayClicked}>Repay</Button>
       </td>

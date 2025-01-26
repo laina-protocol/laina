@@ -1,5 +1,6 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
+import { HEALTH_FACTOR_AUTO_THRESHOLD, HEALTH_FACTOR_MIN_THRESHOLD, HealthFactor } from '@components/HealthFactor';
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
@@ -9,11 +10,6 @@ import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
-
-const HEALTH_FACTOR_AUTO_THRESHOLD = 1.65;
-const HEALTH_FACTOR_MIN_THRESHOLD = 1.2;
-const HEALTH_FACTOR_GOOD_THRESHOLD = 1.6;
-const HEALTH_FACTOR_EXCELLENT_THRESHOLD = 2.0;
 
 export interface BorrowStepProps {
   onClose: () => void;
@@ -198,35 +194,3 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
     </>
   );
 };
-
-const HealthFactor = ({ value }: { value: number }) => {
-  if (value < HEALTH_FACTOR_MIN_THRESHOLD) {
-    return <HealthBar text="Would liquidate immediately" textColor="text-red" bgColor="bg-red" bars={1} />;
-  }
-  if (value < HEALTH_FACTOR_GOOD_THRESHOLD) {
-    return <HealthBar text="At risk of liquidation" textColor="text-yellow" bgColor="bg-yellow" bars={2} />;
-  }
-  if (value < HEALTH_FACTOR_EXCELLENT_THRESHOLD) {
-    return <HealthBar text="Good" textColor="text-blue" bgColor="bg-blue" bars={3} />;
-  }
-  return <HealthBar text="Excellent" textColor="text-green" bgColor="bg-green" bars={4} />;
-};
-
-interface HealthBarProps {
-  text: string;
-  textColor: string;
-  bgColor: string;
-  bars: number;
-}
-
-const HealthBar = ({ text, textColor, bgColor, bars }: HealthBarProps) => (
-  <>
-    <p className={`${textColor} font-semibold transition-all`}>{text}</p>
-    <div className="w-full flex flex-row gap-2">
-      <div className={`transition-all h-3 w-full rounded-l ${bgColor}`} />
-      <div className={`transition-all h-3 w-full ${bars > 1 ? bgColor : 'bg-grey'}`} />
-      <div className={`transition-all h-3 w-full ${bars > 2 ? bgColor : 'bg-grey'}`} />
-      <div className={`transition-all h-3 w-full rounded-r ${bars > 3 ? bgColor : 'bg-grey'}`} />
-    </div>
-  </>
-);

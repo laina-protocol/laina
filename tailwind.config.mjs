@@ -16,9 +16,13 @@ export default {
       black: '#000',
       primary: '#000',
       red: '#e51414',
+      error: '#e51414',
       yellow: '#e18c02',
+      warning: '#e18c02',
       blue: '#0048ff',
+      info: '#0048ff',
       green: '#0fdd13',
+      success: '#0fdd13',
     },
     fontSize: {
       sm: ['14px', '20px'],
