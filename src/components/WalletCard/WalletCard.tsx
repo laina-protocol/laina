@@ -4,6 +4,7 @@ import { Card } from '@components/Card';
 import Identicon from '@components/Identicon';
 import { Loading } from '@components/Loading';
 import LoansModal from '@components/LoansModal/LoansModal';
+import { type Loan, useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { type PositionsRecord, type PriceRecord, useWallet } from '@contexts/wallet-context';
 import { formatCentAmount, toCents } from '@lib/formatting';
@@ -16,6 +17,7 @@ const LOANS_MODAL_ID = 'loans-modal';
 const WalletCard = () => {
   const { wallet, openConnectWalletModal, positions } = useWallet();
   const { prices } = usePools();
+  const { loans } = useLoans();
 
   if (!wallet) {
     return (
@@ -29,9 +31,10 @@ const WalletCard = () => {
     );
   }
 
-  const values = prices ? calculateTotalValue(prices, positions) : null;
+  const receivables = prices ? calculateTotalReceivables(prices, positions) : null;
+  const liabilities = prices && loans ? calculateTotalLiabilities(prices, loans) : null;
 
-  if (isNil(values)) {
+  if (isNil(receivables)) {
     return (
       <Card bgColor="black" className="text-white p-12 mb-12 flex flex-row flex-wrap justify-between items-center">
         <div>
@@ -52,8 +55,8 @@ const WalletCard = () => {
     );
   }
 
-  const hasReceivables = values.receivablesCents > 0n;
-  const hasLiabilities = values.liabilitiesCents > 0n;
+  const hasReceivables = receivables > 0n;
+  const hasLiabilities = liabilities && liabilities > 0n;
 
   const openAssetModal = () => {
     const modalEl = document.getElementById(ASSET_MODAL_ID) as HTMLDialogElement;
@@ -93,7 +96,7 @@ const WalletCard = () => {
             <div className="flex flex-row">
               <div className="w-40 mr-10">
                 <p className="text-grey">Total deposited</p>
-                <p className="text-xl leading-5">{formatCentAmount(values.receivablesCents)}</p>
+                <p className="text-xl leading-5">{formatCentAmount(receivables)}</p>
               </div>
               <Button variant="white" className="w-44" onClick={openAssetModal}>
                 View Assets
@@ -106,7 +109,7 @@ const WalletCard = () => {
             <div className="flex flex-row">
               <div className="w-40 mr-10">
                 <p className="text-grey">Total borrowed</p>
-                <p className="text-xl leading-5">{formatCentAmount(values.liabilitiesCents)}</p>
+                <p className="text-xl leading-5">{formatCentAmount(liabilities)}</p>
               </div>
               <Button variant="white" className="w-44" onClick={openLoansModal}>
                 View Loans
@@ -123,24 +126,18 @@ const WalletCard = () => {
   );
 };
 
-type ValueObj = {
-  receivablesCents: bigint;
-  liabilitiesCents: bigint;
+const calculateTotalReceivables = (prices: PriceRecord, positions: PositionsRecord): bigint => {
+  return Object.entries(positions).reduce((acc, [ticker, { receivable_shares }]) => {
+    const price = prices[ticker as SupportedCurrency];
+    return acc + toCents(price, receivable_shares);
+  }, 0n);
 };
 
-const calculateTotalValue = (prices: PriceRecord, positions: PositionsRecord): ValueObj => {
-  return Object.entries(positions).reduce(
-    (acc, [ticker, { receivable_shares, liabilities }]) => {
-      const price = prices[ticker as SupportedCurrency];
-      acc.receivablesCents += toCents(price, receivable_shares);
-      acc.liabilitiesCents += toCents(price, liabilities);
-      return acc;
-    },
-    {
-      receivablesCents: 0n,
-      liabilitiesCents: 0n,
-    } as ValueObj,
-  );
+const calculateTotalLiabilities = (prices: PriceRecord, loans: Loan[]): bigint => {
+  return loans.reduce((acc, loan) => {
+    const price = prices[loan.borrowedTicker];
+    return acc + toCents(price, loan.borrowedAmount + loan.unpaidInterest);
+  }, 0n);
 };
 
 export default WalletCard;

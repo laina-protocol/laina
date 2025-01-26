@@ -51,7 +51,7 @@ export default {
     themes: [
       {
         light: {
-          ...require('daisyui/src/theming/themes')['light'],
+          ...require('daisyui/src/theming/themes').light,
           neutral: '#000',
           '.btn-neutral:hover': {
             'background-color': '#555',

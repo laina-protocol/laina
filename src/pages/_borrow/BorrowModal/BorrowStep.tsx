@@ -2,6 +2,7 @@ import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { HEALTH_FACTOR_AUTO_THRESHOLD, HEALTH_FACTOR_MIN_THRESHOLD, HealthFactor } from '@components/HealthFactor';
 import { Loading } from '@components/Loading';
+import { useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
@@ -18,8 +19,9 @@ export interface BorrowStepProps {
 
 export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const { name, ticker, contractId: loanCurrencyId } = currency;
-  const { signTransaction, wallet, walletBalances } = useWallet();
+  const { signTransaction, wallet, walletBalances, refetchBalances } = useWallet();
   const { pools, prices } = usePools();
+  const { refetchLoans } = useLoans();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [loanAmount, setLoanAmount] = useState<string>('0');
@@ -91,6 +93,8 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
       alert('Error borrowing');
     }
 
+    refetchLoans();
+    refetchBalances();
     setIsBorrowing(false);
   };
 

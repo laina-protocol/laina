@@ -1,6 +1,7 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { Loading } from '@components/Loading';
+import { useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
@@ -17,8 +18,9 @@ interface RepayViewProps {
 
 const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
   const { name } = CURRENCY_BINDINGS[ticker];
-  const { wallet, signTransaction, positions } = useWallet();
+  const { wallet, signTransaction, positions, refetchBalances } = useWallet();
   const { prices } = usePools();
+  const { refetchLoans } = useLoans();
   const [amount, setAmount] = useState('0');
   const [isRepaying, setIsRepaying] = useState(false);
   const [isRepayingAll, setIsRepayingAll] = useState(false);
@@ -57,6 +59,8 @@ const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
       console.error('Error repaying', err);
       alert('Error repaying');
     }
+    refetchLoans();
+    refetchBalances();
     setIsRepaying(false);
   };
 
@@ -78,6 +82,8 @@ const RepayView = ({ ticker, onBack, onSuccess }: RepayViewProps) => {
       console.error('Error repaying', err);
       alert('Error repaying');
     }
+    refetchLoans();
+    refetchBalances();
     setIsRepayingAll(false);
   };
 

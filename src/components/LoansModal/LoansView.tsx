@@ -1,13 +1,12 @@
 import { Button } from '@components/Button';
 import { CompactHealthFactor } from '@components/HealthFactor';
 import { Loading } from '@components/Loading';
+import { type Loan, useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
-import { useWallet } from '@contexts/wallet-context';
-import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { formatAPR, formatAmount, toCents, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
-import { useEffect, useState } from 'react';
-import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_BY_ADDRESS, type PoolAddress } from 'src/currency-bindings';
+import { isNil } from 'ramda';
+import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
 interface LoansViewProps {
   onClose: () => void;
@@ -15,23 +14,31 @@ interface LoansViewProps {
 }
 
 const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
-  const loan = useLoan();
+  const { loans } = useLoans();
   return (
     <>
       <h3 className="text-xl font-bold tracking-tight mb-8">My Loans</h3>
-      <table className="table">
-        <thead className="text-base text-grey">
-          <tr>
-            <th className="w-20" />
-            <th>Borrowed</th>
-            <th>Collateral</th>
-            <th>Health</th>
-            <th>APR</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>{loan ? <TableRow loan={loan} onRepay={onRepay} /> : <Loading />}</tbody>
-      </table>
+      {isNil(loans) && <Loading />}
+      {loans && loans.length === 0 && <p className="text-base">You have no loans.</p>}
+      {loans && loans.length > 0 && (
+        <table className="table">
+          <thead className="text-base text-grey">
+            <tr>
+              <th className="w-20" />
+              <th>Borrowed</th>
+              <th>Collateral</th>
+              <th>Health</th>
+              <th>APR</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {loans.map((loan) => (
+              <TableRow key={loan.borrowedTicker} loan={loan} onRepay={onRepay} />
+            ))}
+          </tbody>
+        </table>
+      )}
       <div className="modal-action">
         <Button variant="ghost" className="ml-auto" onClick={onClose}>
           Close
@@ -39,41 +46,6 @@ const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
       </div>
     </>
   );
-};
-
-interface Loan {
-  borrower: string;
-  borrowedAmount: bigint;
-  borrowedTicker: SupportedCurrency;
-  collateralAmount: bigint;
-  collateralTicker: SupportedCurrency;
-  healthFactor: bigint;
-  unpaidInterest: bigint;
-}
-
-const useLoan = (): Loan | null => {
-  const [loan, setLoan] = useState<Loan | null>(null);
-  const { wallet } = useWallet();
-
-  useEffect(() => {
-    const getLoan = async () => {
-      if (!wallet) return;
-      loanManagerClient.options.publicKey = wallet.address;
-      const { result } = await loanManagerClient.get_loan({ addr: wallet.address });
-      setLoan({
-        borrower: result.borrower,
-        borrowedAmount: result.borrowed_amount,
-        borrowedTicker: CURRENCY_BINDINGS_BY_ADDRESS[result.borrowed_from as PoolAddress].ticker,
-        collateralAmount: result.collateral_amount,
-        collateralTicker: CURRENCY_BINDINGS_BY_ADDRESS[result.collateral_from as PoolAddress].ticker,
-        healthFactor: result.health_factor,
-        unpaidInterest: result.unpaid_interest,
-      });
-    };
-    getLoan();
-  }, [wallet]);
-
-  return loan;
 };
 
 interface TableRowProps {
