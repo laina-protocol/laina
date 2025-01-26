@@ -42,3 +42,15 @@ export const CURRENCY_BINDINGS = {
 } as const;
 
 export const CURRENCY_BINDINGS_ARR = Object.values(CURRENCY_BINDINGS);
+
+export const CURRENCY_BINDINGS_BY_ADDRESS = {
+  [XLMPool.contractId]: BINDING_XLM,
+  [USDCPool.contractId]: BINDING_USDC,
+  [EURCPool.contractId]: BINDING_EURC,
+} as const;
+
+export type PoolAddress = typeof XLMPool.contractId | typeof USDCPool.contractId | typeof EURCPool.contractId;
+
+export const isPoolAddress = (obj: unknown): obj is PoolAddress =>
+  typeof obj === 'string' &&
+  [XLMPool.contractId, USDCPool.contractId, EURCPool.contractId].includes(obj as PoolAddress);

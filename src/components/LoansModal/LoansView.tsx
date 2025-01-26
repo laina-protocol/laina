@@ -1,10 +1,12 @@
 import { Button } from '@components/Button';
+import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
+import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { formatAPR, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
-import { isNil } from 'ramda';
-import { CURRENCY_BINDINGS } from 'src/currency-bindings';
+import { useEffect, useState } from 'react';
+import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_BY_ADDRESS, type PoolAddress } from 'src/currency-bindings';
 
 interface LoansViewProps {
   onClose: () => void;
@@ -12,7 +14,7 @@ interface LoansViewProps {
 }
 
 const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
-  const { positions } = useWallet();
+  const loan = useLoan();
   return (
     <>
       <h3 className="text-xl font-bold tracking-tight mb-8">My Loans</h3>
@@ -21,21 +23,12 @@ const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
           <tr>
             <th className="w-20" />
             <th>Asset</th>
-            <th>Balance</th>
+            <th>Collateral</th>
             <th>APR</th>
             <th />
           </tr>
         </thead>
-        <tbody>
-          {Object.entries(positions).map(([ticker, { liabilities }]) => (
-            <TableRow
-              key={ticker}
-              ticker={ticker as SupportedCurrency}
-              liabilities={liabilities}
-              onRepay={() => onRepay(ticker as SupportedCurrency)}
-            />
-          ))}
-        </tbody>
+        <tbody>{loan ? <TableRow loan={loan} onRepay={onRepay} /> : <Loading />}</tbody>
       </table>
       <div className="modal-action">
         <Button variant="ghost" className="ml-auto" onClick={onClose}>
@@ -46,41 +39,85 @@ const LoansView = ({ onClose, onRepay }: LoansViewProps) => {
   );
 };
 
-interface TableRowProps {
-  liabilities: bigint;
-  ticker: SupportedCurrency;
-  onRepay: () => void;
+interface Loan {
+  borrower: string;
+  borrowedAmount: bigint;
+  borrowedTicker: SupportedCurrency;
+  collateralAmount: bigint;
+  collateralTicker: SupportedCurrency;
+  healthFactor: bigint;
+  unpaidInterest: bigint;
 }
 
-const TableRow = ({ liabilities, ticker, onRepay }: TableRowProps) => {
+const useLoan = (): Loan | null => {
+  const [loan, setLoan] = useState<Loan | null>(null);
+  const { wallet } = useWallet();
+
+  useEffect(() => {
+    const getLoan = async () => {
+      if (!wallet) return;
+      loanManagerClient.options.publicKey = wallet.address;
+      const { result } = await loanManagerClient.get_loan({ addr: wallet.address });
+      setLoan({
+        borrower: result.borrower,
+        borrowedAmount: result.borrowed_amount,
+        borrowedTicker: CURRENCY_BINDINGS_BY_ADDRESS[result.borrowed_from as PoolAddress].ticker,
+        collateralAmount: result.collateral_amount,
+        collateralTicker: CURRENCY_BINDINGS_BY_ADDRESS[result.collateral_from as PoolAddress].ticker,
+        healthFactor: result.health_factor,
+        unpaidInterest: result.unpaid_interest,
+      });
+    };
+    getLoan();
+  }, [wallet]);
+
+  return loan;
+};
+
+interface TableRowProps {
+  loan: Loan;
+  onRepay: (ticker: SupportedCurrency) => void;
+}
+
+const TableRow = ({ loan, onRepay }: TableRowProps) => {
+  const { borrowedAmount, unpaidInterest, collateralAmount, borrowedTicker, collateralTicker } = loan;
   const { prices, pools } = usePools();
 
-  if (liabilities === 0n) return null;
+  const loanTotal = borrowedAmount + unpaidInterest;
 
-  const { icon, name } = CURRENCY_BINDINGS[ticker];
-  const price = prices?.[ticker];
-  const pool = pools?.[ticker];
+  const loanPrice = prices?.[borrowedTicker];
+  const collateralPrice = prices?.[collateralTicker];
+
+  const pool = pools?.[borrowedTicker];
+
+  const handleRepayClicked = () => onRepay(borrowedTicker);
 
   return (
-    <tr key={ticker}>
+    <tr key={borrowedTicker}>
       <td>
         <div className="h-12 w-12">
-          <img src={icon} alt="" />
+          <img src={CURRENCY_BINDINGS[borrowedTicker].icon} alt="" />
         </div>
       </td>
       <td>
         <div>
-          <p className="text-lg font-semibold leading-5">{name}</p>
-          <p className="text-base">{ticker}</p>
+          <p className="text-lg font-semibold leading-5">
+            {formatAmount(loanTotal)}
+            {borrowedTicker}
+          </p>
+          <p className="text-base">{loanPrice && toDollarsFormatted(loanPrice, loanTotal)}</p>
         </div>
       </td>
       <td>
-        <p className="text-lg font-semibold leading-5">{formatAmount(liabilities)}</p>
-        <p className="text-base">{!isNil(price) && toDollarsFormatted(price, liabilities)}</p>
+        <p className="text-lg font-semibold leading-5">
+          {formatAmount(collateralAmount)}
+          {collateralTicker}
+        </p>
+        <p className="text-base">{collateralPrice && toDollarsFormatted(collateralPrice, collateralAmount)}</p>
       </td>
       <td className="text-lg font-semibold">{pool ? formatAPR(pool.annualInterestRate) : null}</td>
       <td>
-        <Button onClick={onRepay}>Repay</Button>
+        <Button onClick={handleRepayClicked}>Repay</Button>
       </td>
     </tr>
   );
