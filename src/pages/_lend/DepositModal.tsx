@@ -128,8 +128,6 @@ const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
 
     setIsDepositing(true);
 
-    contractClient.options.publicKey = wallet.address;
-
     const tx = await contractClient.deposit({
       user: wallet.address,
       amount: to7decimals(amount),
