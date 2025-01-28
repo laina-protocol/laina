@@ -34,7 +34,6 @@ export const LoansProvider = ({ children }: PropsWithChildren) => {
     if (!wallet) {
       return;
     }
-    loanManagerClient.options.publicKey = wallet.address;
     try {
       const { result } = await loanManagerClient.get_loan({ addr: wallet.address });
       setLoans([

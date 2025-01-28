@@ -74,8 +74,6 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
     setIsBorrowing(true);
 
     try {
-      loanManagerClient.options.publicKey = wallet.address;
-
       const { contractId: collateralCurrencyId } = CURRENCY_BINDINGS[collateralTicker];
 
       const tx = await loanManagerClient.create_loan({

@@ -41,6 +41,7 @@
     "start": "npm run init && astro dev",
     "continue": "astro dev",
     "lint": "biome check --write ./src",
+    "lint:fix": "biome check --fix --unsafe ./src",
     "lint:check": "biome check ./src",
     "format": "prettier --write \"**/*.{js,mjs,jsx,ts,tsx,json,graphql,css,astro,md}\"",
     "format:check": "prettier --check \"**/*.{js,mjs,jsx,ts,tsx,json,graphql,css,astro,md}\""

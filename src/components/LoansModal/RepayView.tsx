@@ -47,8 +47,6 @@ const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) =
 
     setIsRepaying(true);
 
-    loanManagerClient.options.publicKey = wallet.address;
-
     const tx = await loanManagerClient.repay({ user: wallet.address, amount: BigInt(amount) * SCALAR_7 });
     try {
       await tx.signAndSend({ signTransaction });
@@ -66,8 +64,6 @@ const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) =
     if (!wallet) return;
 
     setIsRepayingAll(true);
-
-    loanManagerClient.options.publicKey = wallet.address;
 
     const tx = await loanManagerClient.repay_and_close_manager({
       user: wallet.address,
