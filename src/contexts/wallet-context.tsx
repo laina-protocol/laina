@@ -65,9 +65,9 @@ const Context = createContext<WalletContext>({
   wallet: null,
   walletBalances: null,
   positions: {},
-  openConnectWalletModal: () => {},
-  disconnectWallet: () => {},
-  refetchBalances: () => {},
+  openConnectWalletModal: () => { },
+  disconnectWallet: () => { },
+  refetchBalances: () => { },
   signTransaction: () => Promise.reject(),
 });
 
@@ -188,12 +188,6 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     setWalletBalances(null);
     setPositions({});
     deleteWalletState();
-
-    // Unset publicKey for the contracts.
-    for (const { contractClient } of CURRENCY_BINDINGS_ARR) {
-      contractClient.options.publicKey = undefined;
-    }
-    loanManagerClient.options.publicKey = undefined;
   };
 
   const refetchBalances = async () => {
