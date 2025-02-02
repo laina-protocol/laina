@@ -1,3 +1,6 @@
+import { type ChangeEvent, useState } from 'react';
+import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
+
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import Dialog from '@components/Dialog';
@@ -6,8 +9,6 @@ import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, toCents } from '@lib/formatting';
-import { type ChangeEvent, useState } from 'react';
-import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
 export interface DepositModalProps {
@@ -55,55 +56,41 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   if (isDepositing) {
     return (
       <Dialog
-        className="w-96"
+        className="w-96 items-center"
         modalId={modalId}
         onClose={() => {
           /* Disallow closing */
         }}
       >
-        <h3 className="inline-flex items-center font-bold text-xl mb-4 ">
-          <Loading size="md" className="mr-2" />
-          Depositing
-        </h3>
-        <p className="text-lg mb-4">
+        <Loading size="lg" className="mb-4" />
+        <h3 className="font-bold text-xl mb-4">Depositing</h3>
+        <p className="text-lg mb-8">
           Depositing {amount} {ticker}.
         </p>
-        <Button className="ml-auto" disabled={true}>
-          Close
-        </Button>
+        <Button disabled={true}>Close</Button>
       </Dialog>
     );
   }
 
   if (isDepositSuccess) {
     return (
-      <Dialog className="w-96" modalId={modalId} onClose={closeModal}>
-        <div className="flex flex-grow flex-col justify-center">
-          <h3 className="inline-flex font-bold text-xl mb-4 ">
-            <CheckMarkIcon className="text-green mr-2" size="2rem" />
-            Success{' '}
-          </h3>
-          <p className="text-lg mb-4">
-            Succesfully deposited {amount} {ticker}.
-          </p>
-        </div>
-        <Button className="ml-auto" onClick={closeModal}>
-          Close
-        </Button>
+      <Dialog className="w-96 items-center" modalId={modalId} onClose={closeModal}>
+        <CheckMarkIcon className="text-green mb-4" size="2rem" />
+        <h3 className="font-bold text-xl mb-4 ">Success</h3>
+        <p className="text-lg mb-8">
+          Succesfully deposited {amount} {ticker}.
+        </p>
+        <Button onClick={closeModal}>Close</Button>
       </Dialog>
     );
   }
 
   if (depositError) {
     return (
-      <Dialog className="w-96" modalId={modalId} onClose={closeModal}>
-        <div className="flex flex-grow flex-col justify-center">
-          <h3 className="inline-flex font-bold text-xl mb-4 ">
-            <XMarkIcon className="text-red mr-2" size="2rem" />
-            Error
-          </h3>
-          <p className="text-lg mb-4">{depositError.message}</p>
-        </div>
+      <Dialog className="min-w-96 items-center" modalId={modalId} onClose={closeModal}>
+        <XMarkIcon className="text-red mb-4" size="2rem" />
+        <h3 className="font-bold text-xl mb-4 ">Error</h3>
+        <p className="text-lg mb-8">{depositError.message}</p>
         <Button className="ml-auto" onClick={closeModal}>
           Close
         </Button>
@@ -112,9 +99,8 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   }
 
   return (
-    <Dialog className="min-w-160 max-w-screen" modalId={modalId} onClose={closeModal}>
+    <Dialog className="min-w-160" modalId={modalId} onClose={closeModal}>
       <h3 className="font-bold text-xl mb-8">Deposit {name}</h3>
-
       <p className="text-lg mb-2">Amount to deposit</p>
       <CryptoAmountSelector
         max={max}

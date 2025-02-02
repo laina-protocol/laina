@@ -65,9 +65,9 @@ const Context = createContext<WalletContext>({
   wallet: null,
   walletBalances: null,
   positions: {},
-  openConnectWalletModal: () => { },
-  disconnectWallet: () => { },
-  refetchBalances: () => { },
+  openConnectWalletModal: () => {},
+  disconnectWallet: () => {},
+  refetchBalances: () => {},
   signTransaction: () => Promise.reject(),
 });
 

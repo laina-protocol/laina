@@ -1,3 +1,6 @@
+import { type ChangeEvent, useState } from 'react';
+import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
+
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
 import { HEALTH_FACTOR_AUTO_THRESHOLD, HEALTH_FACTOR_MIN_THRESHOLD, HealthFactor } from '@components/HealthFactor';
@@ -9,7 +12,6 @@ import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, isBalanceZero, to7decimals } from '@lib/converters';
 import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
-import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
 
 export interface BorrowStepProps {
@@ -24,6 +26,8 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const { refetchLoans } = useLoans();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
+  const [isBorrowingSuccess, setIsBorrowingSuccess] = useState(false);
+  const [borrowingError, setBorrowingError] = useState<Error | null>(null);
   const [loanAmount, setLoanAmount] = useState<string>('0');
 
   const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
@@ -58,6 +62,9 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const handleCancel = () => {
     setLoanAmount('0');
     setCollateralAmount('0');
+    setIsBorrowing(false);
+    setIsBorrowingSuccess(false);
+    setBorrowingError(null);
     onClose();
   };
 
@@ -84,13 +91,13 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
         collateral_from: collateralCurrencyId,
       });
       await tx.signAndSend({ signTransaction });
-      alert('Loan created succesfully!');
-      onClose();
+      setIsBorrowingSuccess(true);
+      setBorrowingError(null);
     } catch (err) {
       console.error('Error borrowing', err);
-      alert('Error borrowing');
+      setBorrowingError(err as Error);
+      setIsBorrowingSuccess(false);
     }
-
     refetchLoans();
     refetchBalances();
     setIsBorrowing(false);
@@ -134,8 +141,46 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   const handleSelectMaxCollateral = () => setCollateralAmount(maxCollateral);
 
+  if (isBorrowing) {
+    return (
+      <div className="w-96 flex flex-col items-center">
+        <Loading size="lg" className="mb-4" />
+        <h3 className="text-xl font-bold mb-4">Creating a loan</h3>
+        <p className="text-lg mb-8">
+          Borrowing {loanAmount} {ticker}.
+        </p>
+        <Button disabled={true}>Close</Button>
+      </div>
+    );
+  }
+
+  if (isBorrowingSuccess) {
+    return (
+      <div className="w-96 flex flex-col items-center">
+        <CheckMarkIcon className="text-green mb-4" size="2rem" />
+        <h3 className="text-xl font-bold mb-4">Success</h3>
+        <p className="text-lg mb-8">
+          Succesfully borrowed {loanAmount} {ticker}.
+        </p>
+        <Button onClick={handleCancel}>Close</Button>
+      </div>
+    );
+  }
+
+  if (borrowingError) {
+    return (
+      <div className="min-w-96 flex flex-col items-center">
+        <XMarkIcon className="text-red mb-4" size="2rem" />
+        <h3 className="text-xl font-bold mb-4">Error</h3>
+        <p className="text-lg mb-8">{borrowingError.message}</p>
+        <Button onClick={handleCancel}>Close</Button>
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="md:w-[700px]">
+      <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
       <p className="my-4">
         Borrow {name} using another asset as a collateral. The value of the collateral must exceed the value of the
         borrowed asset. You will receive the collateral back to your wallet after repaying the loan in full.
@@ -193,6 +238,6 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
           </Button>
         )}
       </div>
-    </>
+    </div>
   );
 };

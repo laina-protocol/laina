@@ -8,7 +8,7 @@ interface DialogProps {
 
 const Dialog = ({ modalId, onClose, children, className = '' }: PropsWithChildren<DialogProps>) => (
   <dialog id={modalId} className="modal">
-    <div className={`modal-box p-10 flex flex-col ${className}`}>{children}</div>
+    <div className={`modal-box p-10 flex flex-col w-auto max-w-screen-2xl ${className}`}>{children}</div>
     {/* Invisible backdrop that closes the modal on click */}
     <form method="dialog" className="modal-backdrop">
       <button onClick={onClose} type="button">
