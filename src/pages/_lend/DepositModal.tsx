@@ -1,9 +1,8 @@
 import { type ChangeEvent, useState } from 'react';
-import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
 
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
-import Dialog from '@components/Dialog';
+import { Dialog, ErrorDialogContent, LoadingDialogContent, SuccessDialogContent } from '@components/Dialog';
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
@@ -56,44 +55,28 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   if (isDepositing) {
     return (
       <Dialog
-        className="w-96 items-center"
         modalId={modalId}
         onClose={() => {
           /* Disallow closing */
         }}
       >
-        <Loading size="lg" className="mb-4" />
-        <h3 className="font-bold text-xl mb-4">Depositing</h3>
-        <p className="text-lg mb-8">
-          Depositing {amount} {ticker}.
-        </p>
-        <Button disabled={true}>Close</Button>
+        <LoadingDialogContent title="Depositing" subtitle={`Depositing ${amount} ${ticker}.`} onClick={closeModal} />
       </Dialog>
     );
   }
 
   if (isDepositSuccess) {
     return (
-      <Dialog className="w-96 items-center" modalId={modalId} onClose={closeModal}>
-        <CheckMarkIcon className="text-green mb-4" size="2rem" />
-        <h3 className="font-bold text-xl mb-4 ">Success</h3>
-        <p className="text-lg mb-8">
-          Succesfully deposited {amount} {ticker}.
-        </p>
-        <Button onClick={closeModal}>Close</Button>
+      <Dialog modalId={modalId} onClose={closeModal}>
+        <SuccessDialogContent subtitle={`Successfully deposited ${amount} ${ticker}.`} onClick={closeModal} />
       </Dialog>
     );
   }
 
   if (depositError) {
     return (
-      <Dialog className="min-w-96 items-center" modalId={modalId} onClose={closeModal}>
-        <XMarkIcon className="text-red mb-4" size="2rem" />
-        <h3 className="font-bold text-xl mb-4 ">Error</h3>
-        <p className="text-lg mb-8">{depositError.message}</p>
-        <Button className="ml-auto" onClick={closeModal}>
-          Close
-        </Button>
+      <Dialog modalId={modalId} onClose={closeModal}>
+        <ErrorDialogContent error={depositError} onClick={closeModal} />
       </Dialog>
     );
   }

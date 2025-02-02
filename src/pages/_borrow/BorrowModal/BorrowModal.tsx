@@ -1,4 +1,4 @@
-import Dialog from '@components/Dialog';
+import { Dialog } from '@components/Dialog';
 import { useWallet } from '@contexts/wallet-context';
 import { useState } from 'react';
 import type { CurrencyBinding } from 'src/currency-bindings';
@@ -31,12 +31,7 @@ export const BorrowModal = ({ modalId, onClose, currency }: BorrowModalProps) =>
       {isTrustline ? (
         <BorrowStep onClose={closeModal} currency={currency} />
       ) : (
-        <TrustLineStep
-          modalId={modalId}
-          onClose={closeModal}
-          currency={currency}
-          onTrustlineAdded={handleTrustlineAdded}
-        />
+        <TrustLineStep onClose={closeModal} currency={currency} onTrustlineAdded={handleTrustlineAdded} />
       )}
     </Dialog>
   );

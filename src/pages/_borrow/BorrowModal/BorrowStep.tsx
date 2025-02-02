@@ -3,6 +3,7 @@ import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'reac
 
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
+import { ErrorDialogContent, LoadingDialogContent, SuccessDialogContent } from '@components/Dialog';
 import { HEALTH_FACTOR_AUTO_THRESHOLD, HEALTH_FACTOR_MIN_THRESHOLD, HealthFactor } from '@components/HealthFactor';
 import { Loading } from '@components/Loading';
 import { useLoans } from '@contexts/loan-context';
@@ -59,7 +60,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const healthFactor =
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
-  const handleCancel = () => {
+  const handleClose = () => {
     setLoanAmount('0');
     setCollateralAmount('0');
     setIsBorrowing(false);
@@ -143,39 +144,20 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   if (isBorrowing) {
     return (
-      <div className="w-96 flex flex-col items-center">
-        <Loading size="lg" className="mb-4" />
-        <h3 className="text-xl font-bold mb-4">Creating a loan</h3>
-        <p className="text-lg mb-8">
-          Borrowing {loanAmount} {ticker}.
-        </p>
-        <Button disabled={true}>Close</Button>
-      </div>
+      <LoadingDialogContent
+        title="Creating a loan"
+        subtitle={`Borrowing ${loanAmount} ${ticker}`}
+        onClick={handleClose}
+      />
     );
   }
 
   if (isBorrowingSuccess) {
-    return (
-      <div className="w-96 flex flex-col items-center">
-        <CheckMarkIcon className="text-green mb-4" size="2rem" />
-        <h3 className="text-xl font-bold mb-4">Success</h3>
-        <p className="text-lg mb-8">
-          Succesfully borrowed {loanAmount} {ticker}.
-        </p>
-        <Button onClick={handleCancel}>Close</Button>
-      </div>
-    );
+    return <SuccessDialogContent subtitle={`Succesfully borrowed ${loanAmount} ${ticker}`} onClick={handleClose} />;
   }
 
   if (borrowingError) {
-    return (
-      <div className="min-w-96 flex flex-col items-center">
-        <XMarkIcon className="text-red mb-4" size="2rem" />
-        <h3 className="text-xl font-bold mb-4">Error</h3>
-        <p className="text-lg mb-8">{borrowingError.message}</p>
-        <Button onClick={handleCancel}>Close</Button>
-      </div>
-    );
+    return <ErrorDialogContent error={borrowingError} onClick={handleClose} />;
   }
 
   return (
@@ -224,7 +206,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
       <HealthFactor value={healthFactor} />
 
       <div className="flex flex-row justify-end mt-8">
-        <Button onClick={handleCancel} variant="ghost" className="mr-4">
+        <Button onClick={handleClose} variant="ghost" className="mr-4">
           Cancel
         </Button>
         {!isBorrowing ? (

@@ -1,20 +1,19 @@
 import { useState } from 'react';
-import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
 
 import { Button } from '@components/Button';
+import { ErrorDialogContent, LoadingDialogContent, SuccessDialogContent } from '@components/Dialog';
 import { Loading } from '@components/Loading';
 import { useWallet } from '@contexts/wallet-context';
 import { createAddTrustlineTransaction, sendTransaction } from '@lib/horizon';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
 export interface TrustLineStepProps {
-  modalId: string;
   onClose: () => void;
   onTrustlineAdded: () => void;
   currency: CurrencyBinding;
 }
 
-export const TrustLineStep = ({ modalId, onClose, onTrustlineAdded, currency }: TrustLineStepProps) => {
+export const TrustLineStep = ({ onClose, onTrustlineAdded, currency }: TrustLineStepProps) => {
   const { ticker } = currency;
   const { wallet, signTransaction, refetchBalances } = useWallet();
 
@@ -56,35 +55,17 @@ export const TrustLineStep = ({ modalId, onClose, onTrustlineAdded, currency }: 
   };
 
   if (isCreating) {
-    return (
-      <div className="flex flex-col items-center w-96">
-        <Loading size="lg" className="mb-4" />
-        <h3 className="text-xl font-bold mb-8">Creating a trustline for {ticker}.</h3>
-        <Button disabled={true}>Close</Button>
-      </div>
-    );
+    return <LoadingDialogContent title={`Creating a trustline for ${ticker}`} onClick={closeModal} />;
   }
 
   if (isSuccess) {
     return (
-      <div className="w-96 flex flex-col items-center">
-        <CheckMarkIcon className="text-green mb-4" size="2rem" />
-        <h3 className="text-xl font-bold mb-4">Success</h3>
-        <p className="text-lg mb-8">Succesfully added a trustline for {ticker}.</p>
-        <Button onClick={handleContinueClicked}>Continue</Button>
-      </div>
+      <SuccessDialogContent subtitle={`Succesfully added a trustline for ${ticker}`} onClick={handleContinueClicked} />
     );
   }
 
   if (error) {
-    return (
-      <div className="min-w-96 flex flex-col items-center">
-        <XMarkIcon className="text-red mb-4" size="2rem" />
-        <h3 className="text-xl font-bold mb-4">Error</h3>
-        <p className="text-lg mb-8">{error.message}</p>
-        <Button onClick={closeModal}>Close</Button>
-      </div>
-    );
+    return <ErrorDialogContent error={error} onClick={closeModal} />;
   }
 
   return (
