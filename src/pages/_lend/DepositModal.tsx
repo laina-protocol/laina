@@ -1,12 +1,13 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
+import Dialog from '@components/Dialog';
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { getIntegerPart, to7decimals } from '@lib/converters';
 import { SCALAR_7, toCents } from '@lib/formatting';
-import { type ChangeEvent, type PropsWithChildren, useEffect, useState } from 'react';
-import { FaCircleCheck as CheckMarkIcon } from 'react-icons/fa6';
+import { type ChangeEvent, useState } from 'react';
+import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
 export interface DepositModalProps {
@@ -18,7 +19,7 @@ export interface DepositModalProps {
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
   const { name, ticker } = currency;
 
-  const { sendTransaction, isDepositing, isDepositSuccess, depositError } = useDepositTransaction(currency);
+  const { sendTransaction, isDepositing, isDepositSuccess, depositError, resetState } = useDepositTransaction(currency);
   const { walletBalances, refetchBalances } = useWallet();
   const { prices } = usePools();
   const [amount, setAmount] = useState('0');
@@ -35,6 +36,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   const closeModal = () => {
     refetchBalances();
     setAmount('0');
+    resetState();
     onClose();
   };
 
@@ -52,33 +54,65 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 
   if (isDepositing) {
     return (
-      <Dialog modalId={modalId} onClose={() => {}}>
-        <h3 className="font-bold text-xl mb-8">Deposit {name}</h3>
-        <div className="flex flex-grow flex-col items-center justify-center">
-          <Loading size="lg" className="mb-4" />
-          <p className="text-lg">Depositing...</p>
-        </div>
+      <Dialog
+        className="w-96"
+        modalId={modalId}
+        onClose={() => {
+          /* Disallow closing */
+        }}
+      >
+        <h3 className="inline-flex items-center font-bold text-xl mb-4 ">
+          <Loading size="md" className="mr-2" />
+          Depositing
+        </h3>
+        <p className="text-lg mb-4">
+          Depositing {amount} {ticker}.
+        </p>
+        <Button className="ml-auto" disabled={true}>
+          Close
+        </Button>
       </Dialog>
     );
   }
 
   if (isDepositSuccess) {
-    <Dialog modalId={modalId} onClose={closeModal}>
-      <CheckMarkIcon />
-      Succesfully deposited {amount} {ticker}
-    </Dialog>;
+    return (
+      <Dialog className="w-96" modalId={modalId} onClose={closeModal}>
+        <div className="flex flex-grow flex-col justify-center">
+          <h3 className="inline-flex font-bold text-xl mb-4 ">
+            <CheckMarkIcon className="text-green mr-2" size="2rem" />
+            Success{' '}
+          </h3>
+          <p className="text-lg mb-4">
+            Succesfully deposited {amount} {ticker}.
+          </p>
+        </div>
+        <Button className="ml-auto" onClick={closeModal}>
+          Close
+        </Button>
+      </Dialog>
+    );
   }
 
   if (depositError) {
     return (
-      <Dialog modalId={modalId} onClose={closeModal}>
-        Vituix män
+      <Dialog className="w-96" modalId={modalId} onClose={closeModal}>
+        <div className="flex flex-grow flex-col justify-center">
+          <h3 className="inline-flex font-bold text-xl mb-4 ">
+            <XMarkIcon className="text-red mr-2" size="2rem" />
+            Error
+          </h3>
+          <p className="text-lg mb-4">{depositError.message}</p>
+        </div>
+        <Button className="ml-auto" onClick={closeModal}>
+          Close
+        </Button>
       </Dialog>
     );
   }
 
   return (
-    <Dialog modalId={modalId} onClose={closeModal}>
+    <Dialog className="min-w-160 max-w-screen" modalId={modalId} onClose={closeModal}>
       <h3 className="font-bold text-xl mb-8">Deposit {name}</h3>
 
       <p className="text-lg mb-2">Amount to deposit</p>
@@ -111,14 +145,16 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
 };
 
 const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
-  useEffect(() => {
-    console.log('mounted');
-    return () => console.log('unmounted');
-  }, []);
   const { wallet, signTransaction } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [isDepositSuccess, setIsDepositSuccess] = useState(false);
-  const [depositError, setDepositError] = useState<any>(null);
+  const [depositError, setDepositError] = useState<Error | null>(null);
+
+  const resetState = () => {
+    setIsDepositing(false);
+    setIsDepositSuccess(false);
+    setDepositError(null);
+  };
 
   const sendTransaction = async (amount: string) => {
     if (!wallet) {
@@ -139,28 +175,11 @@ const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
       setIsDepositSuccess(true);
       setDepositError(null);
     } catch (err) {
-      setDepositError(err);
+      setDepositError(err as Error);
       setIsDepositSuccess(false);
     }
     setIsDepositing(false);
   };
 
-  return { isDepositing, isDepositSuccess, depositError, sendTransaction };
+  return { isDepositing, isDepositSuccess, depositError, sendTransaction, resetState };
 };
-
-interface DialogProps {
-  modalId: string;
-  onClose: VoidFunction;
-}
-
-const Dialog = ({ modalId, onClose, children }: PropsWithChildren<DialogProps>) => (
-  <dialog id={modalId} className="modal">
-    <div className="modal-box p-10 min-w-160 min-h-72 flex flex-col">{children}</div>
-    {/* Invisible backdrop that closes the modal on click */}
-    <form method="dialog" className="modal-backdrop">
-      <button onClick={onClose} type="button">
-        close
-      </button>
-    </form>
-  </dialog>
-);
