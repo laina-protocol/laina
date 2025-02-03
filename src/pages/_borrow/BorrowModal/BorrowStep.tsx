@@ -1,5 +1,4 @@
 import { type ChangeEvent, useState } from 'react';
-import { FaCircleCheck as CheckMarkIcon, FaCircleXmark as XMarkIcon } from 'react-icons/fa6';
 
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';

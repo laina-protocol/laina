@@ -8,12 +8,13 @@ import { createAddTrustlineTransaction, sendTransaction } from '@lib/horizon';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
 export interface TrustLineStepProps {
-  onClose: () => void;
-  onTrustlineAdded: () => void;
+  onClose: VoidFunction;
+  onAddTrustline: VoidFunction;
+  onTrustlineAdded: VoidFunction;
   currency: CurrencyBinding;
 }
 
-export const TrustLineStep = ({ onClose, onTrustlineAdded, currency }: TrustLineStepProps) => {
+export const TrustLineStep = ({ onClose, onAddTrustline, onTrustlineAdded, currency }: TrustLineStepProps) => {
   const { ticker } = currency;
   const { wallet, signTransaction, refetchBalances } = useWallet();
 
@@ -39,6 +40,7 @@ export const TrustLineStep = ({ onClose, onTrustlineAdded, currency }: TrustLine
   if (!wallet) return null;
 
   const handleAddTrustlineClick = async () => {
+    onAddTrustline();
     try {
       setIsCreating(true);
       const tx = await createAddTrustlineTransaction(wallet.address, currency);
@@ -60,7 +62,11 @@ export const TrustLineStep = ({ onClose, onTrustlineAdded, currency }: TrustLine
 
   if (isSuccess) {
     return (
-      <SuccessDialogContent subtitle={`Succesfully added a trustline for ${ticker}`} onClick={handleContinueClicked} />
+      <SuccessDialogContent
+        subtitle={`Succesfully added a trustline for ${ticker}`}
+        onClick={handleContinueClicked}
+        buttonText="Continue"
+      />
     );
   }
 
