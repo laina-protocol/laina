@@ -2,6 +2,7 @@ import { FREIGHTER_ID, StellarWalletsKit, WalletNetwork, allowAllModules } from 
 import type * as StellarSdk from '@stellar/stellar-sdk';
 import { type PropsWithChildren, createContext, useCallback, useContext, useEffect, useState } from 'react';
 
+import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getBalances } from '@lib/horizon';
 import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS_ARR } from '../currency-bindings';
@@ -70,7 +71,7 @@ const Context = createContext<WalletContext>({
   signTransaction: () => Promise.reject(),
 });
 
-const kit: StellarWalletsKit = new StellarWalletsKit({
+const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
   selectedWalletId: FREIGHTER_ID,
   modules: allowAllModules(),
@@ -145,6 +146,12 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       const balances = await getBalances(address);
       setWalletBalances(createBalanceRecord(balances));
       setPositions(await fetchAllPositions(address));
+
+      // use the user's wallet for all of our contract clients.
+      for (const { contractClient } of CURRENCY_BINDINGS_ARR) {
+        contractClient.options.publicKey = address;
+      }
+      loanManagerClient.options.publicKey = address;
 
       const timeout = new Date();
       timeout.setDate(timeout.getDate() + WALLET_TIMEOUT_DAYS);

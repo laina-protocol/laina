@@ -54,8 +54,6 @@ const WithdrawView = ({ ticker, onBack, onSuccess }: WithdrawViewProps) => {
 
     setIsWithdrawing(true);
 
-    contractClient.options.publicKey = wallet.address;
-
     const tx = await contractClient.withdraw({
       user: wallet.address,
       amount: BigInt(amount) * SCALAR_7,

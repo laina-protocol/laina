@@ -1,5 +1,8 @@
+import { type ChangeEvent, useState } from 'react';
+
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
+import { ErrorDialogContent, LoadingDialogContent, SuccessDialogContent } from '@components/Dialog';
 import { HEALTH_FACTOR_AUTO_THRESHOLD, HEALTH_FACTOR_MIN_THRESHOLD, HealthFactor } from '@components/HealthFactor';
 import { Loading } from '@components/Loading';
 import { useLoans } from '@contexts/loan-context';
@@ -9,7 +12,6 @@ import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getIntegerPart, isBalanceZero, to7decimals } from '@lib/converters';
 import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
-import { type ChangeEvent, useState } from 'react';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
 
 export interface BorrowStepProps {
@@ -24,6 +26,8 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const { refetchLoans } = useLoans();
 
   const [isBorrowing, setIsBorrowing] = useState(false);
+  const [isBorrowingSuccess, setIsBorrowingSuccess] = useState(false);
+  const [borrowingError, setBorrowingError] = useState<Error | null>(null);
   const [loanAmount, setLoanAmount] = useState<string>('0');
 
   const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
@@ -55,9 +59,12 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const healthFactor =
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
-  const handleCancel = () => {
+  const handleClose = () => {
     setLoanAmount('0');
     setCollateralAmount('0');
+    setIsBorrowing(false);
+    setIsBorrowingSuccess(false);
+    setBorrowingError(null);
     onClose();
   };
 
@@ -74,8 +81,6 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
     setIsBorrowing(true);
 
     try {
-      loanManagerClient.options.publicKey = wallet.address;
-
       const { contractId: collateralCurrencyId } = CURRENCY_BINDINGS[collateralTicker];
 
       const tx = await loanManagerClient.create_loan({
@@ -86,13 +91,13 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
         collateral_from: collateralCurrencyId,
       });
       await tx.signAndSend({ signTransaction });
-      alert('Loan created succesfully!');
-      onClose();
+      setIsBorrowingSuccess(true);
+      setBorrowingError(null);
     } catch (err) {
       console.error('Error borrowing', err);
-      alert('Error borrowing');
+      setBorrowingError(err as Error);
+      setIsBorrowingSuccess(false);
     }
-
     refetchLoans();
     refetchBalances();
     setIsBorrowing(false);
@@ -136,8 +141,27 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
   const handleSelectMaxCollateral = () => setCollateralAmount(maxCollateral);
 
+  if (isBorrowing) {
+    return (
+      <LoadingDialogContent
+        title="Creating a loan"
+        subtitle={`Borrowing ${loanAmount} ${ticker}`}
+        onClick={handleClose}
+      />
+    );
+  }
+
+  if (isBorrowingSuccess) {
+    return <SuccessDialogContent subtitle={`Succesfully borrowed ${loanAmount} ${ticker}`} onClick={handleClose} />;
+  }
+
+  if (borrowingError) {
+    return <ErrorDialogContent error={borrowingError} onClick={handleClose} />;
+  }
+
   return (
-    <>
+    <div className="md:w-[700px]">
+      <h3 className="font-bold text-xl mb-4">Borrow {name}</h3>
       <p className="my-4">
         Borrow {name} using another asset as a collateral. The value of the collateral must exceed the value of the
         borrowed asset. You will receive the collateral back to your wallet after repaying the loan in full.
@@ -181,7 +205,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
       <HealthFactor value={healthFactor} />
 
       <div className="flex flex-row justify-end mt-8">
-        <Button onClick={handleCancel} variant="ghost" className="mr-4">
+        <Button onClick={handleClose} variant="ghost" className="mr-4">
           Cancel
         </Button>
         {!isBorrowing ? (
@@ -195,6 +219,6 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
           </Button>
         )}
       </div>
-    </>
+    </div>
   );
 };
