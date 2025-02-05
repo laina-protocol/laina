@@ -4,6 +4,8 @@ import { Card } from '@components/Card';
 import { StellarExpertLink } from '@components/Link';
 import { Table } from '@components/Table';
 import WalletCard from '@components/WalletCard/WalletCard';
+import { usePools } from '@contexts/pool-context';
+import { useWallet } from '@contexts/wallet-context';
 import { contractId } from '@contracts/loan_manager';
 import { CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
 import { BorrowModal } from './BorrowModal/BorrowModal';
@@ -15,6 +17,8 @@ const links = [
 ];
 
 const BorrowPage = () => {
+  const { refetchBalances } = useWallet();
+  const { refetchPools } = usePools();
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyBinding | null>(null);
 
   const modalId = 'borrow-modal';
@@ -29,6 +33,8 @@ const BorrowPage = () => {
     const modalEl = document.getElementById(modalId) as HTMLDialogElement;
     modalEl.close();
     setSelectedCurrency(null);
+    refetchBalances();
+    refetchPools();
   };
 
   return (

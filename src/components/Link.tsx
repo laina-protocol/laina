@@ -1,4 +1,4 @@
-import { GoLinkExternal } from 'react-icons/go';
+import { MdOutlineArrowOutward } from 'react-icons/md';
 
 export interface LinkProps {
   className?: string;
@@ -9,9 +9,14 @@ export interface LinkProps {
 export const StellarExpertLink = ({ className = '', text = 'View contract', contractId }: LinkProps) => {
   const href = `https://stellar.expert/explorer/testnet/contract/${contractId}`;
   return (
-    <a className={`link flex flex-row ${className}`} href={href} target="_blank" rel="noreferrer">
+    <a
+      className={`link flex flex-row hover:text-grey transition ${className}`}
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
       {text}
-      <GoLinkExternal className="ml-1 mt-1" size=".9rem" />
+      <MdOutlineArrowOutward className="mt-1" size=".9rem" />
     </a>
   );
 };
