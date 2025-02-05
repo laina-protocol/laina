@@ -26,19 +26,19 @@ export const CURRENCY_XLM: Currency = {
 export const CURRENCY_USDC: Currency = {
   name: 'USD Coin',
   ticker: 'USDC',
-  issuerName: 'circle.io',
-  tokenContractAddress: 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',
+  issuerName: 'centre.io',
+  tokenContractAddress: 'CAHMBFPE4BNP26VUFRYBJ43GWENCAS2JAGQ7VPBV23CUFL4ZWZQGNBGO',
   loanPoolName: 'pool_usdc',
-  issuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+  issuer: 'GBE3CPBXTOGG75G7GETO5QZBYB4WCDTX6XWUEVZMXFP6Q66OR4MSLIPU',
 } as const;
 
 export const CURRENCY_EURC: Currency = {
   name: 'Euro Coin',
   ticker: 'EURC',
-  issuerName: 'circle.io',
-  tokenContractAddress: 'CCUUDM434BMZMYWYDITHFXHDMIVTGGD6T2I5UKNX5BSLXLW7HVR4MCGZ',
+  issuerName: 'centre.io',
+  tokenContractAddress: 'CDR3UKQ3L5K2JV2OINPVLB6NIOLSROAKMWPEML4CMXBN5NBAUGWFBNYZ',
   loanPoolName: 'pool_eurc',
-  issuer: 'GB3Q6QDZYTHWT7E5PVS3W7FUT5GVAFC5KSZFFLPU25GO7VTC3NM2ZTVO',
+  issuer: 'GBE3CPBXTOGG75G7GETO5QZBYB4WCDTX6XWUEVZMXFP6Q66OR4MSLIPU',
 } as const;
 
 export const CURRENCIES: Currency[] = [CURRENCY_XLM, CURRENCY_USDC, CURRENCY_EURC] as const;
