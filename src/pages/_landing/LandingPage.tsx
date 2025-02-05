@@ -47,7 +47,7 @@ const LandingPage = () => (
           Laina is currently in the early development stage and is only operating on the Stellar Testnet.
         </p>
         <p className="text-lg md:text-2xl leading-relaxed mb-8">We are source-available, check it out!</p>
-        <NativeLinkButton to="https://github.com/Laina-Protocol" className="text-lg">
+        <NativeLinkButton to="https://github.com/laina-defi/laina" className="text-lg">
           View the source
         </NativeLinkButton>
       </div>
