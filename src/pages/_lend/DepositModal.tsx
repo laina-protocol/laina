@@ -13,16 +13,21 @@ import type { CurrencyBinding } from 'src/currency-bindings';
 export interface DepositModalProps {
   modalId: string;
   onClose: () => void;
-  currency: CurrencyBinding;
+  currency: CurrencyBinding | null;
 }
 
 export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) => {
-  const { name, ticker } = currency;
-
   const { sendTransaction, isDepositing, isDepositSuccess, depositError, resetState } = useDepositTransaction(currency);
   const { walletBalances, refetchBalances } = useWallet();
   const { prices } = usePools();
   const [amount, setAmount] = useState('0');
+
+  if (!currency) {
+    // Return an empty dialog if no currency set to make displaying the modal still work.
+    return <Dialog modalId={modalId} onClose={onClose} />;
+  }
+
+  const { name, ticker } = currency;
 
   const balance = walletBalances?.[ticker];
   const price = prices?.[ticker];
@@ -113,7 +118,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   );
 };
 
-const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
+const useDepositTransaction = (currency: CurrencyBinding | null) => {
   const { wallet, signTransaction } = useWallet();
   const [isDepositing, setIsDepositing] = useState(false);
   const [isDepositSuccess, setIsDepositSuccess] = useState(false);
@@ -130,10 +135,14 @@ const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
       alert('Please connect your wallet first!');
       return;
     }
+    if (!currency) {
+      alert('No currrency selected');
+      return;
+    }
 
     setIsDepositing(true);
 
-    const tx = await contractClient.deposit({
+    const tx = await currency.contractClient.deposit({
       user: wallet.address,
       amount: to7decimals(amount),
     });

@@ -7,37 +7,24 @@ import { isBalanceZero } from '@lib/converters';
 import { formatAPY, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import { isNil } from 'ramda';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { DepositModal } from './DepositModal';
 
 export interface LendableAssetProps {
   currency: CurrencyBinding;
+  onDepositClicked: VoidFunction;
 }
 
-export const LendableAsset = ({ currency }: LendableAssetProps) => {
+export const LendableAsset = ({ currency, onDepositClicked }: LendableAssetProps) => {
   const { icon, name, ticker, issuerName, contractId } = currency;
 
   const { wallet, walletBalances } = useWallet();
-  const { prices, pools, refetchPools } = usePools();
+  const { prices, pools } = usePools();
   const pool = pools?.[ticker];
 
   const price = prices?.[ticker];
 
-  const modalId = `deposit-modal-${ticker}`;
-
   const balance: Balance | undefined = walletBalances?.[ticker];
 
   const isPoor = !balance?.trustLine || isBalanceZero(balance.balanceLine.balance);
-
-  const openModal = () => {
-    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
-    modalEl.showModal();
-  };
-
-  const closeModal = () => {
-    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
-    modalEl.close();
-    refetchPools();
-  };
 
   return (
     <tr className="border-none text-base h-[6.5rem]">
@@ -76,10 +63,9 @@ export const LendableAsset = ({ currency }: LendableAssetProps) => {
             </Button>
           </div>
         ) : (
-          <Button onClick={openModal}>Deposit</Button>
+          <Button onClick={onDepositClicked}>Deposit</Button>
         )}
       </td>
-      <DepositModal modalId={modalId} onClose={closeModal} currency={currency} />
     </tr>
   );
 };

@@ -8,21 +8,21 @@ import { TrustLineStep } from './TrustlineStep';
 export interface BorrowModalProps {
   modalId: string;
   onClose: () => void;
-  currency: CurrencyBinding;
+  currency: CurrencyBinding | null;
 }
 
 export const BorrowModal = ({ modalId, onClose, currency }: BorrowModalProps) => {
-  const { ticker } = currency;
-  const { walletBalances, refetchBalances } = useWallet();
-
-  const isTrustline = walletBalances?.[ticker].trustLine;
+  const { walletBalances } = useWallet();
   // state to keep the user in the trustline step until they click ok.
   const [isSettingTrustline, setIsSettingTrustline] = useState(false);
 
-  const closeModal = () => {
-    refetchBalances();
-    onClose();
-  };
+  if (!currency) {
+    // Return an empty dialog if no currency set to make displaying the modal still work.
+    return <Dialog modalId={modalId} onClose={onClose} />;
+  }
+
+  const { ticker } = currency;
+  const isTrustline = walletBalances?.[ticker].trustLine;
 
   const handleAddTrustline = () => {
     setIsSettingTrustline(true);
@@ -33,16 +33,16 @@ export const BorrowModal = ({ modalId, onClose, currency }: BorrowModalProps) =>
   };
 
   return (
-    <Dialog modalId={modalId} onClose={closeModal}>
+    <Dialog modalId={modalId} onClose={onClose}>
       {!isTrustline || isSettingTrustline ? (
         <TrustLineStep
-          onClose={closeModal}
+          onClose={onClose}
           currency={currency}
           onAddTrustline={handleAddTrustline}
           onTrustlineAdded={handleTrustlineAdded}
         />
       ) : (
-        <BorrowStep onClose={closeModal} currency={currency} />
+        <BorrowStep onClose={onClose} currency={currency} />
       )}
     </Dialog>
   );

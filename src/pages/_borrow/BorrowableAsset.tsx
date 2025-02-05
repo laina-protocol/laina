@@ -1,4 +1,3 @@
-import { isNil } from 'ramda';
 import { useMemo } from 'react';
 
 import { Button } from '@components/Button';
@@ -9,16 +8,14 @@ import { useWallet } from '@contexts/wallet-context';
 import { isBalanceZero } from '@lib/converters';
 import { formatAPR, formatAmount, toDollarsFormatted } from '@lib/formatting';
 import type { CurrencyBinding } from 'src/currency-bindings';
-import { BorrowModal } from './BorrowModal/BorrowModal';
 
 interface BorrowableAssetCardProps {
   currency: CurrencyBinding;
+  onBorrowClicked: VoidFunction;
 }
 
-export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
+export const BorrowableAsset = ({ currency, onBorrowClicked }: BorrowableAssetCardProps) => {
   const { icon, name, ticker, issuerName, contractId } = currency;
-
-  const modalId = `borrow-modal-${ticker}`;
 
   const { wallet, walletBalances } = useWallet();
   const { prices, pools } = usePools();
@@ -33,16 +30,6 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
         .some(([_t, b]) => b.trustLine && !isBalanceZero(b.balanceLine.balance));
 
   const borrowDisabled = !wallet || !isCollateral || !pool || pool.availableBalanceTokens === 0n;
-
-  const openModal = () => {
-    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
-    modalEl.showModal();
-  };
-
-  const closeModal = () => {
-    const modalEl = document.getElementById(modalId) as HTMLDialogElement;
-    modalEl.close();
-  };
 
   const tooltip = useMemo(() => {
     if (!pool) return 'The pool is loading';
@@ -89,10 +76,9 @@ export const BorrowableAsset = ({ currency }: BorrowableAssetCardProps) => {
             </Button>
           </div>
         ) : (
-          <Button onClick={openModal}>Borrow</Button>
+          <Button onClick={onBorrowClicked}>Borrow</Button>
         )}
       </td>
-      {!isNil(pool) && <BorrowModal modalId={modalId} onClose={closeModal} currency={currency} />}
     </tr>
   );
 };
