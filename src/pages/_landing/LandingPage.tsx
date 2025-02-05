@@ -29,7 +29,7 @@ const LandingPage = () => (
           A trustless loan platform focusing on single-token lending pools.
         </h1>
         <h2 className="text-2xl md:text-[42px] font-bold mb-8">DeFi made simple.</h2>
-        <LinkButton to="/laina" className="text-lg">
+        <LinkButton to="/lend" className="text-lg">
           Open the app
         </LinkButton>
       </div>
@@ -47,7 +47,7 @@ const LandingPage = () => (
           Laina is currently in the early development stage and is only operating on the Stellar Testnet.
         </p>
         <p className="text-lg md:text-2xl leading-relaxed mb-8">We are source-available, check it out!</p>
-        <NativeLinkButton to="https://github.com/Laina-Protocol" className="text-lg">
+        <NativeLinkButton to="https://github.com/laina-defi/laina" className="text-lg">
           View the source
         </NativeLinkButton>
       </div>
