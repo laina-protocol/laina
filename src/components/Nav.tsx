@@ -17,8 +17,8 @@ export default function Nav() {
       </div>
 
       <div className="hidden md:flex flex-row ml-auto mr-8">
-        <LinkItem to="/laina">Laina</LinkItem>
-        <LinkItem to="/lend">Assets</LinkItem>
+        <LinkItem to="/">Laina</LinkItem>
+        <LinkItem to="/lend">App</LinkItem>
       </div>
 
       {!wallet ? (

@@ -29,7 +29,7 @@ const LandingPage = () => (
           A trustless loan platform focusing on single-token lending pools.
         </h1>
         <h2 className="text-2xl md:text-[42px] font-bold mb-8">DeFi made simple.</h2>
-        <LinkButton to="/laina" className="text-lg">
+        <LinkButton to="/lend" className="text-lg">
           Open the app
         </LinkButton>
       </div>
