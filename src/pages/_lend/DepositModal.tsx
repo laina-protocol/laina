@@ -113,16 +113,18 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   );
 };
 
+type AsyncState<E, A> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "failure"; error: E }
+  | { status: "success"; data: A }
+
 const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
   const { wallet, signTransaction } = useWallet();
-  const [isDepositing, setIsDepositing] = useState(false);
-  const [isDepositSuccess, setIsDepositSuccess] = useState(false);
-  const [depositError, setDepositError] = useState<Error | null>(null);
+  const [state, setState] = useState<AsyncState<Error, void>>({ status: "idle" })
 
   const resetState = () => {
-    setIsDepositing(false);
-    setIsDepositSuccess(false);
-    setDepositError(null);
+    setState({ status: "idle" })
   };
 
   const sendTransaction = async (amount: string) => {
@@ -130,24 +132,25 @@ const useDepositTransaction = ({ contractClient }: CurrencyBinding) => {
       alert('Please connect your wallet first!');
       return;
     }
+    setState({ status: "loading" })
 
-    setIsDepositing(true);
-
-    const tx = await contractClient.deposit({
-      user: wallet.address,
-      amount: to7decimals(amount),
-    });
-
-    try {
-      await tx.signAndSend({ signTransaction });
-
-      setIsDepositSuccess(true);
-      setDepositError(null);
-    } catch (err) {
-      setDepositError(err as Error);
-      setIsDepositSuccess(false);
-    }
-    setIsDepositing(false);
+    // setIsDepositing(true);
+    //
+    // const tx = await contractClient.deposit({
+    //   user: wallet.address,
+    //   amount: to7decimals(amount),
+    // });
+    //
+    // try {
+    //   await tx.signAndSend({ signTransaction });
+    //
+    //   setIsDepositSuccess(true);
+    //   setDepositError(null);
+    // } catch (err) {
+    //   setDepositError(err as Error);
+    //   setIsDepositSuccess(false);
+    // }
+    // setIsDepositing(false);
   };
 
   return { isDepositing, isDepositSuccess, depositError, sendTransaction, resetState };
