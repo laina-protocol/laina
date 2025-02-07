@@ -68,7 +68,7 @@ export const BorrowableAsset = ({ currency, onBorrowClicked }: BorrowableAssetCa
         </p>
       </td>
 
-      <td>
+      <td className="pr-0">
         {borrowDisabled ? (
           <div className="tooltip" data-tip={tooltip}>
             <Button disabled={true} onClick={() => {}}>
