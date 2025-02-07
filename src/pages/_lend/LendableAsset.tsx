@@ -43,7 +43,7 @@ export const LendableAsset = ({ currency, onDepositClicked }: LendableAssetProps
       </td>
 
       <td>
-        <p className="text-xl font-semibold leading-6">
+        <p className="text-xl font-semibold mt-3 leading-6">
           {pool ? formatAmount(pool.totalBalanceTokens) : <Loading size="xs" />}
         </p>
         <p>{!isNil(price) && !isNil(pool) && toDollarsFormatted(price, pool.totalBalanceTokens)}</p>
