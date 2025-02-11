@@ -14,7 +14,7 @@ export interface PositionsViewProps {
 const PositionsView = ({ onClose, onWithdraw }: PositionsViewProps) => {
   const { positions } = useWallet();
   return (
-    <>
+    <div className="md:w-[700px]">
       <h3 className="text-xl font-bold tracking-tight mb-8">My Assets</h3>
       <table className="table">
         <thead className="text-base text-grey">
@@ -42,7 +42,7 @@ const PositionsView = ({ onClose, onWithdraw }: PositionsViewProps) => {
           Close
         </Button>
       </div>
-    </>
+    </div>
   );
 };
 
