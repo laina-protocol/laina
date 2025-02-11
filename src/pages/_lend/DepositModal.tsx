@@ -1,4 +1,4 @@
-import { type ChangeEvent, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
@@ -6,8 +6,8 @@ import { Dialog, ErrorDialogContent, LoadingDialogContent, SuccessDialogContent 
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
-import { getStroops, to7decimals } from '@lib/converters';
-import { SCALAR_7, toCents } from '@lib/formatting';
+import { getStroops } from '@lib/converters';
+import { toCents } from '@lib/formatting';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
 export interface DepositModalProps {
@@ -32,7 +32,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   const balance = walletBalances?.[ticker];
   const price = prices?.[ticker];
 
-  const amountCents = price ? toCents(price, BigInt(amount)) : undefined;
+  const amountCents = price ? toCents(price, amount) : undefined;
 
   if (!balance || !balance.trustLine) return null;
 
@@ -56,6 +56,8 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   const handleSelectMaxLoan = () => {
     setAmount(max);
   };
+
+  const isDepositDisabled = amount === 0n || amount > max;
 
   if (isDepositing) {
     return (
@@ -104,7 +106,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
           Cancel
         </Button>
         {!isDepositing ? (
-          <Button disabled={amount === '0'} onClick={handleDepositClick}>
+          <Button disabled={isDepositDisabled} onClick={handleDepositClick}>
             Deposit
           </Button>
         ) : (
@@ -130,7 +132,7 @@ const useDepositTransaction = (currency: CurrencyBinding | null) => {
     setDepositError(null);
   };
 
-  const sendTransaction = async (amount: string) => {
+  const sendTransaction = async (stroops: bigint) => {
     if (!wallet) {
       alert('Please connect your wallet first!');
       return;
@@ -144,7 +146,7 @@ const useDepositTransaction = (currency: CurrencyBinding | null) => {
 
     const tx = await currency.contractClient.deposit({
       user: wallet.address,
-      amount: to7decimals(amount),
+      amount: stroops,
     });
 
     try {
