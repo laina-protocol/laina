@@ -9,7 +9,7 @@ import { useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { decimalStringToStroops, isBalanceZero } from '@lib/converters';
+import { decimalStringToStroops, isBalanceZero, stroopsToDecimalString } from '@lib/converters';
 import { formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
@@ -143,14 +143,14 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
     return (
       <LoadingDialogContent
         title="Creating a loan"
-        subtitle={`Borrowing ${loanAmount} ${ticker}`}
+        subtitle={`Borrowing ${stroopsToDecimalString(loanAmount)} ${ticker}`}
         onClick={handleClose}
       />
     );
   }
 
   if (isBorrowingSuccess) {
-    return <SuccessDialogContent subtitle={`Succesfully borrowed ${loanAmount} ${ticker}`} onClick={handleClose} />;
+    return <SuccessDialogContent subtitle={`Succesfully borrowed ${stroopsToDecimalString(loanAmount)} ${ticker}`} onClick={handleClose} />;
   }
 
   if (borrowingError) {

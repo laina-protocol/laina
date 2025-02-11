@@ -6,7 +6,7 @@ import { Dialog, ErrorDialogContent, LoadingDialogContent, SuccessDialogContent 
 import { Loading } from '@components/Loading';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
-import { getStroops } from '@lib/converters';
+import { getStroops, stroopsToDecimalString } from '@lib/converters';
 import { toCents } from '@lib/formatting';
 import type { CurrencyBinding } from 'src/currency-bindings';
 
@@ -67,7 +67,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
           /* Disallow closing */
         }}
       >
-        <LoadingDialogContent title="Depositing" subtitle={`Depositing ${amount} ${ticker}.`} onClick={closeModal} />
+        <LoadingDialogContent title="Depositing" subtitle={`Depositing ${stroopsToDecimalString(amount)} ${ticker}.`} onClick={closeModal} />
       </Dialog>
     );
   }
@@ -75,7 +75,7 @@ export const DepositModal = ({ modalId, onClose, currency }: DepositModalProps) 
   if (isDepositSuccess) {
     return (
       <Dialog modalId={modalId} onClose={closeModal}>
-        <SuccessDialogContent subtitle={`Successfully deposited ${amount} ${ticker}.`} onClick={closeModal} />
+        <SuccessDialogContent subtitle={`Successfully deposited ${stroopsToDecimalString(amount)} ${ticker}.`} onClick={closeModal} />
       </Dialog>
     );
   }
