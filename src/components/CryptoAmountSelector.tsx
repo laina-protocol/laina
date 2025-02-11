@@ -87,7 +87,7 @@ export const CryptoAmountSelector = ({
             />
           </div>
         )}
-        <span className="w-1/3">{valueCents ? `≈ ${formatCentAmount(valueCents)}` : null}</span>
+        <span className="w-1/3 ml-2">{valueCents ? `≈ ${formatCentAmount(valueCents)}` : null}</span>
         <Button variant="outline" onClick={onSelectMaximum}>
           Select maximum
         </Button>
