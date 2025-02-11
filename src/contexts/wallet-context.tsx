@@ -4,7 +4,7 @@ import { type PropsWithChildren, createContext, useCallback, useContext, useEffe
 
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { getBalances } from '@lib/horizon';
-import { type SupportedCurrency, isSupportedCurrency } from 'currencies';
+import { CURRENCIES, type SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS_ARR } from '../currency-bindings';
 
 const WALLET_TIMEOUT_DAYS = 3;
@@ -93,13 +93,20 @@ const fetchAllPositions = async (user: string): Promise<PositionsRecord> => {
   return Object.fromEntries(positionsArr);
 };
 
+const isSupportedCurrency = (assetCode: string, issuer: string): boolean => {
+  return CURRENCIES.some((c) => c.ticker === assetCode && c.issuer === issuer);
+};
+
 const createBalanceRecord = (balances: StellarSdk.Horizon.HorizonApi.BalanceLine[]): BalanceRecord =>
   balances.reduce(
     (acc, balanceLine) => {
       if (balanceLine.asset_type === 'native') {
         acc.XLM = { trustLine: true, balanceLine };
-      } else if (balanceLine.asset_type === 'credit_alphanum4' && isSupportedCurrency(balanceLine.asset_code)) {
-        acc[balanceLine.asset_code] = { trustLine: true, balanceLine };
+      } else if (
+        balanceLine.asset_type === 'credit_alphanum4' &&
+        isSupportedCurrency(balanceLine.asset_code, balanceLine.asset_issuer)
+      ) {
+        acc[balanceLine.asset_code as SupportedCurrency] = { trustLine: true, balanceLine };
       }
       return acc;
     },
