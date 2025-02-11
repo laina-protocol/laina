@@ -164,7 +164,7 @@ impl LoanManager {
 
         // Health factor has to be over 1.2 for the loan to be initialized.
         // Health factor is defined as so: 1.0 = 10000000_i128
-        const HEALTH_FACTOR_THRESHOLD: i128 = 12000000;
+        const HEALTH_FACTOR_THRESHOLD: i128 = 10000000;
         assert!(
             health_factor > HEALTH_FACTOR_THRESHOLD,
             "Health factor must be over {HEALTH_FACTOR_THRESHOLD} to create a new loan!"
@@ -475,7 +475,7 @@ impl LoanManager {
                 borrowed_amount,
                 collateral_ticker.clone(),
                 collateral_amount,
-            )? < 12000000
+            )? < 10000000
         ); // Temp high value for testing
         assert!(
             amount

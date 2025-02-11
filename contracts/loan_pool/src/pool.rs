@@ -23,6 +23,7 @@ pub enum Error {
     NegativeDeposit = 10,
     WithdrawOverBalance = 11,
     WithdrawIsNegative = 12,
+    InterestRateMultiplier = 13,
 }
 
 pub fn write_loan_manager_addr(e: &Env, loan_manager_addr: Address) {
@@ -181,4 +182,17 @@ pub fn read_accrual_last_updated(e: &Env) -> Result<u64, Error> {
     } else {
         Err(Error::AccrualLastUpdated)
     }
+}
+
+pub fn change_interest_rate_multiplier(e: &Env, multiplier: i128) {
+    e.storage()
+        .persistent()
+        .set(&PoolDataKey::InterestRateMultiplier, &multiplier);
+}
+
+pub fn read_interest_rate_multiplier(e: &Env) -> Result<i128, Error> {
+    e.storage()
+        .persistent()
+        .get(&PoolDataKey::InterestRateMultiplier)
+        .ok_or(Error::InterestRateMultiplier)
 }

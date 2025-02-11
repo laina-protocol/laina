@@ -36,6 +36,7 @@ impl LoanPoolContract {
         pool::write_available_balance(&e, 0);
         pool::write_accrual(&e, 10_000_000); // Default initial accrual value.
         pool::write_accrual_last_updated(&e, e.ledger().timestamp());
+        pool::change_interest_rate_multiplier(&e, 1); // Temporary parameter
     }
 
     pub fn upgrade(e: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
@@ -43,6 +44,14 @@ impl LoanPoolContract {
         loan_manager_addr.require_auth();
 
         e.deployer().update_current_contract_wasm(new_wasm_hash);
+        Ok(())
+    }
+
+    pub fn change_interest_rate_multiplier(e: Env, multiplier: i128) -> Result<(), Error> {
+        let loan_manager_addr = pool::read_loan_manager_addr(&e)?;
+        loan_manager_addr.require_auth();
+
+        pool::change_interest_rate_multiplier(&e, multiplier);
         Ok(())
     }
 
