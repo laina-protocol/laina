@@ -196,3 +196,10 @@ pub fn read_interest_rate_multiplier(e: &Env) -> Result<i128, Error> {
         .get(&PoolDataKey::InterestRateMultiplier)
         .ok_or(Error::InterestRateMultiplier)
 }
+
+pub fn read_collateral_factor(e: &Env) -> Result<i128, Error> {
+    e.storage()
+        .persistent()
+        .get(&PoolDataKey::LiquidationThreshold)
+        .ok_or(Error::LiquidationThreshold)
+}

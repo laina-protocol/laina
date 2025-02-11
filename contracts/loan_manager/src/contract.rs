@@ -160,6 +160,7 @@ impl LoanManager {
             borrowed,
             collateral_currency.ticker,
             collateral,
+            collateral_from.clone(),
         )?;
 
         // Health factor has to be over 1.2 for the loan to be initialized.
@@ -240,6 +241,7 @@ impl LoanManager {
             new_borrowed_amount,
             token_collateral_ticker,
             collateral_amount,
+            collateral_from.clone(),
         )?;
 
         let borrow_change = new_borrowed_amount
@@ -280,12 +282,17 @@ impl LoanManager {
         token_amount: i128,
         token_collateral_ticker: Symbol,
         token_collateral_amount: i128,
+        token_collateral_address: Address,
     ) -> Result<i128, Error> {
+        const DECIMAL_TO_INT_MULTIPLIER: i128 = 10000000;
         let reflector_address = Address::from_string(&String::from_str(e, REFLECTOR_ADDRESS));
         let reflector_contract = oracle::Client::new(e, &reflector_address);
 
         // get the price and calculate the value of the collateral
         let collateral_asset = Asset::Other(token_collateral_ticker);
+
+        let collateral_pool_client = loan_pool::Client::new(e, &token_collateral_address);
+        let collateral_factor = collateral_pool_client.get_collateral_factor();
 
         let collateral_asset_price = reflector_contract
             .lastprice(&collateral_asset)
@@ -293,6 +300,10 @@ impl LoanManager {
         let collateral_value = collateral_asset_price
             .price
             .checked_mul(token_collateral_amount)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_mul(collateral_factor)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_div(DECIMAL_TO_INT_MULTIPLIER)
             .ok_or(Error::OverOrUnderFlow)?;
 
         // get the price and calculate the value of the borrowed asset
@@ -305,7 +316,6 @@ impl LoanManager {
             .checked_mul(token_amount)
             .ok_or(Error::OverOrUnderFlow)?;
 
-        const DECIMAL_TO_INT_MULTIPLIER: i128 = 10000000;
         let health_factor = collateral_value
             .checked_mul(DECIMAL_TO_INT_MULTIPLIER)
             .ok_or(Error::OverOrUnderFlow)?
@@ -378,6 +388,7 @@ impl LoanManager {
             new_borrowed_amount,
             collateral_pool_client.get_currency().ticker,
             collateral_amount,
+            collateral_from.clone(),
         )?;
 
         let loan = Loan {
@@ -475,6 +486,7 @@ impl LoanManager {
                 borrowed_amount,
                 collateral_ticker.clone(),
                 collateral_amount,
+                collateral_from.clone(),
             )? < 10000000
         ); // Temp high value for testing
         assert!(
@@ -521,6 +533,7 @@ impl LoanManager {
             new_borrowed_amount,
             collateral_ticker,
             new_collateral_amount,
+            collateral_from.clone(),
         )?;
 
         let new_loan = Loan {
@@ -598,7 +611,7 @@ mod tests {
         // ACT
         // Deploy contract using loan_manager as factory
         let loan_pool_addr =
-            deployer_client.deploy_pool(&wasm_hash, &salt, &token.address(), &ticker, &800_000);
+            deployer_client.deploy_pool(&wasm_hash, &salt, &token.address(), &ticker, &8_000_000);
 
         // ASSERT
         // No authorizations needed - the contract acts as a factory.
@@ -630,7 +643,13 @@ mod tests {
         let salt = BytesN::from_array(&e, &[0; 32]);
 
         // ACT
-        deployer_client.deploy_pool(&pool_wasm_hash, &salt, &token.address(), &ticker, &800_000);
+        deployer_client.deploy_pool(
+            &pool_wasm_hash,
+            &salt,
+            &token.address(),
+            &ticker,
+            &8_000_000,
+        );
         deployer_client.upgrade(&manager_wasm_hash, &pool_wasm_hash);
     }
 
@@ -683,10 +702,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &8_000_000);
         loan_pool_client.deposit(&admin, &1000);
 
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &8_000_000);
 
         contract_client.create_loan(&user, &10, &loan_pool_id, &100, &collateral_pool_id);
 
@@ -750,10 +769,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &8_000_000);
         loan_pool_client.deposit(&admin, &10_001);
 
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &8_000_000);
 
         // Create a loan.
         contract_client.create_loan(&user, &10_000, &loan_pool_id, &100_000, &collateral_pool_id);
@@ -765,7 +784,7 @@ mod tests {
 
         // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
         assert_eq!(user_loan.borrowed_amount, 10_000);
-        assert_eq!(user_loan.health_factor, 100_000_000);
+        assert_eq!(user_loan.health_factor, 80_000_000);
         assert_eq!(collateral_token_client.balance(&user), 900_000);
 
         // Move time
@@ -783,7 +802,7 @@ mod tests {
         let user_loan = contract_client.get_loan(&user);
 
         assert_eq!(user_loan.borrowed_amount, 12_998);
-        assert_eq!(user_loan.health_factor, 76_934_913);
+        assert_eq!(user_loan.health_factor, 61_547_930);
         assert_eq!(user_loan.collateral_amount, 100_000);
     }
 
@@ -843,10 +862,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &8_000_000);
         loan_pool_client.deposit(&admin, &1_000_000);
 
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &8_000_000);
 
         // Create a loan.
         contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
@@ -936,10 +955,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &8_000_000);
         loan_pool_client.deposit(&admin, &1_000_000);
 
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &8_000_000);
 
         // Create a loan.
         contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
@@ -1022,10 +1041,10 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &8_000_000);
         loan_pool_client.deposit(&admin, &1_000_000);
 
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &8_000_000);
 
         // Create a loan.
         contract_client.create_loan(&user, &1_000, &loan_pool_id, &100_000, &collateral_pool_id);
@@ -1087,13 +1106,13 @@ mod tests {
 
         // ACT
         // Initialize the loan pool and deposit some of the admin's funds.
-        loan_pool_client.initialize(&contract_id, &loan_currency, &800_000);
+        loan_pool_client.initialize(&contract_id, &loan_currency, &8_000_000);
         loan_pool_client.deposit(&admin, &10_001);
 
-        collateral_pool_client.initialize(&contract_id, &collateral_currency, &800_000);
+        collateral_pool_client.initialize(&contract_id, &collateral_currency, &8_000_000);
 
         // Create a loan.
-        contract_client.create_loan(&user, &10_000, &loan_pool_id, &12_001, &collateral_pool_id);
+        contract_client.create_loan(&user, &10_000, &loan_pool_id, &12_505, &collateral_pool_id);
 
         let user_loan = contract_client.get_loan(&user);
 
@@ -1103,7 +1122,7 @@ mod tests {
 
         // Here borrowed amount should be the same as time has not moved. add_interest() is only called to store the LastUpdate sequence number.
         assert_eq!(user_loan.borrowed_amount, 10_000);
-        assert_eq!(user_loan.health_factor, 12_001_000);
+        assert_eq!(user_loan.health_factor, 10_004_000);
 
         // Move time
         e.ledger().with_mut(|li| {
@@ -1120,8 +1139,8 @@ mod tests {
         let user_loan = contract_client.get_loan(&user);
 
         assert_eq!(user_loan.borrowed_amount, 12_998);
-        assert_eq!(user_loan.health_factor, 9_232_958);
-        assert_eq!(user_loan.collateral_amount, 12_001);
+        assert_eq!(user_loan.health_factor, 7_696_568);
+        assert_eq!(user_loan.collateral_amount, 12_505);
 
         e.ledger().with_mut(|li| {
             li.sequence_number = 100_000 + 1_000;
@@ -1135,7 +1154,7 @@ mod tests {
         let user_loan = contract_client.get_loan(&user);
 
         assert_eq!(user_loan.borrowed_amount, 7_998);
-        assert_eq!(user_loan.health_factor, 8_440_860);
-        assert_eq!(user_loan.collateral_amount, 6_751);
+        assert_eq!(user_loan.health_factor, 7_256_814);
+        assert_eq!(user_loan.collateral_amount, 7_255);
     }
 }

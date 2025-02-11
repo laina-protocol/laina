@@ -267,8 +267,12 @@ impl LoanPoolContract {
         Ok(())
     }
 
-    pub fn get_accrual(e: Env) -> Result<i128, Error> {
-        pool::read_accrual(&e)
+    pub fn get_accrual(e: &Env) -> Result<i128, Error> {
+        pool::read_accrual(e)
+    }
+
+    pub fn get_collateral_factor(e: &Env) -> Result<i128, Error> {
+        pool::read_collateral_factor(e)
     }
 
     /// Get user's positions in the pool
@@ -444,7 +448,7 @@ mod test {
         Env, Symbol,
     };
 
-    const TEST_LIQUIDATION_THRESHOLD: i128 = 800_000;
+    const TEST_LIQUIDATION_THRESHOLD: i128 = 8_000_000;
 
     #[test]
     fn initialize() {
