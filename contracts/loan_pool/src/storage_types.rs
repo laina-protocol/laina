@@ -47,6 +47,8 @@ pub enum PoolDataKey {
     Accrual,
     // Last update ledger of accrual
     AccrualLastUpdate,
+    // Interest rate multiplier
+    InterestRateMultiplier,
 }
 
 /* Persistent ttl bumper */

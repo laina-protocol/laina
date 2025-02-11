@@ -12,6 +12,7 @@ pub const PANIC_BASE_RATE: i128 = -17_000_000;
 #[allow(dead_code, unused_variables)]
 
 pub fn get_interest(e: Env) -> Result<i128, Error> {
+    let interest_rate_multiplier = pool::read_interest_rate_multiplier(&e)?;
     const PANIC_RATES_THRESHOLD: i128 = 90_000_000;
     let available = pool::read_available_balance(&e)?;
     let total = pool::read_total_balance(&e)?;
@@ -50,6 +51,8 @@ pub fn get_interest(e: Env) -> Result<i128, Error> {
             .checked_div(10_000_000)
             .ok_or(Error::OverOrUnderFlow)?
             .checked_add(BASE_INTEREST_RATE)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_mul(interest_rate_multiplier)
             .ok_or(Error::OverOrUnderFlow)?)
         } else {
             Ok((slope_after_panic
@@ -58,9 +61,13 @@ pub fn get_interest(e: Env) -> Result<i128, Error> {
             .checked_div(10_000_000)
             .ok_or(Error::OverOrUnderFlow)?
             .checked_add(PANIC_BASE_RATE)
+            .ok_or(Error::OverOrUnderFlow)?
+            .checked_mul(interest_rate_multiplier)
             .ok_or(Error::OverOrUnderFlow)?)
         }
     } else {
-        Ok(BASE_INTEREST_RATE)
+        Ok(BASE_INTEREST_RATE
+            .checked_mul(interest_rate_multiplier)
+            .ok_or(Error::OverOrUnderFlow)?)
     }
 }

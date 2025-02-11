@@ -57,7 +57,7 @@ const deployLoanPools = () => {
 --salt ${salt} \
 --token_address ${tokenContractAddress} \
 --ticker ${ticker} \
---liquidation_threshold 800000 \
+--liquidation_threshold 8000000 \
 | tr -d '"' > ./.stellar/contract-ids/${loanPoolName}.txt`,
     );
   });

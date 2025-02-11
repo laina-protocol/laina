@@ -15,6 +15,8 @@ fn write_positions(e: &Env, addr: Address, loan: Loan) {
     e.storage()
         .persistent()
         .extend_ttl(&key, POSITIONS_LIFETIME_THRESHOLD, POSITIONS_BUMP_AMOUNT);
+
+    e.events().publish(("Loan", "created"), key);
 }
 
 pub fn read_positions(e: &Env, addr: Address) -> Option<Loan> {
