@@ -345,9 +345,9 @@ impl LoanManager {
             borrowed_from,
             collateral_amount,
             collateral_from,
-            health_factor,
             unpaid_interest,
             last_accrual,
+            ..
         } = Self::get_loan(e, user.clone());
 
         assert!(
@@ -355,6 +355,7 @@ impl LoanManager {
             "Amount can not be greater than borrowed amount!"
         );
 
+        let collateral_pool_client = loan_pool::Client::new(e, &collateral_from);
         let borrow_pool_client = loan_pool::Client::new(e, &borrowed_from);
         borrow_pool_client.repay(&user, &amount, &unpaid_interest);
 
@@ -370,7 +371,14 @@ impl LoanManager {
         let new_borrowed_amount = borrowed_amount
             .checked_sub(amount)
             .ok_or(Error::OverOrUnderFlow)?;
-        //TODO: calculate new health-factor. No need to check it relative to threshold.
+
+        let new_health_factor = Self::calculate_health_factor(
+            e,
+            borrow_pool_client.get_currency().ticker,
+            new_borrowed_amount,
+            collateral_pool_client.get_currency().ticker,
+            collateral_amount,
+        )?;
 
         let loan = Loan {
             borrower,
@@ -378,7 +386,7 @@ impl LoanManager {
             borrowed_from,
             collateral_amount,
             collateral_from,
-            health_factor,
+            health_factor: new_health_factor,
             unpaid_interest: new_unpaid_interest,
             last_accrual,
         };
