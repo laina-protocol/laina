@@ -10,7 +10,7 @@ import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
 import { decimalStringToStroops, isBalanceZero, stroopsToDecimalString } from '@lib/converters';
-import { formatAPR, fromCents, toCents } from '@lib/formatting';
+import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
 
@@ -46,15 +46,13 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const { annualInterestRate, availableBalanceTokens } = pools[ticker];
 
   const loanBalance = walletBalances[ticker];
-  const collateralBalance = walletBalances[collateralTicker];
+  const collateralTickerBalance = walletBalances[collateralTicker];
 
   const loanPrice = prices[ticker];
   const collateralPrice = prices[collateralTicker];
 
   const loanAmountCents = loanPrice ? toCents(loanPrice, loanAmount) : undefined;
-  const collateralAmountCents = collateralPrice
-    ? toCents(collateralPrice, collateralAmount)
-    : undefined;
+  const collateralAmountCents = collateralPrice ? toCents(collateralPrice, collateralAmount) : undefined;
 
   const healthFactor =
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
@@ -133,7 +131,10 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const isBorrowDisabled =
     !isTrustline || loanAmount === 0n || collateralAmount === 0n || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
-  const maxCollateral = decimalStringToStroops(collateralBalance.trustLine ? collateralBalance.balanceLine.balance : '0');
+  const collateralBalance = decimalStringToStroops(
+    collateralTickerBalance.trustLine ? collateralTickerBalance.balanceLine.balance : '0',
+  );
+  const maxCollateral = collateralTicker === 'XLM' ? collateralBalance - 3n * SCALAR_7 : collateralBalance;
 
   const handleSelectMaxLoan = () => setLoanAmount(availableBalanceTokens);
 
@@ -150,7 +151,12 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   }
 
   if (isBorrowingSuccess) {
-    return <SuccessDialogContent subtitle={`Succesfully borrowed ${stroopsToDecimalString(loanAmount)} ${ticker}`} onClick={handleClose} />;
+    return (
+      <SuccessDialogContent
+        subtitle={`Succesfully borrowed ${stroopsToDecimalString(loanAmount)} ${ticker}`}
+        onClick={handleClose}
+      />
+    );
   }
 
   if (borrowingError) {
