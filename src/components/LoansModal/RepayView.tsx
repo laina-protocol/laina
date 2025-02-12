@@ -1,45 +1,42 @@
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
-import { Loading } from '@components/Loading';
+import { ErrorDialogContent, LoadingDialogContent, SuccessDialogContent } from '@components/Dialog';
 import { type Loan, useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { SCALAR_7, formatAPR, formatAmount, toCents } from '@lib/formatting';
-import type { SupportedCurrency } from 'currencies';
-import { type ChangeEvent, useState } from 'react';
+import { formatAPR, formatAmount, toCents } from '@lib/formatting';
+import { useState } from 'react';
 import { CURRENCY_BINDINGS } from 'src/currency-bindings';
 
 interface RepayViewProps {
   loan: Loan;
-  onBack: () => void;
-  onSuccess: (ticker: SupportedCurrency, amount: string) => void;
-  onFullSuccess: (ticker: SupportedCurrency) => void;
+  onBack: VoidFunction;
 }
 
-const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) => {
+const RepayView = ({ loan, onBack }: RepayViewProps) => {
   const { borrowedAmount, borrowedTicker, collateralAmount, collateralTicker, unpaidInterest } = loan;
   const { name } = CURRENCY_BINDINGS[borrowedTicker];
   const { wallet, signTransaction, refetchBalances } = useWallet();
   const { prices, pools } = usePools();
   const { refetchLoans } = useLoans();
-  const [amount, setAmount] = useState('0');
+  const [amount, setAmount] = useState(0n);
   const [isRepaying, setIsRepaying] = useState(false);
   const [isRepayingAll, setIsRepayingAll] = useState(false);
+  const [success, setSuccess] = useState<'PARTIAL_REPAY_SUCCESS' | 'FULL_REPAY_SUCCESS' | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const loanBalance = borrowedAmount + unpaidInterest;
   const apr = pools?.[borrowedTicker]?.annualInterestRate;
   const price = prices?.[borrowedTicker];
-  const valueCents = price ? toCents(price, BigInt(amount) * SCALAR_7) : undefined;
+  const valueCents = price ? toCents(price, amount) : undefined;
 
-  const max = (loanBalance / SCALAR_7).toString();
-
-  const handleAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
-    setAmount(ev.target.value);
+  const handleAmountChange = (stroops: bigint) => {
+    setAmount(stroops);
   };
 
   const handleSelectMax = () => {
-    setAmount(max);
+    setAmount(loanBalance);
   };
 
   const handleRepayClick = async () => {
@@ -47,13 +44,13 @@ const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) =
 
     setIsRepaying(true);
 
-    const tx = await loanManagerClient.repay({ user: wallet.address, amount: BigInt(amount) * SCALAR_7 });
+    const tx = await loanManagerClient.repay({ user: wallet.address, amount });
     try {
       await tx.signAndSend({ signTransaction });
-      onSuccess(borrowedTicker, amount);
+      setSuccess('PARTIAL_REPAY_SUCCESS');
     } catch (err) {
       console.error('Error repaying', err);
-      alert('Error repaying');
+      setError(err as Error);
     }
     refetchLoans();
     refetchBalances();
@@ -68,22 +65,57 @@ const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) =
     const tx = await loanManagerClient.repay_and_close_manager({
       user: wallet.address,
       // +5% to liabilities. TEMPORARY hard-coded solution for max allowance.
-      max_allowed_amount: (BigInt(loanBalance) * BigInt(5)) / BigInt(100) + BigInt(loanBalance),
+      max_allowed_amount: (loanBalance * 5n) / 100n + loanBalance,
     });
     try {
       await tx.signAndSend({ signTransaction });
-      onFullSuccess(borrowedTicker);
+      setSuccess('FULL_REPAY_SUCCESS');
     } catch (err) {
       console.error('Error repaying', err);
-      alert('Error repaying');
+      setError(err as Error);
     }
     refetchLoans();
     refetchBalances();
     setIsRepayingAll(false);
   };
 
+  if (isRepaying) {
+    return (
+      <LoadingDialogContent
+        title="Repaying"
+        subtitle={`Repaying ${formatAmount(amount)} ${borrowedTicker}.`}
+        buttonText="Back"
+        onClick={onBack}
+      />
+    );
+  }
+
+  if (isRepayingAll) {
+    return (
+      <LoadingDialogContent
+        title="Repaying"
+        subtitle={`Repaying ${formatAmount(loanBalance)} ${borrowedTicker}, all of your outstanding loan.`}
+        buttonText="Back"
+        onClick={onBack}
+      />
+    );
+  }
+
+  if (success) {
+    const subtitle =
+      success === 'FULL_REPAY_SUCCESS'
+        ? `Successfully repaid all of your loan. The collateral ${formatAmount(collateralAmount)} ${collateralTicker} was returned back to your wallet.`
+        : `Successfully repaid ${formatAmount(amount)} ${borrowedTicker}.`;
+
+    return <SuccessDialogContent subtitle={subtitle} buttonText="Back" onClick={onBack} />;
+  }
+
+  if (error) {
+    return <ErrorDialogContent error={error} onClick={onBack} />;
+  }
+
   return (
-    <>
+    <div className="md:w-[700px]">
       <h3 className="text-xl font-bold tracking-tight">Repay {name}</h3>
       <p className="my-4">
         Repay some or all of your loan. Repaying the loan in full will return the collateral back to you.
@@ -97,7 +129,7 @@ const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) =
       </p>
       <p className="font-bold mb-2 mt-6">Select the amount to repay</p>
       <CryptoAmountSelector
-        max={max}
+        max={loanBalance}
         value={amount}
         valueCents={valueCents}
         ticker={borrowedTicker}
@@ -108,30 +140,13 @@ const RepayView = ({ loan, onBack, onSuccess, onFullSuccess }: RepayViewProps) =
         <Button onClick={onBack} variant="ghost">
           Back
         </Button>
-        {!isRepaying ? (
-          <Button disabled={isRepayingAll || amount === '0'} onClick={handleRepayClick}>
-            Repay
-          </Button>
-        ) : (
-          <LoadingButton />
-        )}
-        {!isRepayingAll ? (
-          <Button disabled={isRepaying} onClick={handleRepayAllClick}>
-            Repay All
-          </Button>
-        ) : (
-          <LoadingButton />
-        )}
+        <Button disabled={amount === 0n} onClick={handleRepayClick}>
+          Repay
+        </Button>
+        <Button onClick={handleRepayAllClick}>Repay All</Button>
       </div>
-    </>
+    </div>
   );
 };
-
-const LoadingButton = () => (
-  <Button disabled>
-    <Loading />
-    Repaying
-  </Button>
-);
 
 export default RepayView;

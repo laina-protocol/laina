@@ -1,17 +1,19 @@
-import { useWallet } from '@contexts/wallet-context';
-import { isBalanceZero } from '@lib/converters';
-import { formatCentAmount } from '@lib/formatting';
-import type { SupportedCurrency } from 'currencies';
 import { isNil } from 'ramda';
 import type { ChangeEvent } from 'react';
+import { NumericFormat } from 'react-number-format';
+
+import { useWallet } from '@contexts/wallet-context';
+import { decimalStringToStroops, isBalanceZero, stroopsToDecimalString } from '@lib/converters';
+import { formatCentAmount } from '@lib/formatting';
+import type { SupportedCurrency } from 'currencies';
 import { Button } from './Button';
 
 export interface CryptoAmountSelectorProps {
-  max: string;
-  value: string;
+  max: bigint;
+  value: bigint;
   valueCents: bigint | undefined;
   ticker: SupportedCurrency;
-  onChange: (ev: ChangeEvent<HTMLInputElement>) => void;
+  onChange: (stroops: bigint) => void;
   onSelectMaximum: () => void;
   tickerChangeOptions?: TickerChangeOptions;
 }
@@ -29,50 +31,87 @@ export const CryptoAmountSelector = ({
   onChange,
   onSelectMaximum,
   tickerChangeOptions,
-}: CryptoAmountSelectorProps) => (
-  <>
-    <input type="range" min={0} max={max} value={value ?? '0'} className="range" onChange={onChange} />
-    <div className="flex w-full justify-between px-2 text-xs">
-      <span>|</span>
-      <span>|</span>
-      <span>|</span>
-      <span>|</span>
-      <span>|</span>
-    </div>
-    <div className="flex flex-row items-center max-w-full gap-2">
-      {isNil(tickerChangeOptions) ? (
-        <label className="input input-bordered flex items-center gap-2 w-1/2">
-          <input type="number" value={value} onChange={onChange} placeholder="" className="text-right w-1/2" />
-          <span className="text-grey w-1/2">{ticker}</span>
-        </label>
-      ) : (
-        <div className="join w-1/2">
-          <input
-            type="number"
-            value={value}
-            onChange={onChange}
-            placeholder=""
-            className="input input-bordered text-right w-1/2 join-item"
-          />
-          <select
-            className="select select-bordered w-1/2 join-item"
-            value={ticker}
-            onChange={(ev) => {
-              tickerChangeOptions.onSelectTicker(ev.target.value as SupportedCurrency);
-            }}
-          >
-            {tickerChangeOptions.options.map((ticker) => (
-              <TickerOption key={ticker} ticker={ticker} />
-            ))}
-          </select>
-        </div>
-      )}
-      <span className="w-1/3">{valueCents ? `≈ ${formatCentAmount(valueCents)}` : null}</span>
-      <Button variant="outline" onClick={onSelectMaximum}>
-        Select maximum
-      </Button>
-    </div>
-  </>
+}: CryptoAmountSelectorProps) => {
+  const maxStr = stroopsToDecimalString(max);
+  const valueStr = stroopsToDecimalString(value);
+
+  const handleSliderChange = (ev: ChangeEvent<HTMLInputElement>) => {
+    onChange(BigInt(ev.target.value));
+  };
+
+  const handleChange = (ev: ChangeEvent<HTMLInputElement>) => {
+    onChange(decimalStringToStroops(ev.target.value));
+  };
+
+  return (
+    <>
+      <input
+        type="range"
+        min={0}
+        max={max.toString()}
+        value={value.toString()}
+        className="range"
+        onChange={handleSliderChange}
+      />
+      <div className="flex w-full justify-between px-2 text-xs">
+        <span>|</span>
+        <span>|</span>
+        <span>|</span>
+        <span>|</span>
+        <span>|</span>
+      </div>
+      <div className="flex flex-row items-center max-w-full">
+        {isNil(tickerChangeOptions) ? (
+          <div className="input input-bordered flex items-center w-64">
+            <span className="text-grey w-1/2">{ticker}</span>
+            <NumberInput className="w-1/2" value={valueStr} max={maxStr} onChange={handleChange} />
+          </div>
+        ) : (
+          <div className="join w-64">
+            <select
+              className="select select-bordered w-1/2 join-item"
+              value={ticker}
+              onChange={(ev) => {
+                tickerChangeOptions.onSelectTicker(ev.target.value as SupportedCurrency);
+              }}
+            >
+              {tickerChangeOptions.options.map((ticker) => (
+                <TickerOption key={ticker} ticker={ticker} />
+              ))}
+            </select>
+            <NumberInput
+              className="input input-bordered w-2/3 join-item"
+              value={valueStr}
+              max={maxStr}
+              onChange={handleChange}
+            />
+          </div>
+        )}
+        <span className="w-1/3 ml-2">{valueCents ? `≈ ${formatCentAmount(valueCents)}` : null}</span>
+        <Button variant="outline" onClick={onSelectMaximum}>
+          Select maximum
+        </Button>
+      </div>
+    </>
+  );
+};
+
+interface NumberInputProps {
+  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  value: string;
+  max: string;
+  className?: string;
+}
+
+const NumberInput = ({ onChange, value, max, className }: NumberInputProps) => (
+  <NumericFormat
+    className={className}
+    onChange={onChange}
+    allowNegative={false}
+    decimalScale={7}
+    value={value}
+    max={max}
+  />
 );
 
 const TickerOption = ({ ticker }: { ticker: SupportedCurrency }) => {

@@ -15,6 +15,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
+    "react-number-format": "^5.4.3",
     "react-router-dom": "^7.1.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
@@ -28,7 +29,8 @@
     "postcss": "^8.5.1",
     "prettier": "^3.4.2",
     "prettier-plugin-astro": "^0.14.1",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "vitest": "^3.0.5"
   },
   "name": "sorobanathon",
   "scripts": {
@@ -40,6 +42,7 @@
     "preview": "astro preview",
     "start": "npm run init && astro dev",
     "continue": "astro dev",
+    "test": "vitest",
     "lint": "biome check --write ./src",
     "lint:fix": "biome check --fix --unsafe ./src",
     "lint:check": "biome check ./src",

@@ -1,4 +1,4 @@
-import { type ChangeEvent, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@components/Button';
 import { CryptoAmountSelector } from '@components/CryptoAmountSelector';
@@ -9,7 +9,7 @@ import { useLoans } from '@contexts/loan-context';
 import { usePools } from '@contexts/pool-context';
 import { useWallet } from '@contexts/wallet-context';
 import { contractClient as loanManagerClient } from '@contracts/loan_manager';
-import { getIntegerPart, isBalanceZero, to7decimals } from '@lib/converters';
+import { decimalStringToStroops, isBalanceZero, stroopsToDecimalString } from '@lib/converters';
 import { SCALAR_7, formatAPR, fromCents, toCents } from '@lib/formatting';
 import type { SupportedCurrency } from 'currencies';
 import { CURRENCY_BINDINGS, CURRENCY_BINDINGS_ARR, type CurrencyBinding } from 'src/currency-bindings';
@@ -28,7 +28,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [isBorrowingSuccess, setIsBorrowingSuccess] = useState(false);
   const [borrowingError, setBorrowingError] = useState<Error | null>(null);
-  const [loanAmount, setLoanAmount] = useState<string>('0');
+  const [loanAmount, setLoanAmount] = useState(0n);
 
   const collateralOptions: SupportedCurrency[] = CURRENCY_BINDINGS_ARR.filter((c) => c.ticker !== ticker).map(
     ({ ticker }) => ticker,
@@ -39,29 +39,27 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
   });
 
   const [collateralTicker, setCollateralTicker] = useState<SupportedCurrency>(initialCollateral ?? 'XLM');
-  const [collateralAmount, setCollateralAmount] = useState<string>('0');
+  const [collateralAmount, setCollateralAmount] = useState(0n);
 
   if (!pools || !prices || !walletBalances) return null;
 
   const { annualInterestRate, availableBalanceTokens } = pools[ticker];
 
   const loanBalance = walletBalances[ticker];
-  const collateralBalance = walletBalances[collateralTicker];
+  const collateralTickerBalance = walletBalances[collateralTicker];
 
   const loanPrice = prices[ticker];
   const collateralPrice = prices[collateralTicker];
 
-  const loanAmountCents = loanPrice ? toCents(loanPrice, BigInt(loanAmount) * SCALAR_7) : undefined;
-  const collateralAmountCents = collateralPrice
-    ? toCents(collateralPrice, BigInt(collateralAmount) * SCALAR_7)
-    : undefined;
+  const loanAmountCents = loanPrice ? toCents(loanPrice, loanAmount) : undefined;
+  const collateralAmountCents = collateralPrice ? toCents(collateralPrice, collateralAmount) : undefined;
 
   const healthFactor =
     loanAmountCents && loanAmountCents > 0n ? Number(collateralAmountCents) / Number(loanAmountCents) : 0;
 
   const handleClose = () => {
-    setLoanAmount('0');
-    setCollateralAmount('0');
+    setLoanAmount(0n);
+    setCollateralAmount(0n);
     setIsBorrowing(false);
     setIsBorrowingSuccess(false);
     setBorrowingError(null);
@@ -85,9 +83,9 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
       const tx = await loanManagerClient.create_loan({
         user: wallet.address,
-        borrowed: to7decimals(loanAmount),
+        borrowed: loanAmount,
         borrowed_from: loanCurrencyId,
-        collateral: to7decimals(collateralAmount),
+        collateral: collateralAmount,
         collateral_from: collateralCurrencyId,
       });
       await tx.signAndSend({ signTransaction });
@@ -103,41 +101,42 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
     setIsBorrowing(false);
   };
 
-  const handleLoanAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
-    setLoanAmount(ev.target.value);
+  const handleLoanAmountChange = (stroops: bigint) => {
+    setLoanAmount(stroops);
 
     if (!loanPrice || !collateralPrice) return;
 
     // Move the collateral to reach the good health threshold
-    const loanAmountCents = toCents(loanPrice, BigInt(ev.target.value) * SCALAR_7);
+    const loanAmountCents = toCents(loanPrice, stroops);
     const minHealthyCollateralCents = BigInt(Math.ceil(HEALTH_FACTOR_AUTO_THRESHOLD * Number(loanAmountCents) + 100));
-    const minHealthyCollateral = fromCents(collateralPrice, minHealthyCollateralCents) / SCALAR_7;
-    if (minHealthyCollateral <= BigInt(maxCollateral)) {
-      setCollateralAmount(minHealthyCollateral.toString());
+    const minHealthyCollateral = fromCents(collateralPrice, minHealthyCollateralCents);
+    if (minHealthyCollateral <= maxCollateral) {
+      setCollateralAmount(minHealthyCollateral);
     } else {
       setCollateralAmount(maxCollateral);
     }
   };
 
-  const handleCollateralAmountChange = (ev: ChangeEvent<HTMLInputElement>) => {
-    setCollateralAmount(ev.target.value);
+  const handleCollateralAmountChange = (stroops: bigint) => {
+    setCollateralAmount(stroops);
   };
 
   const handleCollateralTickerChange = (ticker: SupportedCurrency) => {
     setCollateralTicker(ticker);
-    setCollateralAmount('0');
+    setCollateralAmount(0n);
   };
 
   const isTrustline = loanBalance.trustLine;
 
   const isBorrowDisabled =
-    !isTrustline || loanAmount === '0' || collateralAmount === '0' || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
+    !isTrustline || loanAmount === 0n || collateralAmount === 0n || healthFactor < HEALTH_FACTOR_MIN_THRESHOLD;
 
-  const maxLoan = (availableBalanceTokens / 10_000_000n).toString();
+  const collateralBalance = decimalStringToStroops(
+    collateralTickerBalance.trustLine ? collateralTickerBalance.balanceLine.balance : '0',
+  );
+  const maxCollateral = collateralTicker === 'XLM' ? collateralBalance - 3n * SCALAR_7 : collateralBalance;
 
-  const maxCollateral = getIntegerPart(collateralBalance.trustLine ? collateralBalance.balanceLine.balance : '0');
-
-  const handleSelectMaxLoan = () => setLoanAmount(maxLoan);
+  const handleSelectMaxLoan = () => setLoanAmount(availableBalanceTokens);
 
   const handleSelectMaxCollateral = () => setCollateralAmount(maxCollateral);
 
@@ -145,14 +144,19 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
     return (
       <LoadingDialogContent
         title="Creating a loan"
-        subtitle={`Borrowing ${loanAmount} ${ticker}`}
+        subtitle={`Borrowing ${stroopsToDecimalString(loanAmount)} ${ticker}`}
         onClick={handleClose}
       />
     );
   }
 
   if (isBorrowingSuccess) {
-    return <SuccessDialogContent subtitle={`Succesfully borrowed ${loanAmount} ${ticker}`} onClick={handleClose} />;
+    return (
+      <SuccessDialogContent
+        subtitle={`Succesfully borrowed ${stroopsToDecimalString(loanAmount)} ${ticker}`}
+        onClick={handleClose}
+      />
+    );
   }
 
   if (borrowingError) {
@@ -179,7 +183,7 @@ export const BorrowStep = ({ onClose, currency }: BorrowStepProps) => {
 
       <p className="font-bold mb-2 mt-6">Amount to borrow</p>
       <CryptoAmountSelector
-        max={maxLoan}
+        max={availableBalanceTokens}
         value={loanAmount}
         valueCents={loanAmountCents}
         ticker={ticker}
